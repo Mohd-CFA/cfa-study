@@ -2327,6 +2327,7 @@ body.rd-fs .mod-reading { height: 100dvh !important; }
 body.rd-fs main#view { padding: 0 !important; max-width: none !important; }
 .qcard p, .qcard .opt, .qcard .text-sm { font-size: calc(var(--qfs, 1) * 0.95rem) !important; }
 .qcard p.text-\[15px\] { font-size: calc(var(--qfs, 1) * 15px) !important; }
+@media (min-width: 48rem) { .md\:col-span-2 { grid-column: span 2 / span 2; } }
 /* ---- FSA module additions ---- */
 #tip { position: fixed; z-index: 200; max-width: 320px; padding: 8px 10px; border-radius: 10px; background: #0f172a; color: #fff; font-size: 12px; line-height: 1.5; white-space: pre-line; box-shadow: 0 10px 30px rgba(0,0,0,.3); pointer-events: none; opacity: 0; transition: opacity .12s; left: -999px; top: -999px; }
 #tip.show { opacity: 1; }
@@ -6048,13 +6049,7 @@ async function settings() {
   <h1 class="h1">⚙️ Settings</h1>
   <div class="grid md:grid-cols-2 gap-4">
     <div class="card md:col-span-2"><h3 class="sec">📦 Modules</h3>
-      <p class="text-sm text-slate-600 dark:text-slate-300">Upload the module file (.json) prepared from your Schweser, Curriculum and question banks. It adds the module — or updates it — with its Study Map, Extras, Conflicts and question answer key. Your notes, highlights, flashcards and answers are kept.</p>
-      <label class="upload mt-3" style="padding:1rem"><input type="file" accept=".json,application/json" multiple id="packUp" class="hidden"><div class="font-semibold text-sm">⬆️ Add / update module</div><div class="text-xs text-slate-500">one or more .json module files</div></label>
-      <div id="packMsg" class="text-sm mt-2"></div>
-      <div class="mt-3 divide-y">${packs.map(p => `<div class="flex flex-wrap items-center gap-2 py-2 text-sm"><span class="chip">${p.x.short}</span><span class="flex-1 min-w-[160px] font-medium">${esc(p.x.m.title)}</span>
-        <span class="text-xs text-slate-500">v${esc(String(p.D.module?.version || '—'))} · ${p.D.los.length} LOS · ${p.D.extras.length} extras · ${p.D.conflicts.length} conflicts · ${p.D.questions.length} indexed Qs${p.builtin ? ' · built-in' : ''}</span>
-        <a class="link text-xs" href="${p.x.href}/map">open</a><button class="link text-xs" data-pdl="${p.id}">download</button>${p.builtin ? '' : `<button class="link text-rose-600 text-xs" data-pdel="${p.id}">remove</button>`}</div>`).join('')}</div>
-      <p class="text-[11px] text-slate-500 mt-2">The module list of each topic follows the 2027 curriculum; titles of modules that are not loaded yet are placeholders and are replaced by the title in the module file.</p></div>
+      <div id="modLib"></div></div>
     <div class="card"><h3 class="sec">💾 Backup & restore</h3>
       <p class="text-sm text-slate-600 dark:text-slate-300">One file with everything you created: Mohd Summary, highlights, extras, answers, times, confidence, mistake reasons, notes on questions, flashcards, AI summaries, imported questions, module files, study plan and settings. Books themselves are not included (they stay in Library).</p>
       <div class="flex flex-wrap gap-2 mt-3"><button id="exp" class="btn-primary">⬇️ Download backup</button>
@@ -6082,7 +6077,8 @@ async function settings() {
     if (await pendingCount() && !confirm('Some changes have not uploaded yet (no internet). Sign out anyway and lose them?')) return;
     await sb.auth.signOut(); await wipeDevice(); user = null; location.hash = '#/'; loginScreen('Signed out.');
   };
-  document.getElementById('packUp').onchange = async e => {
+  await mountModulesLib(document.getElementById('modLib'));
+  if (document.getElementById('packUp')) document.getElementById('packUp').onchange = async e => {
     const msg = document.getElementById('packMsg'), out = [];
     for (const f of e.target.files) { try { const r = await installPack(JSON.parse(await f.text())); out.push(`✅ ${esc(f.name)} → ${packX(r.id).short} · ${esc(r.title || '')} (${r.los} LOS)`); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); } }
     e.target.value = ''; await settings(); document.getElementById('packMsg').innerHTML = out.join('<br>');
@@ -6091,7 +6087,7 @@ async function settings() {
     const dl = e.target.dataset.pdl, del = e.target.dataset.pdel;
     if (dl) download(`${PACKS[dl].module?.module_id || dl}.json`, JSON.stringify(PACKS[dl], null, 1), 'application/json');
     if (del && confirm(`Remove the module file for ${packX(del).short}? Your notes and answers stay; the module shows as "Not loaded" until you upload it again.`)) {
-      await kv.set('pack:' + del, null); await kv.set('packIds', (await kv.get('packIds', [])).filter(z => z !== del)); await loadPacks(); settings();
+      await kv.set('pack:' + del, null); await kv.set('packIds', (await kv.get('packIds', [])).filter(z => z !== del)); await loadPacks(); OPEN_SUBJ.add(del.split('-')[0]); settings();
     }
   };
   document.getElementById('exp').onclick = async () => {
@@ -6557,6 +6553,147 @@ async function videoPlayer(mid, idx) {
   return () => { view.oninput = view.onchange = view.onclick = null; vid.pause(); if (localUrl) URL.revokeObjectURL(localUrl); };
 }
 
+// ================= v12 · organised Modules library (Settings) & Library by topic → module =================
+const BOOK_KINDS = [['schweser', '📗 Schweser'], ['curriculum', '📘 Curriculum'], ['aipdf', '🤖 AI Summary (PDF)']];
+let OPEN_SUBJ = new Set();
+const subjOpen = id => OPEN_SUBJ.has(id);
+const toggleSubj = id => { OPEN_SUBJ.has(id) ? OPEN_SUBJ.delete(id) : OPEN_SUBJ.add(id); };
+
+// ---------- Settings → Modules: topic → module → file ----------
+async function modulesLibHTML() {
+  const mods = moduleList();
+  return `<p class="text-sm text-slate-600 dark:text-slate-300">Open a topic, then upload the module file (.json) next to the module it belongs to. If the file belongs to a different module, you will be warned before anything is saved. Replacing a file keeps your notes, answers and cards.</p>
+  <div class="mt-3 space-y-2">${SUBJECTS.map(sj => {
+    const ms = mods.filter(m => m.subject === sj.id), n = ms.filter(m => m.kind === 'pack').length;
+    return `<div class="rounded-xl border border-slate-200 dark:border-slate-700">
+      <button class="w-full flex items-center gap-2 p-3 text-left" data-msubj="${sj.id}"><span>${subjOpen(sj.id) ? '▾' : '▸'}</span><span class="font-semibold flex-1">${sj.icon} ${sj.name}</span>
+        <span class="text-xs text-slate-500 mr-2">${W_RANGE[sj.id]}</span><span class="mx ${n === ms.length ? 'mx-green' : n ? 'mx-amber' : 'mx-grey'}">${n}/${ms.length}</span></button>
+      ${subjOpen(sj.id) ? `<div class="divide-y border-t border-slate-200 dark:border-slate-700">${ms.map(m => {
+        const D = m.kind === 'pack' ? PACKS[m.id] : null, md = D?.module || {};
+        return `<div class="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+          <span class="chip">LM ${globalLM(m)}</span><span class="chip">${m.short}</span><span class="flex-1 min-w-[180px] ${D ? 'font-medium' : 'text-slate-500'}">${esc(m.title)}</span>
+          ${D ? `<span class="text-[11px] text-slate-500">✅ v${esc(String(md.version || '—'))}${md.last_updated ? ' · ' + esc(String(md.last_updated)) : ''} · ${D.los.length} LOS · ${D.questions.length} Q</span>
+            <a class="link text-xs" href="${m.href}/map">Open</a><button class="link text-xs" data-pdl="${m.id}">Download</button>
+            <label class="link text-xs cursor-pointer">Replace<input type="file" accept=".json,application/json" class="hidden" data-mup="${m.subject}-${m.num}"></label>
+            ${D === PACK_FSA1 ? '' : `<button class="link text-rose-600 text-xs" data-pdel="${m.id}">Remove</button>`}`
+          : m.kind === 'legacy' ? `<span class="text-[11px] text-slate-500">old built-in version</span><label class="btn-ghost text-xs cursor-pointer">⬆️ Upload<input type="file" accept=".json,application/json" class="hidden" data-mup="${m.subject}-${m.num}"></label>`
+          : `<span class="text-[11px] text-slate-400">⬜ not loaded</span><label class="btn-primary text-xs cursor-pointer">⬆️ Upload<input type="file" accept=".json,application/json" class="hidden" data-mup="${m.subject}-${m.num}"></label>`}
+        </div>`; }).join('')}</div>` : ''}</div>`; }).join('')}</div>
+  <div id="packMsg" class="text-sm mt-2"></div>`;
+}
+async function uploadPackInto(target, file) {
+  const D = JSON.parse(await file.text()), md = D.module = D.module || {};
+  const [ts, tn] = target.split('-'), fs = SUBJ_CODE[String(md.subject || '').toUpperCase().trim()], fn = +md.lm_no;
+  const tShort = `${SUBJ_SHORT[ts]} LM${tn}`;
+  if (fs && fn && (fs !== ts || fn !== +tn)) {
+    if (!confirm(`⚠ This file is ${SUBJ_SHORT[fs]} LM${fn}${md.title ? ' — ' + md.title : ''}, but you chose ${tShort}.\n\nOK = save it as ${tShort} anyway\nCancel = do not upload`)) throw new Error(`Not uploaded — the file belongs to ${SUBJ_SHORT[fs]} LM${fn}`);
+  }
+  if (PACKS[target] && PACKS[target] !== PACK_FSA1 && !confirm(`Replace the current file of ${tShort} (v${PACKS[target].module?.version || '—'}) with v${md.version || '—'}?\nYour notes, answers and flashcards stay.`)) throw new Error('Cancelled');
+  md.subject = SUBJ_SHORT[ts]; md.lm_no = +tn;
+  return installPack(D);
+}
+async function mountModulesLib(el) {
+  const draw = async () => { el.innerHTML = await modulesLibHTML(); };
+  el.onclick = async e => {
+    const b = e.target.closest('[data-msubj]'); if (b) { toggleSubj(b.dataset.msubj); draw(); }
+  };
+  el.onchange = async e => {
+    const t = e.target.dataset.mup; if (!t || !e.target.files[0]) return;
+    let msg;
+    try { const r = await uploadPackInto(t, e.target.files[0]); msg = `✅ ${packX(r.id).short} · ${esc(r.title || '')} (${r.los} LOS)`; }
+    catch (err) { msg = `<span class="text-rose-600">❌ ${esc(err.message)}</span>`; }
+    OPEN_SUBJ.add(t.split('-')[0]); await draw(); el.querySelector('#packMsg').innerHTML = msg;
+  };
+  await draw();
+}
+
+// ---------- Library: topic → module → books ----------
+async function library() {
+  const files = await db.all('files'), map = await kv.get('moduleMap', {}), mods = moduleList();
+  const cached = {}; for (const f of files) cached[f.id] = await isCached(f.id);
+  const cloudMB = files.filter(f => !f.localOnly).reduce((a, f) => a + (f.size || 0), 0) / 1048576;
+  const used = new Set(); Object.values(map).forEach(v => Object.values(v || {}).forEach(l => l?.fileId && used.add(l.fileId)));
+  const fname = id => { const f = files.find(z => z.id === id); return f ? (f.label || f.name) : '(book not on this device)'; };
+  const slot = (m, k, label) => {
+    const l = map[m.id]?.[k];
+    if (l) return `<div class="flex flex-wrap items-center gap-2 text-xs py-1"><span class="w-36 shrink-0">${label}</span>
+      <a class="link flex-1 min-w-0 truncate" href="#/read/${encodeURIComponent(l.fileId)}?p=${l.page}">${esc(fname(l.fileId))}</a>
+      ${k === 'aipdf' ? '' : `<span class="text-slate-500">starts p.</span><input type="number" min="1" value="${l.page}" class="inp w-20 py-0.5" data-lpage="${m.id}|${k}">`}
+      <button class="link text-rose-600" data-lun="${m.id}|${k}" title="Unlink (the book stays in Library)">Unlink</button></div>`;
+    const opts = files.filter(f => k === 'aipdf' ? f.kind === 'aisum' : f.kind === k);
+    return `<div class="flex flex-wrap items-center gap-2 text-xs py-1"><span class="w-36 shrink-0 text-slate-500">${label}</span>
+      <label class="btn-primary text-xs cursor-pointer">⬆️ Upload<input type="file" accept="application/pdf" class="hidden" data-lup="${m.id}|${k}"></label>
+      ${opts.length ? `<span class="text-slate-400">or</span><select class="inp w-auto py-0.5 text-xs" data-lpick="${m.id}|${k}"><option value="">Use a book already uploaded…</option>${opts.map(f => `<option value="${esc(f.id)}">${esc(f.label || f.name)}</option>`).join('')}</select>` : ''}</div>`;
+  };
+  const loose = files.filter(f => !used.has(f.id));
+  view.innerHTML = crumbs([['Home', '#/'], ['Library']]) + `
+  <h1 class="h1">📁 Library</h1>
+  <p class="text-sm text-slate-500 -mt-2 mb-4">Organised by topic and module. Open a topic and upload each book next to its module — it is linked automatically. One Schweser or Curriculum book often covers several modules: upload it once, then pick it for the other modules and set the page where each module starts.</p>
+  <label class="flex items-center gap-2 text-sm mb-3" data-tip="The book is kept only in this browser and does not use your cloud space. Other devices will list it but cannot open it until you upload it to the cloud."><input type="checkbox" id="locOnly" class="accent-indigo-600"> Keep new uploads on this device only</label>
+  <div id="upMsg" class="text-sm my-2"></div>
+  <div class="space-y-2">${SUBJECTS.map(sj => {
+    const ms = mods.filter(m => m.subject === sj.id), nb = ms.filter(m => map[m.id]?.schweser || map[m.id]?.curriculum).length;
+    return `<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+      <button class="w-full flex items-center gap-2 p-3 text-left" data-lsubj="${sj.id}"><span>${subjOpen(sj.id) ? '▾' : '▸'}</span><span class="font-semibold flex-1">${sj.icon} ${sj.name}</span>
+        <span class="mx ${nb === ms.length ? 'mx-green' : nb ? 'mx-amber' : 'mx-grey'}" data-tip="Modules with at least one book linked">${nb}/${ms.length} with books</span></button>
+      ${subjOpen(sj.id) ? `<div class="border-t border-slate-200 dark:border-slate-700 divide-y">
+        ${ms.map(m => `<div class="px-3 py-2"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip">LM ${globalLM(m)}</span><span class="font-medium flex-1">${m.num}. ${esc(m.title)}</span><a class="link text-xs" href="${m.href}/map">Open module</a></div>
+          ${BOOK_KINDS.map(([k, l]) => slot(m, k, l)).join('')}</div>`).join('')}
+        <div class="px-3 py-2 text-xs text-slate-400" data-tip="Agreed: added after all modules of this topic are linked — questions isolated from module Qbanks, mini-exams and mocks; any source, named at upload">🎯 Topic Qbank files — available after all ${ms.length} modules of this topic are linked</div></div>` : ''}</div>`; }).join('')}</div>
+  <div class="card mt-4"><h3 class="sec">Other books & files <span class="normal-case font-normal">· not linked to a module (${loose.length})</span></h3>
+    <label class="btn-ghost text-xs cursor-pointer">⬆️ Upload a PDF here<input type="file" accept="application/pdf" multiple class="hidden" id="up"></label>
+    <div class="space-y-2 mt-2">${loose.map(f => bookRow(f, cached)).join('') || '<div class="text-xs text-slate-500">Nothing here.</div>'}</div>
+    ${files.length > loose.length ? `<details class="mt-3"><summary class="text-xs cursor-pointer text-indigo-600">All books (${files.length}) — rename, change type, delete</summary><div class="space-y-2 mt-2">${files.filter(f => used.has(f.id)).map(f => bookRow(f, cached)).join('')}</div></details>` : ''}</div>
+  <div class="text-xs text-slate-500 mt-4">Cloud storage used by books: ${cloudMB.toFixed(0)} MB (free plan includes 1 GB).</div>`;
+
+  const msg = () => document.getElementById('upMsg');
+  async function addBook(f, kind) {
+    const { inspectPdf } = await reader(), locOnly = document.getElementById('locOnly').checked;
+    if (!navigator.onLine && !locOnly) throw new Error('You are offline. Connect to the internet to upload books.');
+    msg().textContent = `Reading ${f.name}…`;
+    const info = await inspectPdf(f), old = await db.get('files', info.id); let parts = old?.parts;
+    if (!locOnly && (!old || old.size !== f.size || old.localOnly)) parts = await uploadBook(info.id, f, p => { msg().textContent = `Uploading ${f.name}… ${Math.round(p * 100)}%`; });
+    await cacheBlob(info.id, f);
+    await db.put('files', { id: info.id, name: f.name, label: old?.label || f.name.replace(/\.pdf$/i, ''), kind: kind || old?.kind || 'other', pages: info.pages, size: f.size, parts: locOnly ? 0 : parts, localOnly: locOnly, added: old?.added || Date.now() });
+    await flush(); return info;
+  }
+  async function link(mid, k, fileId, page = 1) { const M = await kv.get('moduleMap', {}); M[mid] = M[mid] || {}; M[mid][k] = { fileId, page }; await kv.set('moduleMap', M); }
+  view.onchange = async e => {
+    const t = e.target;
+    try {
+      if (t.dataset.lup && t.files[0]) { const [mid, k] = t.dataset.lup.split('|'); const info = await addBook(t.files[0], k === 'aipdf' ? 'aisum' : k); await link(mid, k, info.id, 1); OPEN_SUBJ.add(mid.split('-')[0]); toast('Uploaded and linked — set the start page if the book covers several modules'); return library(); }
+      if (t.dataset.lpick && t.value) { const [mid, k] = t.dataset.lpick.split('|'); await link(mid, k, t.value, 1); toast('Linked — now set the page where this module starts'); return library(); }
+      if (t.dataset.lpage) { const [mid, k] = t.dataset.lpage.split('|'), M = await kv.get('moduleMap', {}); M[mid][k].page = Math.max(1, +t.value || 1); await kv.set('moduleMap', M); toast('Start page saved'); return; }
+      if (t.id === 'up') { for (const f of t.files) await addBook(f, /schweser|kaplan|notes/i.test(f.name) ? 'schweser' : /curric|cfa ?inst|volume/i.test(f.name) ? 'curriculum' : 'other'); return library(); }
+      if (t.dataset.kind || t.dataset.label) { const id = t.dataset.kind || t.dataset.label, f = await db.get('files', id); if (t.dataset.kind) f.kind = t.value; else f.label = t.value; await db.put('files', f); }
+    } catch (err) { msg().innerHTML = `<span class="text-rose-600">❌ ${esc(err.message || String(err))}</span>`; }
+  };
+  view.onclick = async e => {
+    const t = e.target, s = t.closest('[data-lsubj]');
+    if (s) { toggleSubj(s.dataset.lsubj); return library(); }
+    if (t.dataset.lun) { const [mid, k] = t.dataset.lun.split('|'), M = await kv.get('moduleMap', {}); delete M[mid][k]; await kv.set('moduleMap', M); return library(); }
+    const id = t.dataset.del, un = t.dataset.uncache;
+    if (id && confirm('Delete this book from your account on ALL devices? Your highlights and notes stay, and module links to it are removed.')) {
+      const f = await db.get('files', id);
+      if (!f.localOnly) try { await deleteBookFiles(f); } catch (err) { alert('Could not delete from cloud: ' + err.message); return; }
+      const M = await kv.get('moduleMap', {}); for (const v of Object.values(M)) for (const k of Object.keys(v || {})) if (v[k]?.fileId === id) delete v[k]; await kv.set('moduleMap', M);
+      await uncache(id); await db.del('files', id); return library();
+    }
+    if (un) { await uncache(un); toast('Download removed from this device'); return library(); }
+    const tc = t.dataset.tocloud;
+    if (tc) { const f = await db.get('files', tc), b = (await local.get('blobs', tc))?.blob; if (!b) return; t.textContent = 'uploading…'; const parts = await uploadBook(tc, b, pr => { t.textContent = `uploading… ${Math.round(pr * 100)}%`; }); await db.put('files', { ...f, parts, localOnly: false }); await flush(); return library(); }
+  };
+  return () => { view.onchange = null; view.onclick = null; };
+}
+function bookRow(f, cached) {
+  return `<div class="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm">
+    <span class="text-xl">${f.kind === 'schweser' ? '📗' : f.kind === 'curriculum' ? '📘' : f.kind === 'aisum' ? '🤖' : '📄'}</span>
+    <div class="flex-1 min-w-[180px]"><input class="font-medium bg-transparent w-full outline-none border-b border-transparent focus:border-indigo-400" value="${esc(f.label || f.name)}" data-label="${esc(f.id)}">
+      <div class="text-[11px] text-slate-500">${f.pages} pages · ${(f.size / 1048576).toFixed(1)} MB · ${f.localOnly ? `📱 this device only${cached[f.id] ? ` · <button class="link" data-tocloud="${esc(f.id)}">upload to cloud</button>` : ''}` : '☁️ cloud'}${cached[f.id] ? ` · <button class="link" data-uncache="${esc(f.id)}">remove download</button>` : ''}</div></div>
+    <select class="inp w-auto py-1 text-xs" data-kind="${esc(f.id)}">${['schweser', 'curriculum', 'aisum', 'cards', 'other'].map(k => `<option ${f.kind === k ? 'selected' : ''} value="${k}">${k === 'aisum' ? 'AI Summary' : k[0].toUpperCase() + k.slice(1)}</option>`).join('')}</select>
+    <a class="btn-primary text-xs" href="#/read/${encodeURIComponent(f.id)}">Open</a><button class="btn-ghost text-xs text-red-600" data-del="${esc(f.id)}">Delete</button></div>`;
+}
+
 // ---------------- router ----------------
 const routes = [
   [/^#?\/?$/, home],
@@ -6771,75 +6908,6 @@ async function mohdTab(body, x) {
 }
 
 // ---------------- LIBRARY ----------------
-async function library() {
-  const files = await db.all('files');
-  const cached = {}; for (const f of files) cached[f.id] = await isCached(f.id);
-  const cloudMB = files.filter(f => !f.localOnly).reduce((a, f) => a + (f.size || 0), 0) / 1048576;
-  view.innerHTML = crumbs([['Home', '#/'], ['Library']]) + `
-  <h1 class="h1">📁 Library</h1>
-  <p class="text-sm text-slate-500 -mt-2 mb-4">Upload each book once. It is stored privately in your account and opens on any device after you sign in (downloaded once per device, then it opens instantly).</p>
-  <label class="upload">
-    <input type="file" accept="application/pdf" multiple id="up" class="hidden">
-    <div class="text-3xl">⬆️</div><div class="font-semibold">Upload PDF books</div><div class="text-xs text-slate-500">Schweser Notes · CFA Curriculum · any PDF</div>
-  </label>
-  <label class="flex items-center gap-2 text-sm mt-2" data-tip="The book is kept only in this browser and does not use your 1 GB cloud space. Other devices will list it but cannot open it until you upload it to the cloud."><input type="checkbox" id="locOnly" class="accent-indigo-600"> Save on this device only (don't upload to the cloud)</label>
-  <div id="upMsg" class="text-sm my-2"></div>
-  <div class="space-y-2 mt-3">${files.map(f => `
-    <div class="card flex flex-wrap items-center gap-3">
-      <div class="text-2xl">${f.kind === 'schweser' ? '📗' : f.kind === 'curriculum' ? '📘' : '📄'}</div>
-      <div class="flex-1 min-w-[180px]">
-        <input class="font-semibold bg-transparent w-full outline-none border-b border-transparent focus:border-indigo-400" value="${esc(f.label || f.name)}" data-label="${esc(f.id)}">
-        <div class="text-xs text-slate-500">${f.pages} pages · ${(f.size / 1048576).toFixed(1)} MB · ${f.localOnly ? `📱 this device only · ${cached[f.id] ? `<button class="link" data-tocloud="${esc(f.id)}">upload to cloud</button>` : 'saved on another device'}` : `☁️ in your account · ${cached[f.id] ? `💾 downloaded here <button class="link" data-uncache="${esc(f.id)}">remove download</button> · <button class="link" data-tolocal="${esc(f.id)}" data-tip="Remove the cloud copy to free cloud space; the book stays in this browser">keep on this device only</button>` : 'not downloaded on this device yet'}`}</div>
-      </div>
-      <select class="inp w-auto" data-kind="${esc(f.id)}">
-        ${['schweser', 'curriculum', 'aisum', 'cards', 'other'].map(k => `<option ${f.kind === k ? 'selected' : ''} value="${k}">${k[0].toUpperCase() + k.slice(1)}</option>`).join('')}
-      </select>
-      <a class="btn-primary" href="#/read/${encodeURIComponent(f.id)}">Open</a>
-      <button class="btn-ghost text-red-600" data-del="${esc(f.id)}">Delete</button>
-    </div>`).join('') || '<div class="text-sm text-slate-500 text-center py-6">No books yet.</div>'}</div>
-  <div class="text-xs text-slate-500 mt-4">Cloud storage used by books: ${cloudMB.toFixed(0)} MB (free plan includes 1 GB).</div>`;
-
-  document.getElementById('up').onchange = async e => {
-    const msg = document.getElementById('upMsg');
-    const { inspectPdf } = await reader();
-    const locOnly = document.getElementById('locOnly').checked;
-    if (!navigator.onLine && !locOnly) { msg.textContent = 'You are offline. Connect to the internet to upload books.'; return; }
-    for (const f of e.target.files) {
-      msg.textContent = `Reading ${f.name}…`;
-      try {
-        const info = await inspectPdf(f);
-        const guess = /schweser|kaplan|notes/i.test(f.name) ? 'schweser' : /curric|cfa ?inst|volume/i.test(f.name) ? 'curriculum' : 'other';
-        const old = await db.get('files', info.id);
-        let parts = old?.parts;
-        if (!locOnly && (!old || old.size !== f.size || old.localOnly)) parts = await uploadBook(info.id, f, p => { msg.textContent = `Uploading ${f.name} to your account… ${Math.round(p * 100)}%`; });
-        await cacheBlob(info.id, f);
-        await db.put('files', { id: info.id, name: f.name, label: old?.label || f.name.replace(/\.pdf$/i, ''), kind: old?.kind || guess, pages: info.pages, size: f.size, parts: locOnly ? 0 : parts, localOnly: locOnly, added: old?.added || Date.now() });
-        await flush();
-      } catch (err) { msg.innerHTML = `<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message || String(err))}</span>`; return; }
-    }
-    library();
-  };
-  view.onchange = async e => {
-    const id = e.target.dataset.kind || e.target.dataset.label; if (!id) return;
-    const f = await db.get('files', id);
-    if (e.target.dataset.kind) f.kind = e.target.value; else f.label = e.target.value;
-    await db.put('files', f);
-  };
-  view.onclick = async e => {
-    const id = e.target.dataset.del, un = e.target.dataset.uncache;
-    if (id && confirm('Delete this book from your account on ALL devices? Your highlights and notes stay.')) {
-      const f = await db.get('files', id);
-      if (!f.localOnly) try { await deleteBookFiles(f); } catch (err) { alert('Could not delete from cloud: ' + err.message); return; }
-      await uncache(id); await db.del('files', id); library();
-    }
-    if (un) { await uncache(un); toast('Download removed from this device'); library(); }
-    const tc = e.target.dataset.tocloud, tl = e.target.dataset.tolocal;
-    if (tc) { const f = await db.get('files', tc), b = (await local.get('blobs', tc))?.blob; if (!b) return; try { e.target.textContent = 'uploading…'; const parts = await uploadBook(tc, b, pr => { e.target.textContent = `uploading… ${Math.round(pr * 100)}%`; }); await db.put('files', { ...f, parts, localOnly: false }); await flush(); toast('Uploaded to the cloud'); } catch (err) { alert(err.message); } library(); }
-    if (tl && confirm('Remove the cloud copy of this book? It stays in this browser only, and other devices will not be able to open it.')) { const f = await db.get('files', tl); try { await deleteBookFiles(f); } catch (err) { alert(err.message); return; } await db.put('files', { ...f, parts: 0, localOnly: true }); library(); }
-  };
-  return () => { view.onchange = null; view.onclick = null; };
-}
-
 async function readStandalone(id, p) {
   id = decodeURIComponent(id);
   view.innerHTML = `<div class="mod-reading flex flex-col"><div class="flex items-center gap-2 px-2 pt-2"><a href="${esc(backHref('#/library'))}" class="ib" data-back="1" title="Back to where you came from">←</a><span class="text-sm font-semibold">Reader</span></div><div id="rd" class="flex-1 min-h-0"></div></div>`;
