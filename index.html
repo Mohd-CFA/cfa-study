@@ -2346,6 +2346,28 @@ button[data-tip], a[data-tip], label[data-tip] { cursor: pointer; }
 .dark .dark\:text-amber-200 { color: var(--color-amber-200); }
 .dark .dark\:text-amber-300 { color: var(--color-amber-300); }
 @media print { #tip { display: none !important; } }
+
+/* ---- v14 video & shortcuts ---- */
+.vwrap { display: grid; gap: 1rem; grid-template-columns: minmax(0,2fr) minmax(0,1fr); align-items: start; }
+@media (max-width: 1023px) { .vwrap { grid-template-columns: 1fr; } }
+.vwrap.vnone { grid-template-columns: 1fr; } .vwrap.vnone .vside { display: none; }
+.vwrap.vwide .vside { position: sticky; top: 3.5rem; max-height: calc(100dvh - 4.5rem); overflow: auto; }
+body.vwide-on main#view { max-width: none; }
+.vwrap:fullscreen { display: block; background: #000; padding: 0; }
+.vwrap:fullscreen .vmain { height: 100vh; display: flex; flex-direction: column; }
+.vwrap:fullscreen #vbox { flex: 1; aspect-ratio: auto !important; border-radius: 0; }
+.vwrap:fullscreen .vbar { padding: .25rem .5rem; margin: 0; background: #0f172a; }
+.vwrap:fullscreen #vErr { display: none; }
+.vwrap:fullscreen .vside { display: none; }
+.vwrap.fsnotes:fullscreen .vside { display: block; position: fixed; top: 1rem; right: 1rem; bottom: 6.5rem; width: min(30rem, 34vw); overflow: auto; opacity: .97; z-index: 5; }
+.tr-line { padding: .2rem .35rem; border-radius: .35rem; cursor: pointer; } .tr-line:hover { background: #eef2ff; } .dark .tr-line:hover { background: #1e1b4b; }
+.tr-line.tr-on { background: #fef3c7; } .dark .tr-line.tr-on { background: #78350f; }
+.keys-fab { position: fixed; right: 1rem; bottom: 4.75rem; z-index: 45; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: #fff; border: 1px solid #cbd5e1; box-shadow: 0 4px 14px rgba(0,0,0,.15); font-size: 1.1rem; }
+.dark .keys-fab { background: #1e293b; border-color: #475569; }
+@media (min-width: 640px) { .keys-fab { bottom: 1rem; } }
+body.rd-fs .keys-fab { bottom: 1rem; }
+.kbd { display: inline-block; padding: .05rem .4rem; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: .35rem; font-family: var(--font-mono); font-size: .75rem; background: #f8fafc; } .dark .kbd { background: #0f172a; border-color: #475569; }
+.max-h-56 { max-height: 14rem; } .max-h-\[50vh\] { max-height: 50vh; } .max-h-\[60vh\] { max-height: 60vh; } .mx-1 { margin-inline: .25rem; } .text-slate-300 { color: var(--color-slate-300); } .text-slate-900 { color: var(--color-slate-900); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -3110,7 +3132,7 @@ function notesToMarkdown(title, notes) {
     if (n.type === 'heading') md += `### ${n.text}\n\n`;
     else if (n.type === 'clip') {
       md += `> ${n.text.replace(/\n/g, '\n> ')}\n`;
-      if (n.source) md += `> — *${n.source.label || ''} p.${n.source.page}*\n`;
+      if (n.vsrc) md += `> — *${n.vsrc.src} lecture ${fmtT(n.vsrc.t)}*\n`; else if (n.source) md += `> — *${n.source.label || ''} p.${n.source.page}*\n`;
       md += '\n';
       if (n.comment) md += `${n.comment}\n\n`;
     } else md += `- ${n.text.replace(/\n/g, '\n  ')}\n\n`;
@@ -3176,7 +3198,7 @@ function renderNotes(el, opts) {
       return `<div class="note-card flex items-center justify-between pt-3" data-card="${n.id}">
         <h4 class="font-bold text-indigo-700 dark:text-indigo-300">${esc(n.text)}</h4>${tools}</div>`;
     }
-    const src = n.source ? `<button data-act="jump" data-id="${n.id}" class="chip">📖 ${esc(n.source.label || 'Book')} · p.${n.source.page}</button>` : '';
+    const src = n.vsrc ? `<a class="chip" href="#/video/${encodeURIComponent(n.vsrc.mid)}/${n.vsrc.idx}/${n.vsrc.t}" title="${esc(n.vsrc.name || '')}">\uD83C\uDFAC ${esc(n.vsrc.src)} · ${fmtT(n.vsrc.t)}</a>` : n.source ? `<button data-act="jump" data-id="${n.id}" class="chip">📖 ${esc(n.source.label || 'Book')} · p.${n.source.page}</button>` : '';
     if (n.type === 'clip') {
       return `<div class="note-card rounded-xl p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700" data-card="${n.id}">
         <div class="pl-3 text-sm leading-relaxed whitespace-pre-wrap" style="border-left:4px solid ${n.ul || kind === 'mohd' ? '#dc2626' : COLORS[n.color] || COLORS.yellow}">${esc(n.text)}</div>
@@ -3746,7 +3768,7 @@ async function mountReader(root, opts) {
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { goTo(current + 1); e.preventDefault(); }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { goTo(current - 1); e.preventDefault(); }
   };
-  document.addEventListener('keydown', onKey); cleanups.push(() => document.removeEventListener('keydown', onKey));
+  document.addEventListener('keydown', onKey); cleanups.push(() => document.removeEventListener('keydown', onKey)); showKeys('reader');
   scrollEl.addEventListener('wheel', e => {
     if (!e.ctrlKey) return; e.preventDefault();
     zoom = Math.max(0.5, Math.min(3, +(zoom + (e.deltaY < 0 ? 0.1 : -0.1)).toFixed(2))); kv.set('zoom', zoom);
@@ -4236,22 +4258,25 @@ function parseCurriculumPP(text) {
 function parseAnalystPrep(text) {
   const t = text.replace(/<<PAGE \d+>>/g, '\n').replace(/©\s*2014-\d{4}\s*AnalystPrep\.?\s*\n\s*\d+\s*\n/g, '\n')
     .replace(/Learning Module \d+:[^\n]*\n/g, '\n');
-  const blocks = t.split(/\n\s*Q\.(\d+)\s+/); const out = [];
-  for (let i = 1; i < blocks.length; i += 2) {
-    const qno = +blocks[i], b = blocks[i + 1];
-    const am = b.match(/The correct answer is\s+([ABC])\s*\./);
+  const starts = []; let m; const reQ = /(?:^|\n)\s*Q\.(\d+)\s+/g;
+  while ((m = reQ.exec(t))) starts.push({ qno: +m[1], s: m.index, e: reQ.lastIndex });
+  const cut = o => { let x = o.split(/The correct answer is|CFA\s+Level\s+(?:1|I),|\*\*[ABC] is (?:in)?correct/)[0]; if (x.length > 220 && x.includes('\n')) x = x.split('\n')[0]; return pqClean(x); };
+  const trips = []; const reT = /\n\s*A\.\s+([\s\S]*?)\s+B\.\s+([\s\S]*?)\s+C\.\s+([^\n]*(?:\n(?=\s*[a-z(])[^\n]*)?)/g;
+  while ((m = reT.exec('\n' + t))) trips.push({ pos: m.index - 1, o: { A: cut(m[1]), B: cut(m[2]), C: cut(m[3]) } });
+  const out = [];
+  starts.forEach((q, i) => {
+    const b = t.slice(q.e, i + 1 < starts.length ? starts[i + 1].s : t.length);
+    const am = b.match(/The correct answer is\s+\**\s*([ABC])\s*\./);
     const stem = am ? b.slice(0, am.index) : b, rest = am ? b.slice(am.index + am[0].length) : '';
-    const trips = []; const re = /\n\s*A\.\s+([\s\S]*?)\n\s*B\.\s+([\s\S]*?)\n\s*C\.\s+([\s\S]*?)(?=\s*$|\n\s*A\.\s)/g; let m;
-    while ((m = re.exec('\n' + rest))) trips.push({ A: pqClean(m[1]), B: pqClean(m[2]), C: pqClean(m[3]) });
     let exp = rest; const ref = exp.search(/CFA\s+Level\s+(1|I),/); if (ref > 0) exp = exp.slice(0, ref);
-    out.push({ qno, stem: pqClean(stem), options: trips.length ? trips[trips.length - 1] : null, _trips: trips, answer: am ? am[1] : null, explanation: pqClean(exp) });
-  }
-  for (let i = 0; i < out.length - 1; i++) {
-    if (!out[i]._trips.length && out[i + 1]._trips.length >= 2) { out[i].options = out[i + 1]._trips[0]; out[i + 1].options = out[i + 1]._trips[out[i + 1]._trips.length - 1]; }
-  }
-  out.forEach(q => delete q._trips);
+    out.push({ qno: q.qno, stem: pqClean(stem.split(/\n\s*A\.\s/)[0]), options: null, answer: am ? am[1] : null, explanation: pqClean(exp.split(/\n\s*A\.\s/)[0]), _s: q.s });
+  });
+  if (trips.length === out.length) out.forEach((q, i) => q.options = trips[i].o);
+  else { let k = 0; out.forEach((q, i) => { while (k < trips.length && trips[k].pos < q._s) k++; if (k < trips.length && (i + 1 >= out.length || trips[k].pos < (out[i + 2]?._s ?? Infinity))) q.options = trips[k++].o; }); }
+  out.forEach(q => delete q._s);
   return out.filter(q => q.options);
 }
+
 function parseSchweserQuiz(text) {
   const blocks = ('\n' + text.replace(/<<PAGE \d+>>/g, '\n')).split(/\n\s*Question\s+(\d+)\s*\n/); const out = [];
   for (let i = 1; i < blocks.length; i += 2) {
@@ -4482,7 +4507,7 @@ function notesToBlocks(notes, level = 2, moduleId) {
     else if (n.type === 'clip') {
       out.push({ t: 'quote', text: n.text });
       if (n.comment) out.push({ t: 'note', text: '💡 ' + n.comment });
-      if (n.source) out.push({ t: 'src', text: `${n.source.label || 'Book'} · p.${n.source.page}` });
+      if (n.vsrc) out.push({ t: 'src', text: `${n.vsrc.src} lecture · ${fmtT(n.vsrc.t)}` }); else if (n.source) out.push({ t: 'src', text: `${n.source.label || 'Book'} · p.${n.source.page}` });
     } else String(n.text).split('\n').forEach(l => l.trim() && out.push({ t: n.imported ? 'p' : 'bullet', text: l }));
   }
   return out;
@@ -5058,7 +5083,7 @@ async function qbankRun() {
     if (e.key === 'ArrowRight') (document.getElementById('next') || document.getElementById('finish'))?.click();
   };
   const onVis = () => { if (document.hidden) pause(); };
-  document.addEventListener('keydown', onKey); document.addEventListener('visibilitychange', onVis);
+  document.addEventListener('keydown', onKey); document.addEventListener('visibilitychange', onVis); showKeys('quiz');
   draw();
   return () => { stopQ(); if (!S.done) save(); clearInterval(ticker); document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); view.onclick = null; };
 }
@@ -6221,7 +6246,7 @@ function modProgress(m, c) {
   const ans = qs.filter(q => c.st[q.id]?.n), cor = ans.filter(q => c.st[q.id].last);
   const nNotes = c.notes.filter(n => n.moduleId === m.id && (n.kind || 'mohd') === 'mohd').length;
   const t = c.track[m.id] || {};
-  const lecture = t.lec ? 100 : 0, reading = pct(rDone, rTot), extras = t.xtra ? 100 : 0, summary = t.sum ? 100 : nNotes ? 50 : 0, questions = pct(ans.length, qs.length);
+  const vds = t.videos || [], lecture = t.lec ? 100 : vds.length ? pct(vds.filter(z => z.done).length, vds.length) : 0, reading = pct(rDone, rTot), extras = t.xtra ? 100 : 0, summary = t.sum ? 100 : nNotes ? 50 : 0, questions = pct(ans.length, qs.length);
   return { lecture, reading, extras, summary, questions, overall: Math.round((lecture + reading + extras + summary + questions) / 5), rDone, rTot, nNotes, qTot: qs.length, qAns: ans.length, qCor: cor.length,
     acc: ans.length ? pct(cor.length, ans.length) : null, sumDone: !!t.sum, lecDone: !!t.lec, xtraDone: !!t.xtra, nVid: (t.videos || []).length };
 }
@@ -6469,34 +6494,118 @@ function moduleCard(m, p) {
     </div></div>`;
 }
 
-// ---------- lecture videos: many per module, grouped by source ----------
+// ---------- lecture videos: folder on each device · copies on tablets · links as backup ----------
+const VID_RE = /\.(mp4|m4v|webm|mov|mkv|ogv)$/i, SUB_RE = /\.(srt|vtt)$/i;
+const vbase = n => String(n || '').split(/[\\/]/).pop().toLowerCase();
+const vstem = n => vbase(n).replace(/\.[^.]+$/, '');
+const canDir = () => 'showDirectoryPicker' in window;
+async function vdirRec() { return (await local.get('blobs', 'vdir')) || null; }
+async function vdirPerm(h, ask) { try { const o = { mode: 'read' }; if ((await h.queryPermission(o)) === 'granted') return true; if (ask) return (await h.requestPermission(o)) === 'granted'; } catch {} return false; }
+let VIDX = null;   // name → file handle (this session)
+async function vdirIndex(h) {
+  const out = new Map();
+  async function walk(d, depth) { for await (const [n, x] of d.entries()) { if (x.kind === 'file' && (VID_RE.test(n) || SUB_RE.test(n))) { if (!out.has(n.toLowerCase())) out.set(n.toLowerCase(), x); } else if (x.kind === 'directory' && depth < 4) await walk(x, depth + 1); } }
+  await walk(h, 0); return out;
+}
+async function vdirReady(ask) {
+  const r = await vdirRec(); if (!r?.handle) return null;
+  if (!(await vdirPerm(r.handle, ask))) return false;
+  if (!VIDX) VIDX = await vdirIndex(r.handle);
+  return VIDX;
+}
+async function vcopies() { return (await local.all('blobs')).filter(b => typeof b.id === 'string' && b.id.startsWith('vid:')); }
+async function vcopyPut(file) { await local.put('blobs', { id: 'vid:' + file.name.toLowerCase(), name: file.name, blob: file, size: file.size, ts: Date.now() }); }
+const vfileOf = v => v.file || (v.url ? '' : v.name || '');
+// returns { url, how, sub } — how: copy | folder | link | none | ask
+async function vresolve(v, ask) {
+  const fn = vbase(vfileOf(v)), stem = vstem(fn);
+  const findSub = async idx => { if (!stem) return null;
+    const cp = (await vcopies()).find(b => SUB_RE.test(b.name) && vstem(b.name) === stem); if (cp) return { name: cp.name, srt: await cp.blob.text() };
+    if (idx) for (const [n, h] of idx) if (SUB_RE.test(n) && vstem(n) === stem) { const f = await h.getFile(); return { name: f.name, srt: await f.text() }; }
+    return null; };
+  if (fn) {
+    const c = await local.get('blobs', 'vid:' + fn); if (c) return { url: URL.createObjectURL(c.blob), how: 'copy', sub: await findSub(null), local: true };
+    const idx = await vdirReady(ask);
+    if (idx && idx.get(fn)) { const f = await idx.get(fn).getFile(); return { url: URL.createObjectURL(f), how: 'folder', sub: await findSub(idx), local: true }; }
+    if (idx === false && !v.url) return { how: 'ask' };
+  }
+  if (v.url) return { url: directUrl(v.url), how: 'link', sub: null };
+  return { how: (await vdirRec()) ? 'missing' : 'none' };
+}
+const fmtT = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
+const fmtMB = b => b > 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.round(b / 1048576) + ' MB';
+
+// Library card (per device)
+async function vidLibHTML() {
+  const r = await vdirRec(), cps = await vcopies(), tot = cps.reduce((a, b) => a + (b.size || 0), 0);
+  return `<div class="card mb-4" id="vlib"><h3 class="sec">\uD83C\uDFAC Lecture videos on this device</h3>
+    ${canDir() ? `<div class="flex flex-wrap items-center gap-2 text-sm">${r?.handle ? `<span>\uD83D\uDCC1 <b>${esc(r.name || r.handle.name)}</b></span><span class="text-xs text-slate-500">linked ${fmtD(r.ts)}</span>
+        <button class="btn-ghost text-xs" data-vl="pick">Change folder</button><button class="link text-xs text-rose-600" data-vl="unlink">Unlink</button>` : `<button class="btn-primary text-xs" data-vl="pick">\uD83D\uDCC1 Link lectures folder</button>`}</div>
+      <p class="text-[11px] text-slate-500 mt-1">Pick the folder that holds your lecture videos on <b>this device</b> (sub-folders are searched too). Videos play straight from the folder — nothing is copied or uploaded. A .srt file with the same name as the video is loaded automatically. Each device keeps its own folder. If the browser asks once after a refresh, choose <b>Allow on every visit</b>.</p>`
+      : `<p class="text-xs text-slate-500">This browser cannot link a folder (tablets / Safari). Save the lectures you are studying as copies instead.</p>`}
+    <div class="flex flex-wrap items-center gap-2 mt-3 text-sm"><label class="btn-ghost text-xs cursor-pointer">\uD83D\uDCBE Keep copies on this device<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vcopyUp"></label>
+      <span class="text-xs text-slate-500">${cps.length ? `${cps.filter(b => VID_RE.test(b.name)).length} videos · ${fmtMB(tot)}` : 'No copies'}</span></div>
+    ${cps.length ? `<details class="mt-2"><summary class="text-xs cursor-pointer text-indigo-600">Copies on this device</summary><div class="mt-1 space-y-1">${cps.map(b => `<div class="flex items-center gap-2 text-xs"><span class="flex-1 truncate">${esc(b.name)}</span><span class="text-slate-500">${fmtMB(b.size || 0)}</span><button class="link text-rose-600" data-vcdel="${esc(b.id)}">Remove</button></div>`).join('')}</div></details>` : ''}
+    <div id="vlMsg" class="text-xs mt-2"></div></div>`;
+}
+function bindVidLib(el, redraw) {
+  if (!el) return;
+  el.onclick = async e => {
+    const a = e.target.dataset.vl, d = e.target.dataset.vcdel;
+    try {
+      if (a === 'pick') { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; const idx = await vdirReady(true); toast(`Folder linked · ${[...(idx || new Map()).keys()].filter(n => VID_RE.test(n)).length} videos found`); redraw(); }
+      if (a === 'unlink' && confirm('Unlink the lectures folder on this device? Your videos and notes are not touched.')) { await local.del('blobs', 'vdir'); VIDX = null; redraw(); }
+      if (d) { await local.del('blobs', d); redraw(); }
+    } catch (err) { if (err.name !== 'AbortError') el.querySelector('#vlMsg').innerHTML = `<span class="text-rose-600">${esc(err.message)}</span>`; }
+  };
+  el.onchange = async e => { if (e.target.id !== 'vcopyUp') return; const fs = [...e.target.files]; const m = el.querySelector('#vlMsg');
+    for (let i = 0; i < fs.length; i++) { m.textContent = `Saving ${i + 1}/${fs.length} · ${fs[i].name}…`; try { await vcopyPut(fs[i]); } catch (err) { m.innerHTML = `<span class="text-rose-600">Not enough browser storage for ${esc(fs[i].name)}.</span>`; return; } }
+    toast(`Saved ${fs.length} file(s) on this device`); redraw(); };
+}
+
+// Module videos dialog
 async function videosDialog(mid) {
   const m = modInfo(mid); if (!m) return;
   const bg = document.createElement('div'); bg.className = 'modal-bg';
   async function draw() {
-    const t = await kv.get('modTrack', {}), vs = t[mid]?.videos || [], subs = await kv.get('vsubs', {});
+    const t = await kv.get('modTrack', {}), vs = t[mid]?.videos || [], subs = await kv.get('vsubs', {}), pos = await kv.get('vpos', {});
+    const idx = await vdirReady(false), cps = await vcopies();
+    const am = new Map(); (idx ? [...idx.values()].map(h => h.name) : []).concat(cps.map(b => b.name)).forEach(n => am.set(n.toLowerCase(), n));
+    const avail = [...am.entries()].filter(([k]) => VID_RE.test(k) && !vs.some(v => vbase(v.file) === k)).map(([, n]) => n).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const here = v => { const f = vbase(vfileOf(v)); return f && (cps.some(b => b.name.toLowerCase() === f) || idx?.has?.(f)); };
     const groups = [...new Set(vs.map(v => v.src || 'Other'))];
-    bg.innerHTML = `<div class="card modal-box space-y-3" style="width:36rem;max-height:90vh;overflow:auto">
-      <div class="flex items-center"><h3 class="font-bold">🎬 Lecture videos · ${esc(m.short)}</h3><button class="ib ml-auto" data-v="x">✕</button></div>
+    bg.innerHTML = `<div class="card modal-box space-y-3" style="width:40rem;max-height:90vh;overflow:auto">
+      <div class="flex items-center"><h3 class="font-bold">\uD83C\uDFAC Lecture videos · ${esc(m.short)}</h3><button class="ib ml-auto" data-v="x">✕</button></div>
       ${groups.map(g => `<div><div class="text-xs font-semibold text-slate-500 mb-1">${esc(g)}</div><div class="space-y-1.5">${vs.map((v, i) => (v.src || 'Other') !== g ? '' : `<div class="flex items-center gap-2 text-sm p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-        <a class="link flex-1 min-w-0 truncate" href="#/video/${encodeURIComponent(mid)}/${i}" data-v="go">▶ ${esc(v.name || 'Video ' + (i + 1))}</a>${subs[mid + ':' + i] ? '<span class="chip" title="Subtitles attached">CC</span>' : ''}
+        <a class="link flex-1 min-w-0 truncate" href="#/video/${encodeURIComponent(mid)}/${i}" data-v="go">${v.done ? '✅' : '▶'} ${esc(v.name || v.file || 'Video ' + (i + 1))}</a>
+        ${pos[v.id]?.t && !v.done ? `<span class="text-[11px] text-slate-500">${fmtT(pos[v.id].t)}</span>` : ''}${v.file ? `<span class="chip" title="${esc(v.file)}">${here(v) ? '\uD83D\uDCC1 on device' : '\uD83D\uDCC1 not on this device'}</span>` : ''}${v.url ? '<span class="chip">\uD83D\uDD17 link</span>' : ''}${subs[mid + ':' + i] ? '<span class="chip">CC</span>' : ''}
         <button class="ib text-xs" data-up="${i}" ${i ? '' : 'disabled'} title="Move up">▲</button><button class="link text-rose-600 text-xs" data-del="${i}">✕</button></div>`).join('')}</div></div>`).join('') || '<p class="text-sm text-slate-500">No videos yet.</p>'}
       <div class="grid gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
         <div class="flex gap-2"><select id="vSrc" class="inp w-auto">${VSRC.map(s => `<option>${s}</option>`).join('')}</select><input id="vOther" class="inp" placeholder="Source name (for Other)" hidden></div>
-        <input id="vName" class="inp" placeholder="Video name (e.g. Part 1 — Revenue recognition)"><input id="vUrl" class="inp" placeholder="OneDrive link (Share → Copy link)">
-        <button class="btn-primary" data-v="add">+ Add video</button></div>
-      <p class="text-[11px] text-slate-500">No limit on the number of videos or sources. Videos stay on OneDrive — only the links are saved. Subtitles (.srt) are added inside the player.</p></div>`;
+        ${avail.length ? `<details ${vs.length ? '' : 'open'}><summary class="text-sm cursor-pointer font-medium">\uD83D\uDCC1 Add from your folder / copies (${avail.length})</summary>
+          <input id="vFilt" class="inp mt-2" placeholder="Filter… e.g. FSA LM2"><div id="vList" class="max-h-56 overflow-auto mt-1 space-y-0.5">${avail.map(n => `<label class="flex items-center gap-2 text-xs" data-n="${esc(n.toLowerCase())}"><input type="checkbox" value="${esc(n)}" class="accent-indigo-600"> ${esc(n)}</label>`).join('')}</div>
+          <button class="btn-primary w-full mt-2" data-v="addf">+ Add selected</button></details>` : `<p class="text-xs text-slate-500">${await vdirRec() ? (idx === false ? '<button class="link" data-v="allow">Allow access to the lectures folder</button> to list its videos.' : 'No new videos found in the linked folder.') : 'Tip: link your lectures folder in <b>Library</b> and pick videos from a list.'}</p>`}
+        <details><summary class="text-xs cursor-pointer text-indigo-600">Add by file name or link</summary><div class="grid gap-2 mt-2">
+          <input id="vName" class="inp" placeholder="Title (optional)"><input id="vFile" class="inp" placeholder="File name in your folder, e.g. FSA LM2 Part 1.mp4"><input id="vUrl" class="inp" placeholder="Link (optional): OneDrive / Google Drive share link">
+          <button class="btn-ghost" data-v="add">+ Add video</button></div></details></div>
+      <p class="text-[11px] text-slate-500">Each video is matched by file name on every device: the copy on this device → your linked folder → the link. Name the files the same on all devices.</p></div>`;
     bg.querySelector('#vSrc').onchange = e => { bg.querySelector('#vOther').hidden = e.target.value !== 'Other'; };
+    const fl = bg.querySelector('#vFilt'); if (fl) fl.oninput = () => { const q = fl.value.toLowerCase().split(/\s+/).filter(Boolean); bg.querySelectorAll('#vList [data-n]').forEach(l => { l.hidden = !q.every(w => l.dataset.n.includes(w)); }); };
   }
   bg.onclick = async e => {
     if (e.target === bg || e.target.dataset.v === 'x') { bg.remove(); route(); return; }
     if (e.target.dataset.v === 'go') { bg.remove(); return; }
+    if (e.target.dataset.v === 'allow') { await vdirReady(true); return draw(); }
     const t = await kv.get('modTrack', {}); t[mid] = t[mid] || {}; const vs = t[mid].videos = t[mid].videos || [];
-    if (e.target.dataset.v === 'add') {
-      const url = bg.querySelector('#vUrl').value.trim(), name = bg.querySelector('#vName').value.trim();
-      let src = bg.querySelector('#vSrc').value; if (src === 'Other') src = bg.querySelector('#vOther').value.trim() || 'Other';
-      if (!/^https?:\/\//i.test(url)) return toast('Paste a full link starting with https://');
-      vs.push({ name, url, src });
+    let src = bg.querySelector('#vSrc')?.value; if (src === 'Other') src = bg.querySelector('#vOther').value.trim() || 'Other';
+    if (e.target.dataset.v === 'addf') {
+      const picks = [...bg.querySelectorAll('#vList input:checked')].map(i => i.value); if (!picks.length) return toast('Tick at least one video');
+      picks.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => vs.push({ id: uid(), name: n.replace(/\.[^.]+$/, ''), file: n, src }));
+    } else if (e.target.dataset.v === 'add') {
+      const url = bg.querySelector('#vUrl').value.trim(), file = bg.querySelector('#vFile').value.trim(), name = bg.querySelector('#vName').value.trim();
+      if (!url && !file) return toast('Enter a file name or a link');
+      if (url && !/^https?:\/\//i.test(url)) return toast('Links must start with https://');
+      vs.push({ id: uid(), name: name || file.replace(/\.[^.]+$/, ''), file: file || '', url, src });
     } else if (e.target.dataset.del !== undefined) vs.splice(+e.target.dataset.del, 1);
     else if (e.target.dataset.up !== undefined) { const i = +e.target.dataset.up; [vs[i - 1], vs[i]] = [vs[i], vs[i - 1]]; }
     else return;
@@ -6505,76 +6614,204 @@ async function videosDialog(mid) {
   document.body.append(bg); draw();
 }
 
-// ---------- in-site video player with SRT subtitles ----------
+// ---------- in-site video player ----------
 const SUB_DEF = { size: 28, pos: 8, color: '#ffffff', bg: '#000000', bgOp: 0.55, bold: false, outline: true, font: 'system-ui', offset: 0 };
 function parseSRT(txt) {
-  const t = s => { const m = s.trim().replace(',', '.').match(/(\d+):(\d+):(\d+(?:\.\d+)?)/); return m ? +m[1] * 3600 + +m[2] * 60 + +m[3] : 0; };
-  return txt.replace(/\r/g, '').split(/\n\s*\n/).map(b => { const l = b.trim().split('\n'); const i = l.findIndex(x => x.includes('-->')); if (i < 0) return null; const [a, z] = l[i].split('-->'); return { s: t(a), e: t(z), text: l.slice(i + 1).join('\n').replace(/<[^>]+>/g, '') }; }).filter(Boolean);
+  const t = s => { const m = s.trim().replace(',', '.').match(/(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)/); return m ? +(m[1] || 0) * 3600 + +m[2] * 60 + +m[3] : 0; };
+  return txt.replace(/\r/g, '').replace(/^WEBVTT[^\n]*\n/, '').split(/\n\s*\n/).map(b => { const l = b.trim().split('\n'); const i = l.findIndex(x => x.includes('-->')); if (i < 0) return null; const [a, z] = l[i].split('-->'); return { s: t(a), e: t(z), text: l.slice(i + 1).join('\n').replace(/<[^>]+>/g, '') }; }).filter(Boolean);
 }
 const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
 function directUrl(u) {
-  try { const x = new URL(u); if (/1drv\.ms|onedrive\.live\.com|sharepoint\.com/i.test(x.host)) { x.searchParams.set('download', '1'); return x.href; } } catch {}
+  try {
+    const x = new URL(u);
+    if (/1drv\.ms$/i.test(x.host)) { const b64 = btoa(u).replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-'); return `https://api.onedrive.com/v1.0/shares/u!${b64}/root/content`; }
+    if (/onedrive\.live\.com/i.test(x.host)) { if (/\/embed/.test(x.pathname)) { x.pathname = x.pathname.replace('/embed', '/download'); return x.href; } const b64 = btoa(u).replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-'); return `https://api.onedrive.com/v1.0/shares/u!${b64}/root/content`; }
+    if (/sharepoint\.com/i.test(x.host)) { x.searchParams.set('download', '1'); return x.href; }
+    if (/drive\.google\.com/i.test(x.host)) { const id = (x.pathname.match(/\/d\/([^/]+)/) || [])[1] || x.searchParams.get('id'); if (id) return `https://drive.google.com/uc?export=download&id=${id}`; }
+  } catch {}
   return u;
 }
-async function videoPlayer(mid, idx) {
+const VKEYS = [['Space / K', 'Play / pause'], ['← / →', 'Back / forward 10 seconds'], ['Shift + ← / →', 'Previous / next subtitle line'], ['[ / ]', 'Slower / faster'], ['C', 'Subtitles on / off'], ['N', 'Notes panel on / off (also in full screen)'], ['W', 'Video + notes view'], ['F', 'Full screen'], ['Ctrl + Enter', 'Save the note you are typing'], ['?', 'Show these shortcuts']];
+async function videoPlayer(mid, idx, tq) {
   mid = decodeURIComponent(mid); idx = +idx;
-  const m = modInfo(mid), t = await kv.get('modTrack', {}), vs = t[mid]?.videos || [], v = vs[idx];
+  const m = modInfo(mid), T = await kv.get('modTrack', {}), vs = T[mid]?.videos || [], v = vs[idx];
   if (!m || !v) { location.hash = m ? m.href + '/map' : '#/study'; return; }
-  let S = { ...SUB_DEF, ...(await kv.get('subStyle', {})) }, cues = [], localUrl = null;
-  const subs = await kv.get('vsubs', {}), key = mid + ':' + idx; if (subs[key]) cues = parseSRT(subs[key].srt);
+  if (!v.id) { v.id = uid(); await kv.set('modTrack', T); }
+  let S = { ...SUB_DEF, ...(await kv.get('subStyle', {})) }, cues = [], objUrl = null, subName = '', subFrom = '';
+  const UI = { ...{ layout: 'normal', notes: true, rate: 1, cc: true, autoPause: true }, ...(await kv.get('vUI', {})) };
+  const subs = await kv.get('vsubs', {}), key = mid + ':' + idx;
+  const LL = losListFor(mid), curLos = await kv.get('curLos:' + mid, '');
   view.innerHTML = crumbs([['Home', '#/'], [m.short, m.href + '/map'], ['Video']]) + `
-  <div class="flex flex-wrap items-center gap-2 mb-2"><h1 class="h1 mb-0 mr-auto text-lg">🎬 ${esc(v.name || 'Video ' + (idx + 1))} <span class="chip">${esc(v.src || 'Other')}</span></h1>
+  <div class="flex flex-wrap items-center gap-2 mb-2"><h1 class="h1 mb-0 mr-auto text-lg">\uD83C\uDFAC ${esc(v.name || v.file || 'Video ' + (idx + 1))} <span class="chip">${esc(v.src || 'Other')}</span></h1>
+    <button class="btn-ghost text-xs" data-vids="${esc(mid)}">\uD83C\uDF9E All videos</button>
     ${idx > 0 ? `<a class="btn-ghost text-xs" href="#/video/${encodeURIComponent(mid)}/${idx - 1}">← Previous</a>` : ''}${idx < vs.length - 1 ? `<a class="btn-ghost text-xs" href="#/video/${encodeURIComponent(mid)}/${idx + 1}">Next →</a>` : ''}</div>
-  <div class="grid lg:grid-cols-3 gap-4">
-    <div class="lg:col-span-2"><div id="vbox" class="relative bg-black rounded-xl overflow-hidden" style="aspect-ratio:16/9">
-      <video id="vid" class="w-full h-full" controls playsinline src="${esc(directUrl(v.url))}"></video>
-      <div id="cue" class="absolute inset-x-0 text-center pointer-events-none px-6" style="white-space:pre-line"></div></div>
-      <div id="vErr" class="text-xs text-slate-500 mt-2">If the video does not play from OneDrive (some links only open the OneDrive page), use <b>Open on OneDrive</b> or <b>Play a file from this device</b> (e.g. your OneDrive folder on the PC).</div>
-      <div class="flex flex-wrap gap-2 mt-2"><a class="btn-ghost text-xs" href="${esc(v.url)}" target="_blank" rel="noopener">↗ Open on OneDrive</a>
-        <label class="btn-ghost text-xs cursor-pointer">📂 Play a file from this device<input type="file" accept="video/*" id="vLocal" class="hidden"></label>
-        <button class="btn-ghost text-xs" id="vFs">⛶ Full screen</button></div></div>
-    <div class="card space-y-3 text-sm">
-      <h3 class="sec">Subtitles</h3>
-      <div class="text-xs text-slate-500">${subs[key] ? `📄 ${esc(subs[key].name)} · ${cues.length} lines` : 'No subtitle file yet'}</div>
-      <div class="flex gap-2"><label class="btn-primary text-xs cursor-pointer">⬆️ Upload .srt<input type="file" accept=".srt,.vtt,text/plain" id="srtUp" class="hidden"></label>${subs[key] ? '<button class="link text-rose-600 text-xs" id="srtDel">Remove</button>' : ''}
-        <label class="flex items-center gap-1 text-xs ml-auto"><input type="checkbox" id="sOn" checked class="accent-indigo-600"> Show</label></div>
-      <label class="block text-xs">Text size <span id="lSize"></span><input type="range" min="12" max="72" data-s="size" class="w-full"></label>
-      <label class="block text-xs">Position from bottom <span id="lPos"></span><input type="range" min="0" max="90" data-s="pos" class="w-full"></label>
-      <div class="grid grid-cols-2 gap-2 text-xs"><label>Text colour<input type="color" data-s="color" class="w-full h-8"></label><label>Highlight colour<input type="color" data-s="bg" class="w-full h-8"></label></div>
-      <label class="block text-xs">Highlight opacity <span id="lOp"></span><input type="range" min="0" max="1" step="0.05" data-s="bgOp" class="w-full"></label>
-      <label class="block text-xs">Font<select data-s="font" class="inp mt-1"><option value="system-ui">System</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Tahoma">Tahoma</option><option value="'Courier New'">Courier</option></select></label>
-      <div class="flex gap-4 text-xs"><label class="flex items-center gap-1"><input type="checkbox" data-s="bold" class="accent-indigo-600"> Bold</label><label class="flex items-center gap-1"><input type="checkbox" data-s="outline" class="accent-indigo-600"> Outline</label></div>
-      <label class="block text-xs">Timing shift (s) <span id="lOff"></span><input type="range" min="-10" max="10" step="0.1" data-s="offset" class="w-full"></label>
-      <button class="link text-xs" id="sReset">Reset style</button>
-      <p class="text-[11px] text-slate-500">Style is saved and used for all videos. Subtitles also show in full screen.</p></div>
+  <div id="vwrap" class="vwrap">
+    <div class="vmain"><div id="vbox" class="relative bg-black rounded-xl overflow-hidden" style="aspect-ratio:16/9">
+      <video id="vid" class="w-full h-full" controls playsinline></video>
+      <div id="cue" class="absolute inset-x-0 text-center pointer-events-none px-6" style="white-space:pre-line"></div>
+      <div id="vGate" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white text-sm text-center p-6" hidden></div></div>
+      <div class="vbar flex flex-wrap items-center gap-1.5 mt-2">
+        <button class="btn-ghost text-xs" data-a="back" title="Back 10 s (←)">⟲ 10</button><button class="btn-ghost text-xs" data-a="fwd" title="Forward 10 s (→)">10 ⟳</button>
+        <select id="vRate" class="inp w-auto text-xs py-1" title="Speed ( [ / ] )">${[0.75, 1, 1.25, 1.5, 1.75, 2].map(r => `<option value="${r}" ${r === UI.rate ? 'selected' : ''}>${r}×</option>`).join('')}</select>
+        <button class="btn-ghost text-xs" data-a="cc" title="Subtitles on / off (C)">CC <span id="ccSt"></span></button>
+        <span class="mx-1 text-slate-300">|</span>
+        <button class="btn-ghost text-xs" data-a="lay-normal" title="Standard view">▭ Standard</button><button class="btn-ghost text-xs" data-a="lay-wide" title="Video ⅔ + notes ⅓ (W)">◧ Video + notes</button><button class="btn-ghost text-xs" data-a="fs" title="Full screen (F) — N opens notes">⛶ Full screen</button>
+        <button class="btn-ghost text-xs" data-a="notes" title="Show / hide the side panel (N)">\uD83D\uDCDD Panel</button>
+        <button class="ib ml-auto" data-keys="video" title="Keyboard shortcuts (?)">⌨️</button></div>
+      <div id="vErr" class="text-xs text-slate-500 mt-1"></div></div>
+    <div class="vside card text-sm p-3">
+      <div class="flex gap-1 mb-2 text-xs" data-tabs><button data-tab="notes" class="on">\uD83D\uDCDD Notes</button><button data-tab="tr">\uD83D\uDCDC Transcript</button><button data-tab="st">\uD83D\uDD24 Subtitles</button></div>
+      <div data-pane="notes" class="space-y-2">
+        <div class="text-[11px] text-slate-500">Saved to Mohd Summary under <b>Notes from lecture: ${esc(v.src || 'Other')}</b></div>
+        <select id="nLos" class="inp text-xs"><option value="">${curLos ? 'Current LOS (' + esc(curLos) + ')' : 'No LOS (General)'}</option>${LL.map(l => `<option value="${l.id}">${esc(l.label)} — ${esc(losShort(l.t))}</option>`).join('')}</select>
+        <textarea id="nTxt" class="inp" rows="4" placeholder="Type a note… the video pauses while you type (Ctrl + Enter to save)"></textarea>
+        <div class="flex items-center gap-2"><button class="btn-primary text-xs" data-a="nsave">Save note · <span id="nAt">0:00</span></button>
+          <label class="flex items-center gap-1 text-[11px] ml-auto"><input type="checkbox" id="nAuto" ${UI.autoPause ? 'checked' : ''} class="accent-indigo-600"> Pause while typing</label></div>
+        <div id="nList" class="space-y-1.5 max-h-[50vh] overflow-auto"></div></div>
+      <div data-pane="tr" hidden><input id="trQ" class="inp text-xs mb-2" placeholder="Search the transcript"><div id="trList" class="max-h-[60vh] overflow-auto text-xs space-y-0.5"></div></div>
+      <div data-pane="st" hidden class="space-y-3">
+        <div class="text-xs text-slate-500" id="subInfo"></div>
+        <div class="flex gap-2"><label class="btn-ghost text-xs cursor-pointer">⬆️ Upload .srt<input type="file" accept=".srt,.vtt,text/plain" id="srtUp" class="hidden"></label>${subs[key] ? '<button class="link text-rose-600 text-xs" id="srtDel">Remove uploaded</button>' : ''}</div>
+        <label class="block text-xs">Text size <span id="lSize"></span><input type="range" min="12" max="72" data-s="size" class="w-full"></label>
+        <label class="block text-xs">Position from bottom <span id="lPos"></span><input type="range" min="0" max="90" data-s="pos" class="w-full"></label>
+        <div class="grid grid-cols-2 gap-2 text-xs"><label>Text colour<input type="color" data-s="color" class="w-full h-8"></label><label>Highlight colour<input type="color" data-s="bg" class="w-full h-8"></label></div>
+        <label class="block text-xs">Highlight opacity <span id="lOp"></span><input type="range" min="0" max="1" step="0.05" data-s="bgOp" class="w-full"></label>
+        <label class="block text-xs">Font<select data-s="font" class="inp mt-1"><option value="system-ui">System</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Tahoma">Tahoma</option><option value="'Courier New'">Courier</option></select></label>
+        <div class="flex gap-4 text-xs"><label class="flex items-center gap-1"><input type="checkbox" data-s="bold" class="accent-indigo-600"> Bold</label><label class="flex items-center gap-1"><input type="checkbox" data-s="outline" class="accent-indigo-600"> Outline</label></div>
+        <label class="block text-xs">Timing shift (s) <span id="lOff"></span><input type="range" min="-10" max="10" step="0.1" data-s="offset" class="w-full"></label>
+        <button class="link text-xs" id="sReset">Reset style</button></div></div>
   </div>`;
-  const vid = document.getElementById('vid'), cue = document.getElementById('cue'), box = document.getElementById('vbox');
+  const vid = document.getElementById('vid'), cue = document.getElementById('cue'), wrap = document.getElementById('vwrap'), gate = document.getElementById('vGate'), err = document.getElementById('vErr');
+  const $ = id => document.getElementById(id);
+  // ---- source ----
+  async function load(ask) {
+    const r = await vresolve(v, ask); gate.hidden = true;
+    if (r.how === 'ask') { gate.hidden = false; gate.innerHTML = `<div>The lectures folder needs your permission after a refresh.</div><button class="btn-primary" data-a="allow">Allow access</button><div class="text-[11px] opacity-70">Tip: choose “Allow on every visit” so it is not asked again.</div>`; return; }
+    if (r.how === 'none' || r.how === 'missing') { gate.hidden = false; gate.innerHTML = r.how === 'none' ? `<div>No source for this video on this device.</div><div class="flex gap-2 flex-wrap justify-center">${canDir() ? '<a class="btn-primary" href="#/library">\uD83D\uDCC1 Link lectures folder</a>' : ''}<label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label></div>` : `<div><b>${esc(v.file)}</b> was not found in your folder on this device.</div><label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label>`; return; }
+    if (objUrl) URL.revokeObjectURL(objUrl); objUrl = r.local ? r.url : null; vid.src = r.url;
+    err.textContent = { copy: '\uD83D\uDCBE Playing the copy saved on this device.', folder: '\uD83D\uDCC1 Playing from your lectures folder.', link: '\uD83D\uDD17 Playing from the link.' }[r.how];
+    if (subs[key]) { cues = parseSRT(subs[key].srt); subName = subs[key].name; subFrom = 'uploaded'; } else if (r.sub) { cues = parseSRT(r.sub.srt); subName = r.sub.name; subFrom = r.how === 'copy' ? 'copy' : 'folder'; }
+    $('subInfo').textContent = cues.length ? `\uD83D\uDCC4 ${subName} · ${cues.length} lines (${subFrom === 'uploaded' ? 'uploaded' : 'same name, loaded automatically'})` : 'No subtitles — put a .srt with the same name next to the video, or upload one.';
+    drawTr(); ccSt();
+  }
+  vid.onloadedmetadata = async () => { vid.playbackRate = UI.rate; const p = (await kv.get('vpos', {}))[v.id]; const st = tq ? +tq : (p?.t && !(p.t > vid.duration - 5) ? p.t : 0); if (st) { vid.currentTime = st; if (!tq) toast('Resumed at ' + fmtT(st)); } };
+  vid.onerror = () => { if (vid.src) err.innerHTML = '⚠ This link cannot be played inside the site. Link your lectures folder in <b>Library</b> or save a copy on this device.'; };
+  // ---- subtitles ----
   const fill = () => view.querySelectorAll('[data-s]').forEach(el => { const k = el.dataset.s; el.type === 'checkbox' ? el.checked = !!S[k] : el.value = S[k]; });
   const apply = () => {
     cue.style.bottom = S.pos + '%'; cue.style.fontFamily = S.font;
     const span = cue.firstChild; if (span) Object.assign(span.style, { fontSize: S.size + 'px', color: S.color, background: hexA(S.bg, S.bgOp), fontWeight: S.bold ? '700' : '400', padding: '.1em .4em', borderRadius: '.25em', lineHeight: '1.35', textShadow: S.outline ? '0 0 3px #000,0 0 3px #000,1px 1px 2px #000' : 'none', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' });
-    if (!document.getElementById('lSize')) return; document.getElementById('lSize').textContent = S.size + 'px'; document.getElementById('lPos').textContent = S.pos + '%'; document.getElementById('lOp').textContent = Math.round(S.bgOp * 100) + '%'; document.getElementById('lOff').textContent = (+S.offset).toFixed(1);
+    if (!$('lSize')) return; $('lSize').textContent = S.size + 'px'; $('lPos').textContent = S.pos + '%'; $('lOp').textContent = Math.round(S.bgOp * 100) + '%'; $('lOff').textContent = (+S.offset).toFixed(1);
   };
-  let lastTxt = null;
-  const tick = () => { if (!document.getElementById('sOn')) return; const tm = vid.currentTime - S.offset, c = document.getElementById('sOn').checked ? cues.find(z => tm >= z.s && tm <= z.e) : null, txt = c ? c.text : '';
-    if (txt !== lastTxt) { lastTxt = txt; cue.innerHTML = txt ? `<span>${esc(txt)}</span>` : ''; apply(); } };
-  vid.ontimeupdate = tick; vid.onseeked = tick;
-  vid.onerror = () => { document.getElementById('vErr').innerHTML = '⚠ This link cannot be streamed directly. Use <b>Open on OneDrive</b>, or <b>Play a file from this device</b> — subtitles work with local files too.'; };
-  fill(); apply();
-  view.oninput = async e => { const k = e.target.dataset.s; if (!k) return; S[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? +e.target.value : e.target.value; lastTxt = null; tick(); apply(); await kv.set('subStyle', S); };
+  const ccSt = () => { $('ccSt').textContent = !cues.length ? '—' : UI.cc ? 'on' : 'off'; };
+  let lastTxt = null, lastSave = 0, lastTr = -1;
+  const curCue = () => { const tm = vid.currentTime - S.offset; return cues.findIndex(z => tm >= z.s && tm <= z.e); };
+  const tick = () => { if (!$('nAt')) return; const i = curCue(), txt = UI.cc && i >= 0 ? cues[i].text : '';
+    if (txt !== lastTxt) { lastTxt = txt; cue.innerHTML = txt ? `<span>${esc(txt)}</span>` : ''; apply(); }
+    $('nAt').textContent = fmtT(vid.currentTime);
+    if (i !== lastTr) { lastTr = i; const tl = $('trList'); tl?.querySelectorAll('.tr-on').forEach(x => x.classList.remove('tr-on')); const el = tl?.querySelector(`[data-ti="${i}"]`); if (el) { el.classList.add('tr-on'); if (!$('trQ').value && !tl.closest('[hidden]')) el.scrollIntoView({ block: 'nearest' }); } }
+    const now = Date.now(); if (now - lastSave > 8000 && vid.currentTime > 3) { lastSave = now; savePos(); } };
+  async function savePos() { const P = await kv.get('vpos', {}); P[v.id] = { t: Math.floor(vid.currentTime), d: Math.floor(vid.duration || 0), ts: Date.now() }; await kv.set('vpos', P);
+    if (vid.duration && vid.currentTime / vid.duration >= 0.9 && !v.done) { const T2 = await kv.get('modTrack', {}), w = (T2[mid]?.videos || []).find(z => z.id === v.id); if (w) { w.done = v.done = true; if (T2[mid].videos.every(z => z.done)) { T2[mid].lec = true; toast('All lecture videos watched — Lecture marked done ✓'); } else toast('Video marked as watched ✓'); await kv.set('modTrack', T2); } } }
+  vid.ontimeupdate = tick; vid.onseeked = tick; vid.onpause = () => savePos(); vid.onended = () => savePos();
+  function drawTr() { const q = ($('trQ').value || '').toLowerCase();
+    $('trList').innerHTML = cues.length ? cues.map((c, i) => q && !c.text.toLowerCase().includes(q) ? '' : `<div class="tr-line" data-ti="${i}" data-tt="${c.s}"><span class="text-slate-400 tabular-nums mr-1">${fmtT(c.s)}</span>${esc(c.text)}</div>`).join('') : '<div class="text-slate-500">No subtitles for this video.</div>'; lastTr = -1; tick(); }
+  // ---- notes ----
+  const NSRC = 'Notes from lecture: ' + (v.src || 'Other');
+  async function drawNotes() { const ns = (await getNotes(mid)).filter(n => n.vsrc?.vid === v.id).sort((a, b) => a.vsrc.t - b.vsrc.t);
+    $('nList').innerHTML = ns.map(n => `<div class="p-2 rounded-lg border border-slate-200 dark:border-slate-700"><div class="flex items-center gap-2 text-[11px]"><button class="link tabular-nums" data-seek="${n.vsrc.t}">\uD83C\uDFAC ${fmtT(n.vsrc.t)}</button>${n.los ? `<span class="chip">LOS ${esc(n.los)}</span>` : ''}<button class="link text-rose-600 ml-auto" data-ndel="${n.id}">✕</button></div><div class="text-xs whitespace-pre-wrap mt-1">${esc(n.text)}</div></div>`).join('') || '<div class="text-[11px] text-slate-500">No notes from this video yet.</div>'; }
+  async function saveNote() {
+    const txt = $('nTxt').value.trim(); if (!txt) return;
+    const los = $('nLos').value || curLos || null, t = Math.floor(vid.currentTime);
+    const all = await getNotes(mid); let h = all.find(n => n.type === 'heading' && n.text === NSRC && (n.los || null) === los);
+    if (!h) h = await addNote({ moduleId: mid, kind: 'mohd', type: 'heading', text: NSRC, los });
+    const sib = all.filter(n => n.vsrc && (n.los || null) === los && n.vsrc.src === (v.src || 'Other') && n.order > h.order);
+    const order = Math.max(h.order, ...sib.map(n => n.order)) + 0.001;
+    await addNote({ moduleId: mid, kind: 'mohd', type: 'clip', text: txt, los, order, vsrc: { mid, vid: v.id, idx, t, src: v.src || 'Other', name: v.name || v.file || '' } });
+    $('nTxt').value = ''; toast('Saved to Mohd Summary'); drawNotes(); if (UI.autoPause && wasPlaying) vid.play(); wasPlaying = false;
+  }
+  let wasPlaying = false;
+  $('nTxt').onfocus = () => { if (UI.autoPause && !vid.paused) { wasPlaying = true; vid.pause(); } };
+  $('nTxt').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveNote(); } if (e.key === 'Escape') { $('nTxt').blur(); if (wasPlaying) { vid.play(); wasPlaying = false; } } };
+  // ---- layout ----
+  const setLayout = l => { UI.layout = l; wrap.classList.toggle('vwide', l === 'wide'); document.body.classList.toggle('vwide-on', l === 'wide'); kv.set('vUI', UI); };
+  const setNotes = on => { if (document.fullscreenElement) { wrap.classList.toggle('fsnotes', on); return; } UI.notes = on; wrap.classList.toggle('vnone', !on); kv.set('vUI', UI); };
+  const tab = n => { view.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === n)); view.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== n); if (n === 'tr') drawTr(); };
+  const toggleFs = () => document.fullscreenElement ? document.exitFullscreen() : wrap.requestFullscreen?.();
+  const seekBy = s => { vid.currentTime = Math.max(0, Math.min((vid.duration || 1e9) - 0.5, vid.currentTime + s)); };
+  const setRate = r => { UI.rate = r; vid.playbackRate = r; $('vRate').value = r; kv.set('vUI', UI); toast(r + '×'); };
+  setLayout(UI.layout); setNotes(UI.notes); fill(); apply();
+  view.oninput = async e => { if (e.target.id === 'trQ') return drawTr(); const k = e.target.dataset.s; if (!k) return; S[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? +e.target.value : e.target.value; lastTxt = null; tick(); apply(); await kv.set('subStyle', S); };
   view.onchange = async e => {
-    if (e.target.id === 'sOn') { lastTxt = null; tick(); }
-    if (e.target.id === 'vLocal' && e.target.files[0]) { if (localUrl) URL.revokeObjectURL(localUrl); localUrl = URL.createObjectURL(e.target.files[0]); vid.src = localUrl; document.getElementById('vErr').textContent = 'Playing ' + e.target.files[0].name + ' from this device.'; }
+    if (e.target.id === 'vRate') setRate(+e.target.value);
+    if (e.target.id === 'nAuto') { UI.autoPause = e.target.checked; kv.set('vUI', UI); }
+    if (e.target.id === 'vPick' && e.target.files[0]) { const f = e.target.files[0]; if (confirm(`Keep a copy of ${f.name} on this device so it opens directly next time?`)) { await vcopyPut(f); if (!v.file) { const T2 = await kv.get('modTrack', {}); const w = T2[mid].videos.find(z => z.id === v.id); w.file = v.file = f.name; await kv.set('modTrack', T2); } return load(false); } if (objUrl) URL.revokeObjectURL(objUrl); objUrl = vid.src = URL.createObjectURL(f); gate.hidden = true; err.textContent = 'Playing ' + f.name + ' (this session only).'; }
     if (e.target.id === 'srtUp' && e.target.files[0]) { const f = e.target.files[0], txt = await f.text(), c = parseSRT(txt); if (!c.length) return toast('No subtitle lines found in this file');
       const all = await kv.get('vsubs', {}); all[key] = { name: f.name, srt: txt }; await kv.set('vsubs', all); toast(`Subtitles added · ${c.length} lines`); videoPlayer(mid, idx); }
   };
   view.onclick = async e => {
-    if (e.target.id === 'srtDel' && confirm('Remove the subtitle file from this video?')) { const all = await kv.get('vsubs', {}); delete all[key]; await kv.set('vsubs', all); videoPlayer(mid, idx); }
+    const a = e.target.closest('[data-a]')?.dataset.a, sk = e.target.closest('[data-seek]'), tl = e.target.closest('[data-tt]'), tb = e.target.closest('[data-tab]');
+    if (tb) return tab(tb.dataset.tab);
+    if (sk) { vid.currentTime = +sk.dataset.seek; vid.play(); return; }
+    if (tl) { vid.currentTime = +tl.dataset.tt + S.offset + 0.01; vid.play(); return; }
+    if (e.target.dataset.ndel && confirm('Delete this note from Mohd Summary?')) { await db.del('notes', e.target.dataset.ndel); notify(mid); return drawNotes(); }
+    if (a === 'allow') return load(true);
+    if (a === 'back') seekBy(-10); if (a === 'fwd') seekBy(10);
+    if (a === 'cc') { UI.cc = !UI.cc; kv.set('vUI', UI); lastTxt = null; tick(); ccSt(); }
+    if (a === 'lay-normal') setLayout('normal'); if (a === 'lay-wide') setLayout('wide');
+    if (a === 'notes') setNotes(document.fullscreenElement ? !wrap.classList.contains('fsnotes') : !UI.notes); if (a === 'fs') toggleFs();
+    if (a === 'nsave') saveNote();
+    if (e.target.id === 'srtDel' && confirm('Remove the uploaded subtitle file?')) { const all = await kv.get('vsubs', {}); delete all[key]; await kv.set('vsubs', all); videoPlayer(mid, idx); }
     if (e.target.id === 'sReset') { S = { ...SUB_DEF }; await kv.set('subStyle', S); fill(); lastTxt = null; tick(); apply(); }
-    if (e.target.id === 'vFs') box.requestFullscreen?.();
   };
-  return () => { view.oninput = view.onchange = view.onclick = null; vid.pause(); if (localUrl) URL.revokeObjectURL(localUrl); };
+  const onKey = e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (k === ' ' || k === 'k' || k === 'K') { e.preventDefault(); vid.paused ? vid.play() : vid.pause(); }
+    else if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); if (e.shiftKey && cues.length) { const i = Math.max(0, curCue() < 0 ? cues.findIndex(z => z.s > vid.currentTime) - (k === 'ArrowLeft' ? 1 : 0) : curCue() + (k === 'ArrowLeft' ? -1 : 1)); const c = cues[Math.min(cues.length - 1, i)]; if (c) vid.currentTime = c.s + S.offset + 0.01; } else seekBy(k === 'ArrowLeft' ? -10 : 10); }
+    else if (k === '[' || k === ']') { const R = [0.75, 1, 1.25, 1.5, 1.75, 2], i = R.indexOf(UI.rate); setRate(R[Math.max(0, Math.min(R.length - 1, (i < 0 ? 1 : i) + (k === ']' ? 1 : -1)))]); }
+    else if (k === 'c' || k === 'C') { UI.cc = !UI.cc; kv.set('vUI', UI); lastTxt = null; tick(); ccSt(); }
+    else if (k === 'n' || k === 'N') { e.preventDefault(); setNotes(document.fullscreenElement ? !wrap.classList.contains('fsnotes') : !UI.notes); if (UI.notes || wrap.classList.contains('fsnotes')) { tab('notes'); setTimeout(() => $('nTxt')?.focus(), 50); } }
+    else if (k === 'w' || k === 'W') setLayout(UI.layout === 'wide' ? 'normal' : 'wide');
+    else if (k === 'f' || k === 'F') toggleFs();
+  };
+  document.addEventListener('keydown', onKey);
+  showKeys('video', VKEYS);
+  await load(false); drawNotes();
+  return () => { document.removeEventListener('keydown', onKey); view.oninput = view.onchange = view.onclick = null; savePos(); vid.pause(); document.body.classList.remove('vwide-on'); if (document.fullscreenElement) document.exitFullscreen(); if (objUrl) URL.revokeObjectURL(objUrl); };
 }
+
+// ---------- keyboard shortcut help (⌨️ / ?) ----------
+const KEYSETS = {
+  video: VKEYS,
+  quiz: [['A–D or 1–4', 'Choose an answer'], ['Shift + A–D', 'Cross out an option'], ['Enter', 'Submit, then next question'], ['← / →', 'Previous / next question'], ['F', 'Flag the question'], ['P', 'Pause'], ['R', 'Resume'], ['+ / −', 'Bigger / smaller text'], ['?', 'Show these shortcuts']],
+  reader: [['← / → or PgUp / PgDn', 'Previous / next page'], ['Alt + ↑ / ↓', 'Previous / next highlight'], ['Shift + F', 'Full screen'], ['Esc', 'Leave full screen'], ['?', 'Show these shortcuts']],
+  cards: [['Space', 'Flip the card'], ['← / →', 'Previous / next card'], ['1 / 2 / 3', 'Again / Good / Easy'], ['Esc', 'Stop reviewing'], ['?', 'Show these shortcuts']],
+};
+let KEYS_ON = null;
+function showKeys(set, list) {
+  KEYS_ON = set; if (list) KEYSETS[set] = list;
+  let b = document.getElementById('keysFab');
+  if (!b) { b = document.createElement('button'); b.id = 'keysFab'; b.className = 'keys-fab'; b.title = 'Keyboard shortcuts (?)'; b.textContent = '⌨️'; b.onclick = () => keysDialog(KEYS_ON); document.body.append(b); }
+  b.hidden = false;
+  const seen = JSON.parse(localStorage.getItem('keysSeen') || '{}');
+  if (!seen[set]) { seen[set] = 1; localStorage.setItem('keysSeen', JSON.stringify(seen)); setTimeout(() => toast('Tip: press ? to see the keyboard shortcuts'), 800); }
+}
+function hideKeys() { KEYS_ON = null; const b = document.getElementById('keysFab'); if (b) b.hidden = true; }
+function keysDialog(set) {
+  const ks = KEYSETS[set]; if (!ks) return; document.getElementById('keysDlg')?.remove();
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'keysDlg';
+  bg.innerHTML = `<div class="card modal-box"><div class="flex items-center mb-2"><h3 class="font-bold">⌨️ Keyboard shortcuts · ${{ video: 'Video', quiz: 'Questions', reader: 'Book reader', cards: 'Flashcards' }[set] || ''}</h3><button class="ib ml-auto" data-kx>✕</button></div>
+    <table class="w-full text-sm">${ks.map(([k, d]) => `<tr class="border-b border-slate-200 dark:border-slate-700"><td class="py-1.5 pr-3 whitespace-nowrap"><kbd class="kbd">${esc(k)}</kbd></td><td class="py-1.5">${esc(d)}</td></tr>`).join('')}</table></div>`;
+  bg.onclick = e => { if (e.target === bg || e.target.closest('[data-kx]')) bg.remove(); };
+  (document.fullscreenElement || document.body).append(bg);
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-keys]'); if (b) { e.preventDefault(); keysDialog(b.dataset.keys); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('keysDlg')) { document.getElementById('keysDlg').remove(); e.stopPropagation(); return; }
+  if (e.key !== '?' || !KEYS_ON || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+  e.preventDefault(); const d = document.getElementById('keysDlg'); d ? d.remove() : keysDialog(KEYS_ON);
+}, true);
 
 // ================= v12 · organised Modules library (Settings) & Library by topic → module =================
 const BOOK_KINDS = [['schweser', '📗 Schweser'], ['curriculum', '📘 Curriculum'], ['aipdf', '🤖 AI Summary (PDF)']];
@@ -6654,6 +6891,7 @@ async function library() {
   <p class="text-sm text-slate-500 -mt-2 mb-4">Organised by topic and module. Open a topic and upload each book next to its module — it is linked automatically. One Schweser or Curriculum book often covers several modules: upload it once, then pick it for the other modules and set the page where each module starts.</p>
   <label class="flex items-center gap-2 text-sm mb-3" data-tip="The book is kept only in this browser and does not use your cloud space. Other devices will list it but cannot open it until you upload it to the cloud."><input type="checkbox" id="locOnly" class="accent-indigo-600"> Keep new uploads on this device only</label>
   <div id="upMsg" class="text-sm my-2"></div>
+  <div id="vlibBox">${await vidLibHTML()}</div>
   <div class="space-y-2">${SUBJECTS.map(sj => {
     const ms = mods.filter(m => m.subject === sj.id), nb = ms.filter(m => map[m.id]?.schweser || map[m.id]?.curriculum).length;
     return `<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
@@ -6669,6 +6907,8 @@ async function library() {
     ${files.length > loose.length ? `<details class="mt-3"><summary class="text-xs cursor-pointer text-indigo-600">All books (${files.length}) — rename, change type, delete</summary><div class="space-y-2 mt-2">${files.filter(f => used.has(f.id)).map(f => bookRow(f, cached)).join('')}</div></details>` : ''}</div>
   <div class="text-xs text-slate-500 mt-4">Cloud storage used by books: ${cloudMB.toFixed(0)} MB (free plan includes 1 GB).</div>`;
 
+  const vlRedraw = async () => { const bx = document.getElementById('vlibBox'); if (!bx) return; bx.innerHTML = await vidLibHTML(); bindVidLib(bx.firstElementChild, vlRedraw); };
+  bindVidLib(document.getElementById('vlib'), vlRedraw);
   const msg = () => document.getElementById('upMsg');
   async function addBook(f, kind) {
     const { inspectPdf } = await reader(), locOnly = document.getElementById('locOnly').checked;
@@ -6726,7 +6966,7 @@ const routes = [
   [/^#\/study\/(\w+)$/, subjectHome],
   [/^#\/qbank$/, qbankSetup],
   [/^#\/qbank\/mocks$/, mocksView],
-  [/^#\/video\/([^/]+)\/(\d+)$/, videoPlayer],
+  [/^#\/video\/([^/]+)\/(\d+)(?:\/(\d+))?$/, videoPlayer],
   [/^#\/qbank\/run$/, qbankRun],
   [/^#\/qbank\/stats(?:\/(\w+))?$/, qbankStats],
   [/^#\/qbank\/m\/([^/?]+)(?:\?(.*))?$/, qbankModule],
@@ -6740,7 +6980,7 @@ const routes = [
   [/^#\/settings$/, settings],
 ];
 async function route() {
-  cleanup && cleanup(); cleanup = null;
+  cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
   await loadPacks(); await applySubjOrder(); MINIRES = await kv.get('miniRes', {}); await syncAllCards(); TRACK = await kv.get('modTrack', {});
   const h = location.hash || '#/';
   document.body.classList.toggle('reading', /\/(schweser|curriculum|aipdf)$|#\/read\//.test(h));
