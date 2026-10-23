@@ -4606,9 +4606,9 @@ const PQ_LIG = [[/\s{2,}(nanc)/g, ' fi$1'], [/\s{2,}(rst\b)/g, ' fi$1'], [/\s{2,
   [/\s{2,}(ows?\b)/g, ' fl$1'], [/\s{2,}(exib)/g, ' fl$1'], [/\s{2,}(uctu)/g, ' fl$1']];
 function pqClean(s) {
   if (!s) return '';
-  let t = String(s).replace(/\u0000/g, '  ');
+  let t = String(s).replace(/\u0000/g, '  ').replace(/\u00ad[ \t]*\n?[ \t]*/g, '');
   for (const [re, rep] of PQ_LIG) t = t.replace(re, rep);
-  return t.replace(/(\w) -\n(\w)/g, '$1$2').replace(/[ \t]*\n[ \t]*/g, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([.,;:?)])/g, '$1').trim();
+  return t.replace(/(\w)\s+-[ \t]*\n\s*(\w)/g, '$1$2').replace(/[ \t]*\n[ \t]*/g, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([.,;:?)])/g, '$1').trim();
 }
 function pqSplitOptions(body, style) {
   const re = style === 'any' ? /(?:^|\n)\s*\(?([ABC])[.)]\s*/g : style === 'paren' ? /(?:^|\n)\s*([ABC])\)\s*/g : /(?:^|\n)\s*([ABC])\.\s+/g;
@@ -4652,14 +4652,16 @@ function parseCurriculumPP(text) {
   const t = text.replace(/<<PAGE \d+>>/g, '\n').replace(/©\s*CFA Institute[^\n]*/g, '')
     .replace(/\n\s*(Learning Module \d+[^\n]*|Practice Problems[^\n]*|Solutions\s+\d+)\s*\n/g, '\n');
   const [pp, sol = ''] = t.split(/\n\s*SOLUTIONS\s*\n/);
-  const probs = pp.split(/\n\s*(\d{1,2})\.\s+/); const out = [];
+  const probs = pp.split(/\n\s*(\d{1,2})\.\s+/); const out = [], skippedAll = [];
   for (let i = 1; i < probs.length; i += 2) {
-    const qno = +probs[i], body = '\n' + probs[i + 1];
-    const sp = pqSplitOptions(body, 'dot'); if (!sp) { (out.skipped = out.skipped || []).push({ qno, reason: 'options not found in the text' }); continue; }
+    const qno = +probs[i], body = ('\n' + probs[i + 1]).split(/\n\s*The following information relates to questions?/)[0];   // the next case set starts after the last option
+    const sp = pqSplitOptions(body, 'dot'); if (!sp) { skippedAll.push({ qno, reason: 'options not found in the text' }); continue; }
     const opts = {};
     sp.seq.forEach((o, j) => { opts[o.k] = pqClean(body.slice(o.e, j < 2 ? sp.seq[j + 1].s : body.length)); });
+    if (out.some(z => z.qno === qno)) continue;      // “Exhibit 1.” at a line start is not question 1 again
     out.push({ qno, stem: pqClean(sp.pre), options: opts, answer: null, explanation: '' });
   }
+  const skipped = skippedAll.filter(k => !out.some(z => z.qno === k.qno)); if (skipped.length) out.skipped = skipped;
   const sols = ('\n' + sol).split(/\n\s*(\d{1,2})\.\s+/);
   for (let i = 1; i < sols.length; i += 2) {
     const q = out.find(z => z.qno === +sols[i]); if (!q) continue;
@@ -4696,8 +4698,8 @@ function parseSchweserQuiz(text) {
   // The answer key is printed in sections ("Module 30.1 & Module 30.2 - Answers", "Module 30.3 - Answers"). Each section may number its
   // questions from 1 again ("Question 2 of 7") or carry on (8, 9, …): a number that does not go up means a new section, and the
   // numbers are then made continuous to match the module file. Options may be written A) · A. · (A). The heading may share its line with the stem.
-  const T = '\n' + text.replace(/<<PAGE \d+>>/g, '\n');
-  const re = /\n[ \t]*(?:(Module\s+\d+(?:\.\d+)?(?:\s*&\s*Module\s+\d+(?:\.\d+)?)*\s*[-–—]\s*Answers)|Question\s+(\d+)(?:\s+of\s+\d+)?(?![\d.]))[ \t]*([^\n]*)/g;
+  const T = '\n' + text.replace(/<<PAGE \d+>>/g, '\n').replace(/\n[ \t]*Related Material[ \t]*\n[^\n]*/g, '\n').replace(/\n[ \t]*Related Material[^\n]*/g, '\n').replace(/\n[ \t]*Source: Schweser Module Quiz[^\n]*/g, '\n');   // the “Related Material / SchweserNotes - Book 2” footer under each answer is not part of the next question
+  const re = /\n[ \t]*(?:(Module\s+\d+(?:\.\d+)?(?:\s*(?:&|and|,|[-–—])\s*(?:Module\s+)?\d+(?:\.\d+)?)*\s*[-–—]\s*Answers)|Question\s+(\d+)(?:\s+of\s+\d+)?(?![\d.]))[ \t]*([^\n]*)/g;
   const toks = []; let m;
   while ((m = re.exec(T))) toks.push({ head: m[1] ? m[1].replace(/\s+/g, ' ') : null, n: m[1] ? 0 : +m[2], rest: m[1] ? '' : m[3], s: m.index, e: re.lastIndex });
   const out = [], skipped = [], heads = []; let off = 0, last = 0, prev = 0, secN = 0, pend = '', active = null, curHead = '';
@@ -7009,7 +7011,7 @@ async function subjectHome(subj) {
     <div class="flex flex-wrap gap-2 w-full"><a href="#/qbank/stats/${subj}" class="btn-primary text-xs">\uD83D\uDCCA Performance</a><button class="btn-ghost text-xs text-rose-600" data-weak="${subj}">\uD83C\uDFAF Weakest LOS</button><a href="#/formulas/${subj}" class="btn-ghost text-xs">∑ Formulas</a><button class="btn-ghost text-xs" data-pack="${subj}">\uD83D\uDCE6 Final review pack</button><a href="#/summary/${subj}" class="btn-ghost text-xs">\uD83D\uDCC4 Full Mohd Summary</a><a href="#/library" class="btn-ghost text-xs">\uD83D\uDCC1 Books</a></div>
   </div>
   ${loaded < ms.length ? `<p class="text-xs text-slate-500 mb-2">Grey modules are not loaded yet — they count as 0% in progress and readiness until you add them.</p>` : ''}
-  <p class="text-xs text-slate-500 mb-2">\uD83D\uDCDD Each mini-exam sits right after the last module it covers.</p>
+  ${miniBarHTML(subj, ms.length)}
   <div class="g-auto">${cells}</div>` + await topicCardHTML(sj, ms);
 }
 const econ = () => subjectHome('econ');
@@ -7698,15 +7700,38 @@ async function reviewPack(subj) {
   downloadBlob(`Final-review-pack-${subj || 'all'}.docx`, makeDocx(B));
 }
 
-// ---------- mini-exams (3–4 per topic; FI has 5 because it has 19 modules) ----------
-function miniGroups(subj) {
-  const ms = moduleList().filter(m => m.subject === subj), n = ms.length; if (!n) return [];
-  const k = Math.max(3, Math.ceil(n / 4)), out = []; let i = 0;
-  for (let g = 0; g < k; g++) { const size = Math.floor(n / k) + (g < n % k ? 1 : 0); const part = ms.slice(i, i + size); i += size;
-    out.push({ key: `${subj}:${g + 1}`, idx: g + 1, mods: part, label: `Mini-exam ${g + 1} · LM ${part[0].num}–${part[part.length - 1].num}` }); }
+// ---------- mini-exams: after every N modules (N is chosen per topic: 2–6, or Auto) ----------
+let MINICFG = {};
+const MINI_SIZES = [2, 3, 4, 5, 6];
+const miniSizeOf = subj => { const v = MINICFG[subj] ?? MINICFG['*']; return MINI_SIZES.includes(+v) ? +v : 'auto'; };
+// sizes of the groups for n modules: Auto = 3 or more balanced groups of about 4 (the original rule); N = groups of N, and a last group of one module joins the group before it
+function miniSplit(n, size) {
+  if (!n) return [];
+  if (size === 'auto') { const k = Math.min(n, Math.max(3, Math.ceil(n / 4))); return [...Array(k)].map((_, g) => Math.floor(n / k) + (g < n % k ? 1 : 0)); }
+  const out = []; for (let i = 0; i < n; i += size) out.push(Math.min(size, n - i));
+  if (out.length > 1 && out[out.length - 1] === 1) { out.pop(); out[out.length - 1] += 1; }
   return out;
 }
-const mixMini = (subj, r) => { const s = Object.entries(MINIRES).filter(([k]) => k.startsWith(subj + ':')).map(([, v]) => v.score); return s.length ? Math.round(0.8 * r + 0.2 * s.reduce((a, b) => a + b, 0) / s.length) : r; };
+function miniGroups(subj, size = miniSizeOf(subj)) {
+  const ms = moduleList().filter(m => m.subject === subj); if (!ms.length) return [];
+  const out = []; let i = 0;
+  miniSplit(ms.length, size).forEach((sz, g) => { const part = ms.slice(i, i + sz); i += sz; const a = part[0].num, z = part[part.length - 1].num;
+    out.push({ key: `${subj}:${a}-${z}`, idx: g + 1, mods: part, label: `Mini-exam ${g + 1} · LM ${a}${z !== a ? '–' + z : ''}` }); });
+  return out;
+}
+// results used to be stored under "subject:1", "subject:2"… (the position in the automatic grouping); they now follow the modules they cover
+async function migrateMiniKeys() {
+  const R = await kv.get('miniRes', {}); let ch = false;
+  for (const k of Object.keys(R)) {
+    const m = /^([a-z]+):(\d+)$/.exec(k); if (!m) continue;
+    const g = miniGroups(m[1], 'auto')[+m[2] - 1]; ch = true;
+    if (g && !R[g.key]) R[g.key] = R[k];
+    delete R[k];
+  }
+  if (ch) await kv.set('miniRes', R);
+  return R;
+}
+const mixMini = (subj, r) => { const keys = new Set(miniGroups(subj).map(g => g.key)), s = Object.entries(MINIRES).filter(([k]) => keys.has(k)).map(([, v]) => v.score); return s.length ? Math.round(0.8 * r + 0.2 * s.reduce((a, b) => a + b, 0) / s.length) : r; };
 function miniState(g, c) {
   const loaded = g.mods.every(m => m.x), complete = g.mods.filter(m => m.x && modProgress(m, c).overall >= 100).length;
   return { loaded, complete, total: g.mods.length, ready: loaded && complete === g.mods.length };
@@ -7719,6 +7744,23 @@ function miniRowHTML(g, Q, c) {
       <div class="text-[11px] text-slate-500">${st.loaded ? `${n} questions available` : 'Unlocks when all its modules are loaded'} · 30 questions · 45 min · unanswered first${r ? ` · last: <b>${r.score}%</b> (${r.c}/${r.n}) on ${new Date(r.at).toLocaleDateString('en-GB')}` : ''}</div></div>
     <button class="${st.ready ? 'btn-primary' : 'btn-ghost'} text-xs" data-mini="${g.key}" data-pending="${st.loaded ? st.total - st.complete : 0}" ${st.loaded && n ? '' : 'disabled'}>${r ? 'Retake' : st.ready ? 'Start' : 'Start anyway'}</button></div>`;
 }
+function miniBarHTML(subj, n) {
+  const cur = miniSizeOf(subj), gs = miniGroups(subj), autoN = miniSplit(n, 'auto').length;
+  const opt = (v, l) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
+  return `<div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 text-xs" id="miniBar">
+    <label for="miniSize" class="font-medium">\uD83D\uDCDD Mini-exam after every</label>
+    <select id="miniSize" class="inp py-0.5 text-xs" style="width:auto" data-minisubj="${subj}" data-tip="How many modules each mini-exam covers. It appears right after the last module of its group. Your scores stay saved for the groups they belong to.">${opt('auto', `Auto (${autoN} exams)`)}${MINI_SIZES.map(k => opt(k, k + ' modules')).join('')}</select>
+    <button type="button" class="link" data-miniall="${subj}" data-tip="Use this choice for every topic that you have not set separately">Use for all topics</button>
+    <span class="text-slate-500">→ ${gs.length} mini-exam${gs.length === 1 ? '' : 's'}: ${gs.map(g => 'LM ' + g.mods[0].num + (g.mods.length > 1 ? '–' + g.mods[g.mods.length - 1].num : '')).join(' · ')}${cur !== 'auto' && n % cur === 1 && n > cur ? ' (the last module joins the group before it)' : ''}</span></div>`;
+}
+document.addEventListener('change', async e => {
+  const el = e.target.closest && e.target.closest('#miniSize'); if (!el) return;
+  const cfg = { ...MINICFG }, v = el.value === 'auto' ? 'auto' : +el.value; cfg[el.dataset.minisubj] = v; MINICFG = cfg; await kv.set('miniCfg', cfg); await route();
+});
+document.addEventListener('click', async e => {
+  const al = e.target.closest && e.target.closest('[data-miniall]'); if (!al) return;
+  const v = miniSizeOf(al.dataset.miniall); MINICFG = { '*': v }; await kv.set('miniCfg', MINICFG); toast(v === 'auto' ? 'All topics use Auto' : `All topics: a mini-exam after every ${v} modules`); await route();
+});
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-mini]'); if (!b || b.disabled) return; e.preventDefault();
   if (+b.dataset.pending > 0 && !confirm(`${b.dataset.pending} module(s) in this group are not complete yet. Take the mini-exam anyway?`)) return;
@@ -8496,7 +8538,8 @@ function modFileRowHTML(m) {
 }
 function modQRowsHTML(m, FQR) {
   if (m.kind !== 'pack') return `<div class="text-[11px] text-slate-400 py-1">❓ Question banks — available after the module file is uploaded.</div>`;
-  const D = PACKS[m.id], rows = FSA_SOURCES.filter(s => s.data).map(s => {
+  const LIB_ORDER = ['curr', 'smq', 'schq', 'uw', 'ap'];     // Library order only: Curriculum, Module Quiz, QBank, UWorld, AnalystPrep
+  const D = PACKS[m.id], rows = FSA_SOURCES.filter(s => s.data).sort((a, b) => LIB_ORDER.indexOf(a.id) - LIB_ORDER.indexOf(b.id)).map(s => {
     const qs = FQR.filter(q => q.src === s.id), tot = (D.questions || []).filter(q => q.source === s.data).length;
     return qrowHTML({ up: `data-qup="${m.id}|${s.id}|"`, rm: `data-qrm="${m.id}|${s.id}|"` }, `${s.icon} ${s.name}`, qs.length, tot, qs.filter(q => q.pk).length);
   });
@@ -8508,14 +8551,20 @@ async function topicLibHTML(sj, ms) {
   const N = ms.length, loaded = ms.filter(m => m.kind === 'pack').length, T = TPACKS[sj];
   if (loaded < N) return `<div class="px-3 py-2 text-xs text-slate-400" data-tip="Questions are linked to LOS, so every module file of the topic is needed first">🎯 Topic Qbank — available when every module of this topic has a module file (${loaded}/${N} so far)</div>`;
   let rows = (T
-    ? lrow('\uD83D\uDD17 Linking file', `<span class="text-slate-500">✅ ${esc(String(T.D.topic?.version ? 'v' + T.D.topic.version : ''))} · ${T.D.questions.length} questions · ${new Set(T.D.questions.map(q => q.source)).size} sources</span>`, `${lfile('Replace', '.json,application/json', `data-tup="${sj}"`)}<button class="link" data-tpdl="${sj}">Download</button><button class="link text-rose-600" data-tprm="${sj}">Remove</button>`)
-    : lrow('\uD83D\uDD17 Linking file', '<span class="text-slate-500">⬜ not loaded — upload the linking file (JSON) first</span>', lfile('⬆️ Upload', '.json,application/json', `data-tup="${sj}"`, 'btn-primary')));
+    ? lrow('\uD83D\uDD17 Step 1 · Linking file', `<span class="text-slate-500">✅ ${esc(String(T.D.topic?.version ? 'v' + T.D.topic.version : ''))} · ${T.D.questions.length} questions · ${new Set(T.D.questions.map(q => q.source)).size} sources</span>`, `${lfile('Replace', '.json,application/json', `data-tup="${sj}"`)}<button class="link" data-tpdl="${sj}">Download</button><button class="link text-rose-600" data-tprm="${sj}">Remove</button>`)
+    : lrow('\uD83D\uDD17 Step 1 · Linking file', '<span class="text-slate-500">⬜ not loaded — upload the linking file (JSON) first</span>', lfile('⬆️ Upload', '.json,application/json', `data-tup="${sj}"`, 'btn-primary')));
   rows += lrow('\uD83E\uDDED LOS index', '<span class="text-slate-500">every module and LOS id of this topic — give it to Claude when it builds the linking file</span>', `<button class="link" data-tlos="${sj}">Download</button>`);
-  if (T) for (const name of [...new Set(T.D.questions.map(q => q.source))]) {
-    const tot = T.D.questions.filter(q => q.source === name).length, qs = await kv.get('tqbank:' + sj + ':' + qvSlug2(name), []);
-    rows += qrowHTML({ up: `data-tsrc="${sj}|${esc(name)}"`, rm: `data-tsrm="${sj}|${esc(name)}"` }, `📄 ${esc(name)}`, qs.length, tot, qs.filter(q => q.pk).length);
+  if (T) {
+    const names = [...new Set(T.D.questions.map(q => q.source))];
+    rows += `<div class="text-[11px] text-slate-500 pt-1">Step 2 · Question PDFs — one row for each source named in the linking file (${names.length})</div>`;
+    for (const name of names) {
+      const tot = T.D.questions.filter(q => q.source === name).length, qs = await kv.get('tqbank:' + sj + ':' + qvSlug2(name), []);
+      rows += qrowHTML({ up: `data-tsrc="${sj}|${esc(name)}"`, rm: `data-tsrm="${sj}|${esc(name)}"` }, `\uD83D\uDCC4 ${esc(name)}`, qs.length, tot, qs.filter(q => q.pk).length);
+    }
+  } else {
+    rows += `<div class="text-[11px] text-slate-500 pt-1">Step 2 · Question PDFs</div>` + lrow('\uD83D\uDCC4 Question PDF', '<span class="text-slate-500">\uD83D\uDD12 opens after the linking file is saved \u2014 then each source named in the file gets its own upload row here</span>', '<span class="btn-ghost text-xs opacity-50" aria-disabled="true">Upload</span>');
   }
-  return `<div class="px-3 py-2"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip">🎯</span><span class="font-medium flex-1">Topic Qbank <span class="text-xs font-normal text-slate-500">· whole topic, separate from module Qbanks, mini-exams and mocks</span></span>${T ? `<a class="link text-xs" href="#/study/${sj}/topic">Open</a>` : ''}</div>${rows}</div>`;
+  return `<div class="px-3 py-2" id="tq-${sj}"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip">🎯</span><span class="font-medium flex-1">Topic Qbank <span class="text-xs font-normal text-slate-500">· whole topic, separate from module Qbanks, mini-exams and mocks</span></span>${T ? `<a class="link text-xs" href="#/study/${sj}/topic">Open</a>` : ''}</div>${rows}</div>`;
 }
 async function qlibPrep(mods) {
   const out = { file: {}, q: {}, topic: {} }, all = await extQRaw();
@@ -8538,7 +8587,7 @@ async function qlibChange(e) {
   if (t.dataset.tsrc && t.files[0]) { const f = t.files[0], [sj, ...r] = t.dataset.tsrc.split('|'); t.value = ''; await tqRun(sj, r.join('|'), f); return true; }
   if (t.dataset.tup && t.files[0]) {
     const f = t.files[0], sj = t.dataset.tup; t.value = '';
-    try { if (await tpackUpload(sj, f)) { OPEN_SUBJ.add(sj); toast('Linking file saved'); await library(); } } catch (err) { if (msg()) msg().innerHTML = `<span class="text-rose-600">❌ ${esc(err.message)}</span>`; }
+    try { if (await tpackUpload(sj, f)) { OPEN_SUBJ.add(sj); await library(); const nm = [...new Set(TPACKS[sj].D.questions.map(q => q.source))]; toast(`Linking file saved \u2014 now upload the PDF of ${nm.length === 1 ? '\u201c' + nm[0] + '\u201d' : 'each source'} in the rows below`); document.getElementById('tq-' + sj)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); } } catch (err) { if (msg()) msg().innerHTML = `<span class="text-rose-600">❌ ${esc(err.message)}</span>`; }
     return true;
   }
   if (t.dataset.mup && t.files[0]) {
@@ -9023,7 +9072,7 @@ const routes = [
 ];
 async function route() {
   cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
-  await loadPacks(); await applySubjOrder(); MINIRES = await kv.get('miniRes', {}); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
+  await loadPacks(); await applySubjOrder(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
   const h = location.hash || '#/';
   document.body.classList.toggle('reading', /\/(schweser|curriculum|aipdf)$|#\/read\//.test(h));
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', h.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '#/' || (h === '#/' && a.getAttribute('href') === '#/')));
