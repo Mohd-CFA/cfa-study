@@ -2618,6 +2618,21 @@ body.auth #cmdBtn { display: none !important; }
 .qm-ico { font-size: 1.25rem; width: 1.75rem; text-align: center; flex-shrink: 0; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="cr-css">
+.cr-ban{margin:0 0 .75rem;padding:.7rem .9rem;border-radius:.9rem;background:#fff7ed;border:1.5px solid #fb923c;color:#9a3412;font-size:.875rem;line-height:1.45}
+.cr-hold{display:block;margin-top:.25rem;font-size:.8125rem;font-weight:600}
+.cr-box{margin-top:.75rem;padding:.85rem 1rem;border-radius:.9rem;border:1.5px solid #fb923c;background:#fff7ed;color:#431407;font-size:.875rem;line-height:1.5}
+.cr-box.cr-applied{border-color:#34d399;background:#ecfdf5;color:#064e3b}.cr-box.cr-kept{border-color:#cbd5e1;background:#f8fafc;color:#0f172a}
+.cr-h{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;font-weight:700;margin-bottom:.4rem}.cr-st{font-weight:600}
+.cr-cmp{display:grid;gap:.25rem;margin:.35rem 0}.cr-lb{display:inline-block;min-width:7.5rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;opacity:.8}
+.cr-why{margin:.4rem 0;white-space:pre-wrap}.cr-work{padding:.5rem .6rem;border-radius:.6rem;background:rgba(255,255,255,.65);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8125rem}
+.cr-ref{margin:.4rem 0;padding:.5rem .65rem;border-radius:.6rem;background:rgba(255,255,255,.65);font-size:.8125rem}.cr-quote{margin-top:.3rem;font-style:italic}
+.cr-act{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.5rem}
+.cr-chip{display:inline-block;margin-top:.75rem;padding:.4rem .8rem;border-radius:999px;background:#fff7ed;border:1.5px solid #fb923c;color:#9a3412;font-size:.8125rem;font-weight:600;text-decoration:none}
+.dark .cr-ban,.dark .cr-chip{background:rgba(251,146,60,.15);color:#fdba74;border-color:#fb923c}
+.dark .cr-box{background:rgba(251,146,60,.12);color:#ffedd5;border-color:#fb923c}.dark .cr-box.cr-applied{background:rgba(16,185,129,.14);color:#d1fae5;border-color:#34d399}.dark .cr-box.cr-kept{background:rgba(148,163,184,.12);color:#e2e8f0;border-color:#64748b}
+.dark .cr-work,.dark .cr-ref{background:rgba(0,0,0,.25)}
+</style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
 <header class="topbar sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
@@ -2964,13 +2979,13 @@ function qPack(q) {
     const T = TPACKS[q.tq], r = T && T.idx.get(q.id);
     if (r) {
       const loc = r.los_id ? losLocate(r.los_id) : null, notes = notesOf(r), raw = rawExpl(q), ai = 'ABCD'.indexOf(r.answer);
-      out = { ...q, m: loc ? loc.mod : (r.module_id ? String(r.module_id).replace(/^([A-Za-z]+)-LM0*(\d+)$/, (_, s, n) => (SUBJ_CODE[s.toUpperCase()] || s.toLowerCase()) + '-' + n) : q.m), los: loc ? loc.code : undefined, scope: r.scope || (loc ? 'In module' : 'General question'), a: ai >= 0 ? ai : q.a, x: (notes ? notes + '\n\n' : '') + raw, xr: raw, xh: notes ? notes.length + 2 : 0 };
+      out = { ...q, m: loc ? loc.mod : (r.module_id ? String(r.module_id).replace(/^([A-Za-z]+)-LM0*(\d+)$/, (_, s, n) => (SUBJ_CODE[s.toUpperCase()] || s.toLowerCase()) + '-' + n) : q.m), los: loc ? loc.code : undefined, scope: r.scope || (loc ? 'In module' : 'General question'), a: ai >= 0 ? ai : q.a, x: (notes ? notes + '\n\n' : '') + raw, xr: raw, xh: notes ? notes.length + 2 : 0, crv: r.claude_review ? { ...r.claude_review, source_answer: r.answer } : null };
     }
   } else if (q.src && q.src !== 'oth' && q.src !== 'mock') {
     const r = qPackIdx(modKey(q)).get(q.id);
     if (r) {
       const lc = losCodeOf(r.los_id), notes = notesOf(r), raw = rawExpl(q), ai = 'ABCD'.indexOf(r.answer);
-      out = { ...q, los: lc, scope: r.scope, a: ai >= 0 ? ai : q.a, x: (notes ? notes + '\n\n' : '') + raw, xr: raw, xh: notes ? notes.length + 2 : 0 };
+      out = { ...q, los: lc, scope: r.scope, a: ai >= 0 ? ai : q.a, x: (notes ? notes + '\n\n' : '') + raw, xr: raw, xh: notes ? notes.length + 2 : 0, crv: r.claude_review ? { ...r.claude_review, source_answer: r.answer } : null };
     }
   }
   _QPC.set(q0, out); return out;
@@ -5643,10 +5658,11 @@ function qHistTip(q, s) {
 }
 
 // ---------- pools & filters ----------
-const POOLS = [['all', 'All questions', ''], ['new', 'Unanswered', ''], ['wrong', 'Last answered wrong', 'Your last attempt was wrong'], ['ever', 'Ever answered wrong', 'Any question you got wrong at least once, even if you later got it right'], ['due', 'Due for review', 'Spaced-repetition review is due'], ['flag', 'Flagged', 'Questions marked ⚑ — they stay until you remove the flag'], ['slow', 'Slow (over 3 min last time)', 'Your last attempt took more than 3 minutes']];
+const POOLS = [['all', 'All questions', ''], ['new', 'Unanswered', ''], ['wrong', 'Last answered wrong', 'Your last attempt was wrong'], ['ever', 'Ever answered wrong', 'Any question you got wrong at least once, even if you later got it right'], ['due', 'Due for review', 'Spaced-repetition review is due'], ['flag', 'Flagged', 'Questions marked ⚑ — they stay until you remove the flag'], ['slow', 'Slow (over 3 min last time)', 'Your last attempt took more than 3 minutes'],
+  ['crp', '\uD83E\uDDEA Claude disputes — to decide', 'Claude\'s review disagrees with the source answer and you have not decided yet'], ['cra', '\uD83E\uDDEA Claude disputes — applied', 'You applied Claude\'s answer'], ['crk', '\uD83E\uDDEA Claude disputes — kept source', 'You kept the source answer']];
 function filterPool(qs, pool, st) {
   const t = Date.now();
-  return qs.filter(q => { const s = st[q.id]; return pool === 'all' || (pool === 'new' && !s?.n) || (pool === 'wrong' && s?.n && !s.last) || (pool === 'ever' && s?.n > s?.c) || (pool === 'flag' && s?.flag) || (pool === 'due' && s?.n && s.due <= t) || (pool === 'slow' && (lastH(s)?.s || 0) > SLOW); });
+  return qs.filter(q => { const s = st[q.id]; return pool === 'all' || (pool === 'new' && !s?.n) || (pool === 'wrong' && s?.n && !s.last) || (pool === 'ever' && s?.n > s?.c) || (pool === 'flag' && s?.flag) || (pool === 'due' && s?.n && s.due <= t) || (pool === 'slow' && (lastH(s)?.s || 0) > SLOW) || (pool === 'crp' && q.cr?.state === 'pending') || (pool === 'cra' && q.cr?.state === 'applied') || (pool === 'crk' && q.cr?.state === 'kept'); });
 }
 function filterAdv(qs, adv, st) {
   if (!adv) return qs;
@@ -5772,7 +5788,7 @@ async function qbankRun() {
       ${S.paused ? `<div class="card mt-4 text-center py-14"><div class="text-5xl">⏸</div><div class="font-bold text-lg mt-2">Paused</div><div class="text-sm text-slate-500">The question is hidden while the timer is stopped${S.mode === 'exam' ? ' (the exam clock is stopped too)' : ''}.</div><button id="pz2" class="btn-primary mt-4">▶ Resume</button></div>` : `
       <div class="card mt-4 qcard" id="qcard" style="--qfs:${(1 + qfs * 0.1).toFixed(2)}">
         <div class="flex justify-end gap-1 -mt-1 mb-1 no-print"><button class="ib text-xs" data-fs="-1" data-tip="Smaller text (−)">A−</button><button class="ib" data-fs="1" data-tip="Bigger text (+)">A+</button></div>
-        ${qvStemHtml(q)}
+        ${!showFb && S.mode !== 'exam' ? crBanner(q) : ''}${qvStemHtml(q)}
         <div class="mt-4 space-y-2">${it.order.map((oi, k) => {
           let cls = 'opt';
           const struck = (it.x || []).includes(k), c = it.sel ?? it.pick;
@@ -5791,6 +5807,7 @@ async function qbankRun() {
         ${showFb ? `<div class="mt-4 p-4 rounded-xl ${ok ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300' : 'bg-rose-50 dark:bg-rose-900/30 border border-rose-300'}">
           <div class="font-bold mb-1 flex flex-wrap gap-2 items-center">${ok ? '✅ Correct' : `❌ Incorrect — answer is ${L[correctIdx]}`}<span class="text-xs font-normal text-slate-500">⏱ ${fmtSec(qSecs(it))}${it.conf ? ' · ' + CONF[it.conf].icon + ' ' + CONF[it.conf].name : ''}${ok && it.conf === 'guess' ? ' · correct by guess — it will come back soon' : ''}</span></div>
           ${qvExplHtml(q)}
+          ${crBox(q)}
           ${!ok && S.reasons ? reasonPicker(q, st[q.id], it.recT, lastH(st[q.id])?.r) : ''}
           ${qHelpers(q, it, st)}
           ${noteBox(q, note)}
@@ -5848,7 +5865,7 @@ async function qbankRun() {
         return `<details class="card" ${!r.ok && S.reasons && S.mode === 'exam' ? 'open' : ''}><summary class="cursor-pointer text-sm flex gap-2"><span>${r.it.pick === null ? '⚪' : r.ok ? '✅' : '❌'}</span><span class="flex-1">${r.k + 1}. ${esc(qvPlain(r.q))}</span><span class="text-xs text-slate-500 whitespace-nowrap">${r.it.conf ? CONF[r.it.conf].icon + ' ' : ''}⏱ ${fmtSec(r.sec)}</span></summary>
         <div class="mt-3 text-sm space-y-1">${r.it.order.map((oi, j) => `<div class="${oi === r.q.a ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : j === r.it.pick ? 'text-rose-600 line-through' : ''}">${L[j]}. ${esc(r.q.o[oi])}</div>`).join('')}
         ${r.q.pk && (r.q.vi?.s || r.q.cs) ? qvStemHtml(r.q, 'text-sm whitespace-pre-wrap') : ''}
-        <div class="mt-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">${qvExplHtml(r.q, 'whitespace-pre-wrap')}</div>
+        <div class="mt-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">${qvExplHtml(r.q, 'whitespace-pre-wrap')}</div>${crBox(r.q)}
         ${!r.ok && r.it.pick !== null && S.reasons ? reasonPicker(r.q, s, r.it.recT, (s?.hist || []).find(h => h.t === r.it.recT)?.r) : ''}
         ${qHelpers(r.q, r.it, st)}${noteBox(r.q, qnotes[r.q.id])}</div></details>`; }).join('')}</div></div>`;
   }
@@ -5874,6 +5891,7 @@ async function qbankRun() {
   view.onclick = async e => {
     const qmg = e.target.closest('[data-qmg],[data-qact]');
     if (qmg) { e.stopPropagation(); e.preventDefault(); if (qmg.dataset.qmg) return qMgmtOpen(qmg.dataset.qmg, runHooks); const qq = Q(qmg.dataset.qid); return qq && qmAct(qmg.dataset.qact, qq, runHooks); }
+    const crb = e.target.closest('[data-cr]'); if (crb) { e.stopPropagation(); e.preventDefault(); return crAct(crb.dataset.cr, crb.dataset.qid, runHooks); }
     if (await handleNoteClicks(e, Q, async () => { qnotes = await getQNotes(); })) return;
     const rb = e.target.closest('[data-reason]');
     if (rb) { await setReason(rb.dataset.qid, +rb.dataset.at || null, rb.dataset.reason); const box = rb.closest('[data-rbox]'); box.querySelectorAll('[data-reason]').forEach(b => b.classList.toggle('chip-on', b === rb && !b.classList.contains('chip-on'))); toast('Reason saved'); return; }
@@ -5964,7 +5982,7 @@ async function mistakesTab(body, x) {
           <div class="text-emerald-700 dark:text-emerald-400 font-semibold">✔ Correct: ${esc(q.o[q.a])}</div>
           ${wrongs.some(h => h.r) ? `<div class="text-xs">Reasons: ${wrongs.filter(h => h.r).map(h => `${reasonName(h.r)} (${fmtD(h.t)})`).join(' · ')}</div>` : ''}
           <div class="text-xs text-slate-500">Attempts: ${H.map(h => `${h.ok ? '✅' : '❌'}${h.s ? ' ' + fmtSec(h.s) : ''}${h.cf ? ' ' + CONF[h.cf].icon : ''}`).join(' · ')}</div>
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900">${qvExplHtml(q, 'whitespace-pre-wrap text-xs')}</div>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900">${qvExplHtml(q, 'whitespace-pre-wrap text-xs')}</div>${crBox(q)}
           ${mistakeActions(q)}
           ${noteBox(q, qn[q.id])}</div></details>`;
   };
@@ -6563,7 +6581,7 @@ async function cardsAll() {
 const mCol = s => s == null ? 'mx-grey' : s < 50 ? 'mx-red' : s < 75 ? 'mx-amber' : 'mx-green';
 function modReadiness(m, p, c) {
   if (!m.x) return 0;
-  const qs = modQs(m, c).filter(q => inScope(q, false));
+  const qs = modQs(m, c).filter(inStat);
   const ans = qs.filter(q => c.st[q.id]?.n);
   const adj = ans.length ? Math.max(0, ans.reduce((a, q) => a + (c.st[q.id].last ? (lastH(c.st[q.id])?.cf === 'guess' ? 0.5 : 1) : (lastH(c.st[q.id])?.cf === 'sure' ? -0.5 : 0)), 0) / ans.length) : 0;
   const cov = qs.length ? ans.length / qs.length : 0;
@@ -6571,11 +6589,11 @@ function modReadiness(m, p, c) {
 }
 async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
-  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c);
+  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
   return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip">LM ${globalLM(m)}</span>${prioRoundsHTML(modId, T0)}</div><div class="flex items-center gap-4">${ring(p.overall, 52, 6, pcol(p.overall))}<div class="flex-1">${trackRows(p, modId)}</div>
     <div class="text-center hidden sm:block" data-tip="Module readiness: reading 20% + summary 10% + question accuracy × coverage 70% (correct-by-guess counts half · answering Sure and being wrong counts extra against you)">${ring(rd, 52, 6, rd >= 70 ? '#10b981' : rd >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[10px] text-slate-500 mt-0.5">readiness</div></div></div>
-    <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="Green ≥ 75 · amber 50–74 · red < 50 · grey = not started. Based on reading, accuracy, coverage and confidence.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div></div>`;
+    <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="Green ≥ 75 · amber 50–74 · red < 50 · grey = not started. Based on reading, accuracy, coverage and confidence.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
 
 // ---------- Home ----------
@@ -6584,7 +6602,7 @@ async function home() {
   const days = exam ? Math.ceil((new Date(exam) - new Date()) / 864e5) : null;
   const c = await progressCtx(), mods = moduleList(), ps = mods.map(m => { const p = modProgress(m, c); return { m, p, r: modReadiness(m, p, c) }; });
   const overall = ps.length ? Math.round(ps.reduce((a, z) => a + z.p.overall, 0) / ps.length) : 0;
-  const Q = (await allQs()).filter(q => inScope(q, false));
+  const QA = await allQs(), Q = QA.filter(inStat);
   const ans = Q.filter(q => c.st[q.id]?.n), cor = ans.filter(q => c.st[q.id].last);
   const wrongNow = ans.filter(q => !c.st[q.id].last).length, flagged = Q.filter(q => c.st[q.id]?.flag).length;
   const dueN = ans.filter(q => c.st[q.id].due <= Date.now()).length, cardsDue = await dueCardCount(mods.filter(m => m.x).map(m => m.id));
@@ -6638,6 +6656,7 @@ async function home() {
         ${row('🃏', 'Flashcards due', cardsDue, '#/cards')}
         ${row('🔁', 'Questions due for review', dueN, '#/qbank', 'data-pool="due"')}
         ${row('❌', 'Last answered wrong', wrongNow, '#/qbank', 'data-pool="wrong"')}
+        ${QA.some(q => q.cr?.state === 'pending') ? row('\uD83E\uDDEA', 'Claude disputes — to decide', QA.filter(q => q.cr?.state === 'pending').length, '#/qbank', 'data-pool="crp"') : ''}
         ${miniReady.length ? row('📝', `Mini-exam ready · ${esc(miniReady[0].s.name)} · ${miniReady[0].g.label}`, null, `#/study/${miniReady[0].s.id}`) : ''}
       </div>
       <div class="card"><div class="flex items-center justify-between"><h3 class="sec mb-0">Today's tasks</h3><a href="#/plan" class="link text-xs">Study plan →</a></div>
@@ -6860,6 +6879,8 @@ const extQ = async mid => qLive(await extQRaw(mid));
 const losCodeOf = id => { for (const D of Object.values(PACKS)) { const l = D.los.find(z => z.los_id === id); if (l) return l.los_code; } return undefined; };
 const losD = code => FSA_MODULES[0].los.find(l => l.id === code);
 const inScope = (q, general) => general || !q.scope || /^in\b/i.test(q.scope);
+// statistics (accuracy, readiness, LOS rating, mini-exams): a question that Claude disputes with high confidence is held out until you decide
+const inStat = q => inScope(q, false) && !q.hold;
 async function allQs() { return [...QBANK_ECON.filter(q => !PACKS['econ-' + (q.m - 11)]), ...(await extQ())]; }
 function moduleList() {
   if (_ML) return _ML;
@@ -6903,7 +6924,7 @@ function studyStats(c, lastBy, lastGlobal) {
   for (const sj of SUBJECTS) {
     const ms = mods.filter(m => m.subject === sj.id), lm = ms.filter(m => m.x), P = ms.map(m => ps.get(m.id));
     const part = k => P.length ? Math.round(P.reduce((a, p) => a + p[k], 0) / P.length) : 0;
-    const qs = lm.flatMap(m => modQs(m, c)).filter(q => inScope(q, false)), ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
+    const qs = lm.flatMap(m => modQs(m, c)).filter(inStat), ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
     const times = ans.map(q => lastH(st[q.id])?.s).filter(v => v > 0), act = {};
     ans.forEach(q => (st[q.id].hist || []).forEach(h => { const k = dayKeyL(h.t); act[k] = (act[k] || 0) + 1; }));
     const tally = reasonTally(qs, st), top = tallyTop(tally)[0], counts = { must: 0, good: 0, exc: 0, few: 0 }, rated = [];
@@ -7082,7 +7103,7 @@ async function resetDialog(mid, onDone) {
 
 // ---------- Module Qbank: LOS + General questions, sources (+ other sources), live counts, reset ----------
 // ---------- Qbank pages: clearer layout (progress bars, per-LOS / per-module results, sticky start panel) ----------
-const qStat = (qs, st) => { const ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last); return { n: qs.length, a: ans.length, c: cor.length, acc: ans.length ? pct(cor.length, ans.length) : null }; };
+const qStat = (qs, st) => { qs = qs.filter(q => !q.hold); const ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last); return { n: qs.length, a: ans.length, c: cor.length, acc: ans.length ? pct(cor.length, ans.length) : null }; };
 const qBar = (z, h = 'h-1.5') => `<span class="flex ${h} rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden" role="img" aria-label="${z.c} correct, ${z.a - z.c} wrong, ${z.n - z.a} not answered yet"><span class="bg-emerald-500" style="width:${z.n ? z.c / z.n * 100 : 0}%"></span><span class="bg-rose-500" style="width:${z.n ? (z.a - z.c) / z.n * 100 : 0}%"></span></span>`;
 const qAccChip = z => z.acc === null ? '' : `<span class="mx ${z.acc >= 80 ? 'mx-green' : z.acc >= 60 ? 'mx-amber' : 'mx-red'}" data-tip="Correct answers among the questions you have answered (latest answer on each)">${z.acc}%</span>`;
 const qLegend = '<div class="flex flex-wrap gap-x-3 text-[11px] text-slate-500"><span><b class="text-emerald-600">■</b> correct</span><span><b class="text-rose-600">■</b> wrong</span><span><b class="text-slate-400">■</b> not answered yet</span><span>(latest answer on each question)</span></div>';
@@ -7092,7 +7113,7 @@ function qKpiHTML(Qin, st, extra = '') {
   return `<div class="space-y-2"><div class="flex flex-wrap items-end gap-x-6 gap-y-2"><div><div class="text-2xl font-bold leading-none tabular-nums">${T.a}<span class="text-base font-semibold text-slate-500">/${T.n}</span></div><div class="text-xs text-slate-500 mt-1">answered</div></div>
     <div><div class="text-2xl font-bold leading-none tabular-nums">${T.acc === null ? '0%' : T.acc + '%'}</div><div class="text-xs text-slate-500 mt-1">accuracy</div></div>${extra}
     <div class="flex-1 min-w-[10rem]">${qBar(T, 'h-2.5')}</div></div>${qLegend}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">${tile('new', 'Unanswered', P('new'), 'Practise the questions you have not answered yet')}${tile('wrong', 'Wrong now', P('wrong'), 'Your latest answer was wrong')}${tile('due', 'Due for review', P('due'), 'Spaced-repetition review is due')}${tile('flag', 'Flagged ⚑', P('flag'), 'Questions you flagged')}</div></div>`;
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">${tile('new', 'Unanswered', P('new'), 'Practise the questions you have not answered yet')}${tile('wrong', 'Wrong now', P('wrong'), 'Your latest answer was wrong')}${tile('due', 'Due for review', P('due'), 'Spaced-repetition review is due')}${tile('flag', 'Flagged ⚑', P('flag'), 'Questions you flagged')}${P('crp') ? tile('crp', '🧪 Claude disputes', P('crp'), 'Claude disagrees with the source answer — practise them and decide') : ''}</div></div>`;
 }
 const qSrcCard = (x, qs, st, attr, checked) => { const z = qStat(qs, st); return `<label class="qsrc ${qs.length ? '' : 'opacity-60'}"><input type="checkbox" class="accent-indigo-600 mt-0.5" ${attr}="${esc(x.k)}" ${checked ? 'checked' : ''}><span class="min-w-0 flex-1"><span class="flex items-center gap-2"><span aria-hidden="true">${x.icon}</span><span class="font-medium text-sm truncate">${esc(x.name)}</span><span class="ml-auto text-xs text-slate-500 tabular-nums" data-sc="${esc(x.k)}"></span></span><span class="block mt-1.5">${qBar(z)}</span><span class="block text-[11px] text-slate-500 mt-0.5">${qs.length ? `${qs.length} imported${z.acc !== null ? ` · ${z.acc}% correct` : ''}` : 'not imported yet'}</span></span></label>`; };
 function sideSetup(s) {
@@ -7295,7 +7316,7 @@ async function qbankStats(subj) {
   const Q = (await allQs()).filter(q => ids.has(modKey(q)));
   const mods = allMods.filter(m => m.x);
   const rows = mods.map(m => {
-    const qs = Q.filter(q => modKey(q) === m.id), a = qs.filter(q => st[q.id]?.n), cr = a.filter(q => st[q.id].last);
+    const qs = Q.filter(q => modKey(q) === m.id && !q.hold), a = qs.filter(q => st[q.id]?.n), cr = a.filter(q => st[q.id].last);
     const times = a.map(q => lastH(st[q.id])?.s).filter(Boolean);
     return { m, total: qs.filter(q => inScope(q, false)).length, a: a.length, c: cr.length, p: pct(cr.length, a.length), ever: qs.filter(q => st[q.id]?.n > st[q.id]?.c).length, flag: qs.filter(q => st[q.id]?.flag).length,
       avg: times.length ? times.reduce((x, y) => x + y, 0) / times.length : null, slow: a.filter(q => (lastH(st[q.id])?.s || 0) > SLOW).length };
@@ -7379,6 +7400,7 @@ async function installPack(D) {
   if (!subj) throw new Error(`Unknown topic "${md.subject}". Use one of: ${Object.keys(SUBJ_SHORT).map(k => SUBJ_SHORT[k]).join(', ')}`);
   if (!n) throw new Error('module.lm_no is missing');
   if (!Array.isArray(D.los) || !D.los.length || !D.los.every(l => l.los_code && l.los_text)) throw new Error('The file has no LOS list (los[].los_code / los_text)');
+  { const bad = (D.questions || []).map(crErrors).filter(Boolean); if (bad.length) throw new Error(`Claude review is incomplete in ${bad.length} question${bad.length > 1 ? 's' : ''} — send this list back to Claude:\n${bad.slice(0, 12).join('\n')}`); }
   for (const k of ['extras', 'conflicts', 'questions', 'sources']) if (!Array.isArray(D[k])) D[k] = [];
   const id = `${subj}-${n}`, ids = await kv.get('packIds', []);
   await kv.set('pack:' + id, D); if (!ids.includes(id)) await kv.set('packIds', [...ids, id]);
@@ -7548,7 +7570,7 @@ function modProgress(m, c) {
   let rDone = 0; const rTot = m.x.m.los.length;
   if (m.kind === 'legacy') rDone = m.x.m.los.filter((_, i) => c.los[`${m.id}-${i}`]).length;
   else rDone = m.x.m.los.filter(l => c.fl[`${m.id}:${l.id}`]?.done).length;
-  const qs = modQs(m, c).filter(q => inScope(q, false));
+  const qs = modQs(m, c).filter(inStat);
   const ans = qs.filter(q => c.st[q.id]?.n), cor = ans.filter(q => c.st[q.id].last);
   const nNotes = c.notes.filter(n => n.moduleId === m.id && (n.kind || 'mohd') === 'mohd').length;
   const t = c.track[m.id] || {};
@@ -7604,7 +7626,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-vids
 
 // ---------- LOS mastery (includes Mock answers) & LOS rating ----------
 function losQs(m, c, losId) {
-  return [...c.FQ.filter(q => q.m === m.id && q.los === losId && inScope(q, false)), ...(c.MQ || []).filter(q => q.m === m.id && q.los === losId)];
+  return [...c.FQ.filter(q => q.m === m.id && q.los === losId && inStat(q)), ...(c.MQ || []).filter(q => q.m === m.id && q.los === losId)];
 }
 function losMastery(m, c) {
   const L = losListFor(m.id);
@@ -7737,7 +7759,7 @@ function miniState(g, c) {
   return { loaded, complete, total: g.mods.length, ready: loaded && complete === g.mods.length };
 }
 function miniRowHTML(g, Q, c) {
-  const st = miniState(g, c), n = Q.filter(q => g.mods.some(m => m.id === modKey(q)) && inScope(q, false)).length, r = MINIRES[g.key];
+  const st = miniState(g, c), n = Q.filter(q => g.mods.some(m => m.id === modKey(q)) && inStat(q)).length, r = MINIRES[g.key];
   const chip = !st.loaded ? '<span class="chip">🔒 Locked</span>' : st.ready ? '<span class="chip bg-emerald-100 text-emerald-800">✅ Ready</span>' : `<span class="chip bg-amber-100 text-amber-800" data-tip="You can start it anyway — it only warns you.">🔓 ${st.complete}/${st.total} modules complete</span>`;
   return `<div class="mini-row" style="grid-column:1/-1"><span class="text-2xl">📝</span>
     <div class="flex-1 min-w-0"><div class="font-semibold text-sm flex flex-wrap items-center gap-2">${g.label} ${chip}</div>
@@ -7765,7 +7787,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('[data-mini]'); if (!b || b.disabled) return; e.preventDefault();
   if (+b.dataset.pending > 0 && !confirm(`${b.dataset.pending} module(s) in this group are not complete yet. Take the mini-exam anyway?`)) return;
   const [subj] = b.dataset.mini.split(':'), g = miniGroups(subj).find(z => z.key === b.dataset.mini), st = await kv.get('qstats', {});
-  const pool = shuffle((await allQs()).filter(q => g.mods.some(m => m.id === modKey(q)) && inScope(q, false)));
+  const pool = shuffle((await allQs()).filter(q => g.mods.some(m => m.id === modKey(q)) && inStat(q)));
   const qs = [...pool.filter(q => !st[q.id]?.n), ...pool.filter(q => st[q.id]?.n)].slice(0, 30);
   await startQSession(shuffle(qs), 'exam', 'all', location.hash, { title: `${SUBJECTS.find(s => s.id === subj).name} · ${g.label}`, keepOrder: true, reasons: true, miniKey: g.key });
 });
@@ -8343,7 +8365,7 @@ async function tqRaw(subj) { const reg = await kv.get('tqsrc:' + subj, []); retu
 const tqLive = async subj => qLive(await tqRaw(subj));
 const allTqLive = async () => (await Promise.all(SUBJECTS.map(s => tqLive(s.id)))).flat();
 const allTqRaw = async () => (await Promise.all(SUBJECTS.map(s => tqRaw(s.id)))).flat();
-const allMockPlusTq = async () => [...await allMockQs(), ...(await allTqLive()).filter(q => q.los && inScope(q, false))];
+const allMockPlusTq = async () => [...await allMockQs(), ...(await allTqLive()).filter(q => q.los && inStat(q))];
 
 // ---------- 1 · read a question PDF → items (nothing is saved yet) ----------
 // pages whose text could not be read at all (the page is a picture): questions on them cannot be imported
@@ -8495,6 +8517,7 @@ function tpackValidate(subj, D) {
     rep.n++;
     if (!q.question_ref || !q.source || q.q_no == null || !/^[A-D]$/.test(String(q.answer || ''))) { errs.push(`A question is missing question_ref / source / q_no / answer (${q.question_ref || '#' + rep.n}).`); continue; }
     if (seen.has(q.question_ref)) errs.push(`Duplicate question_ref ${q.question_ref}.`); seen.add(q.question_ref);
+    { const ce = crErrors(q); if (ce) errs.push(`Claude review: ${ce}`); }
     rep.bySrc[q.source] = (rep.bySrc[q.source] || 0) + 1;
     if (q.los_id) { const loc = losLocate(q.los_id); if (!loc || loc.mod.split('-')[0] !== subj) unresolved.push(`${q.question_ref} → ${q.los_id}`); else rep.los.add(q.los_id); } else rep.general++;
   }
@@ -8623,7 +8646,7 @@ async function qlibClick(e) {
 }
 
 // ================= v20 · Topic Qbank: card on the topic page, practice page, performance =================
-const tqStats = (qs, st) => { const ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last); return { n: qs.length, a: ans.length, c: cor.length, acc: ans.length ? pct(cor.length, ans.length) : null }; };
+const tqStats = (qs, st) => { qs = qs.filter(q => !q.hold); const ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last); return { n: qs.length, a: ans.length, c: cor.length, acc: ans.length ? pct(cor.length, ans.length) : null }; };
 async function topicCardHTML(sj, ms) {
   const N = ms.length, loaded = ms.filter(m => m.x).length, T = TPACKS[sj.id], qs = await tqLive(sj.id), box = c => `<div class="card mt-5" id="topicCard">${c}</div>`;
   const head = `<div class="flex flex-wrap items-center gap-2"><h3 class="font-bold text-base mr-auto">🎯 Topic Qbank <span class="text-xs font-normal text-slate-500">· every module of ${esc(sj.name)} together</span></h3>`;
@@ -8666,7 +8689,7 @@ async function topicPage(subj) {
       <div class="flex items-center gap-2 mb-1"><h3 class="sec mb-0 mr-auto">Sources</h3><button class="link text-xs" data-all="src:1">All</button><button class="link text-xs" data-all="src:0">None</button></div>
       <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1">${names.map(n => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-indigo-600" data-ts="${esc(n)}" ${s.srcSel.includes(n) ? 'checked' : ''}><span class="flex-1 truncate">📄 ${esc(n)}</span><span class="text-xs text-slate-500">${all.filter(q => q.srcName === n && inScope(q, false)).length}</span></label>`).join('')}</div>
       <p class="text-xs text-slate-500 mt-3">${match().length} questions match · ${pool.length} in the selected pool</p></div>
-    <div class="lg:col-span-2 card"><h3 class="sec">Question pool</h3><div class="space-y-1 text-sm">${POOLS.filter(p => ['all', 'new', 'wrong', 'ever', 'flag', 'due', 'slow'].includes(p[0])).map(p => `<label class="flex items-center gap-2"><input type="radio" name="tp" value="${p[0]}" class="accent-indigo-600" ${s.pool === p[0] ? 'checked' : ''}><span class="flex-1" title="${esc(p[2])}">${p[1]}</span><span class="text-xs text-slate-500">${filterPool(match(), p[0], st).length}</span></label>`).join('')}</div>
+    <div class="lg:col-span-2 card"><h3 class="sec">Question pool</h3><div class="space-y-1 text-sm">${POOLS.filter(p => ['all', 'new', 'wrong', 'ever', 'flag', 'due', 'slow', 'crp', 'cra', 'crk'].includes(p[0])).map(p => `<label class="flex items-center gap-2"><input type="radio" name="tp" value="${p[0]}" class="accent-indigo-600" ${s.pool === p[0] ? 'checked' : ''}><span class="flex-1" title="${esc(p[2])}">${p[1]}</span><span class="text-xs text-slate-500">${filterPool(match(), p[0], st).length}</span></label>`).join('')}</div>
       <h3 class="sec mt-3">Mode</h3><label class="flex items-center gap-2 text-sm"><input type="radio" name="tm" value="practice" class="accent-indigo-600" ${s.mode === 'practice' ? 'checked' : ''}> Practice — instant feedback</label><label class="flex items-center gap-2 text-sm"><input type="radio" name="tm" value="exam" class="accent-indigo-600" ${s.mode === 'exam' ? 'checked' : ''}> Exam — timed (90 s / question)</label>
       <h3 class="sec mt-3">Number of questions</h3><select id="tcount" class="inp">${['all', 10, 20, 30, 60, 90].map(n => `<option value="${n}" ${String(s.count) === String(n) ? 'selected' : ''}>${n === 'all' ? 'All matching' : n}</option>`).join('')}</select>
       <label class="flex items-start gap-2 text-sm mt-3"><input type="checkbox" id="treasons" class="accent-indigo-600 mt-1" ${s.reasons ? 'checked' : ''}><span>Ask why when I get a question wrong<span class="block text-xs text-slate-500">Optional — pick a mistake reason after a wrong answer (you can skip it).</span></span></label>
@@ -9704,7 +9727,7 @@ const qeOf = q => (q && QE[q.id]) || null;
 const qOff = q => qeOf(q)?.off || null;
 const qRawX = o => o.xr != null ? o.xr : (o.xh > 0 ? String(o.x || '').slice(o.xh) : String(o.x || ''));
 const qMentorOf = o => o.xh > 0 ? String(o.x || '').slice(0, o.xh).trim() : '';
-const qApply = q => {
+const qApply0 = q => {
   q = qPack(q);
   const e = qeOf(q); if (!e?.edit) return q;
   const d = e.edit, h = k => d[k] !== undefined, out = { ...q, edited: true, _orig: { q: q.q, o: q.o, a: q.a, x: q.x, xr: q.xr, xh: q.xh, los: q.los, scope: q.scope } };
@@ -9735,6 +9758,69 @@ async function qeNormalize() {
   }
   if (ch) await kv.set('qedits', QE);
 }
+const qApply = q => qCrMark(qApply0(q));
+// ---- Claude review (v18): the source answer is never touched. state is derived: applied = the live answer equals Claude's; kept = you chose to keep the source answer; otherwise pending ----
+const CR_KIND = { wrong_answer: ['Wrong answer in the source', '\u26A0\uFE0F'], outdated_info: ['Outdated information', '\uD83D\uDDD3'] };
+const CR_STATE = { pending: 'To decide', applied: 'Applied', kept: 'Kept the source answer' };
+function qCrMark(q) {
+  const v = q.crv; if (!v || !CR_KIND[v.kind]) return q;
+  const ci = 'ABCD'.indexOf(v.claude_answer), si = 'ABCD'.indexOf(v.source_answer); if (ci < 0 || ci >= (q.o || []).length) return q;   // an option that does not exist (e.g. D on a 3-option question) is ignored
+  const state = q.a === ci ? 'applied' : QE[q.id]?.cr?.d === 'kept' ? 'kept' : 'pending';
+  return { ...q, cr: { ...v, ci, si, state }, hold: state === 'pending' && v.confidence === 'high' };
+}
+function crErrors(q) {
+  const v = q.claude_review; if (!v) return '';
+  const w = [], r = v.curriculum_ref || {};
+  if (!CR_KIND[v.kind]) w.push('kind must be wrong_answer or outdated_info');
+  if (!['high', 'medium'].includes(v.confidence)) w.push('confidence must be high or medium');
+  if (!/^[A-D]$/.test(String(v.claude_answer || ''))) w.push('claude_answer must be A–D'); else if (v.claude_answer === q.answer) w.push('claude_answer is the same as the source answer');
+  if (!String(v.reason || '').trim()) w.push('reason is empty');
+  if (!r.printed_page || !String(r.section || '').trim() || !String(r.paragraph || '').trim() || !String(r.quote || '').trim()) w.push('curriculum_ref needs printed_page, section, paragraph and quote');
+  return w.length ? `${q.question_ref}: ${w.join('; ')}` : '';
+}
+function qRef(q) { const x = q && q.los ? packX(modKey(q)) : null; if (!x) return ''; return `${SUBJ_SHORT[x.subject]}/M${String(x.num).padStart(2, '0')}/R${x.m.reading ?? '?'}/LOS.${String(q.los).split('.').pop()}`; }
+function crBanner(q) {
+  if (!q?.cr || q.cr.state !== 'pending') return '';
+  return `<div class="cr-ban" role="note">⚠️ <b>Claude's review disagrees with the source answer on this question.</b> Read it carefully and solve it yourself first. After you answer you will see Claude's reasoning and the Curriculum paragraph, and you decide.${q.hold ? ' <span class="cr-hold">Held out of your accuracy and readiness until you decide.</span>' : ''}</div>`;
+}
+function crBox(q) {
+  const c = q?.cr; if (!c) return '';
+  const k = CR_KIND[c.kind], r = c.curriculum_ref || {}, id = esc(q.id), btn = (a, t, cls) => `<button type="button" class="${cls}" data-cr="${a}" data-qid="${id}">${t}</button>`;
+  const ref = [`Curriculum · p.${esc(r.printed_page)}${r.pdf_page ? ` (PDF p.${esc(r.pdf_page)})` : ''}`, r.section ? `“${esc(r.section)}”` : '', r.paragraph ? esc(r.paragraph) : ''].filter(Boolean).join(' · ');
+  const acts = c.state === 'pending' ? btn('apply', '✅ Apply Claude’s answer', 'btn-primary text-xs') + btn('keep', 'Keep the source answer', 'btn-ghost text-xs')
+    : c.state === 'applied' ? '<span class="text-xs">✅ Applied — the answer on this site is now Claude’s.</span>' + btn('revert', '↩ Back to the source answer', 'btn-ghost text-xs')
+    : '<span class="text-xs">Kept the source answer.</span>' + btn('apply', 'Apply Claude’s answer instead', 'btn-ghost text-xs') + btn('revert', 'Undo my decision', 'btn-ghost text-xs');
+  return `<div class="cr-box cr-${c.state}"><div class="cr-h"><span>🧪 Claude's review</span><span class="chip">${k[1]} ${k[0]}</span><span class="chip">confidence: ${esc(c.confidence)}</span>${qRef(q) ? `<span class="chip" data-tip="Subject / module / Schweser reading / LOS">${esc(qRef(q))}</span>` : ''}<span class="chip cr-st">${CR_STATE[c.state]}</span></div>
+    <div class="cr-cmp"><div><span class="cr-lb">Source answer</span> ${c.si >= 0 ? `<b>${'ABCD'[c.si]}.</b> ${esc(q.o[c.si] ?? '')}` : '—'}</div><div><span class="cr-lb">Claude’s answer</span> <b>${'ABCD'[c.ci]}.</b> ${esc(q.o[c.ci] ?? '')}</div></div>
+    <div class="cr-why">${esc(c.reason)}</div>${c.work ? `<div class="cr-why cr-work">${esc(c.work)}</div>` : ''}
+    <div class="cr-ref">📘 <b>Supported by the Curriculum</b> — ${ref}${r.quote ? `<div class="cr-quote">“${esc(r.quote)}”</div>` : ''}</div>
+    <div class="cr-act">${acts}</div>
+    <div class="text-[11px] text-slate-500 mt-1">The source file is not changed. Claude can be wrong — the Curriculum is the only judge. ${c.state === 'pending' ? (c.confidence === 'high' ? 'This question is held out of your accuracy and readiness until you decide.' : 'For now it counts with the source answer.') : ''}</div></div>`;
+}
+async function crAct(a, qid, hooks = {}) {
+  const q = await qFind(qid, hooks); if (!q || !q.cr) return toast('Question not found');
+  const c = q.cr, E = { ...(QE[q.id] || {}) }, refresh = (k) => (hooks.onChanged || qRefreshPage)(k, q);
+  if (a === 'keep') {
+    const snap = await undoSnap('Kept the source answer (Claude review)', ['qedits']);
+    QE[q.id] = { ...E, cr: { d: 'kept', ts: Date.now() } }; await kv.set('qedits', QE); await loadQE(); await refresh('edit'); return undoToast('Kept the source answer — it counts again', snap);
+  }
+  if (a === 'apply') {
+    if (E.edit?.o) return toast('This question has edited options — change the correct answer from ✏️ Edit instead');
+    if (!confirm(`Apply Claude’s answer?\n\nNew correct answer:\n${q.o[c.ci] ?? ''}\n\nYour earlier attempts at this question will be re-marked against it.`)) return;
+    const snap = await undoSnap('Applied Claude’s answer', ['qedits', 'qstats']);
+    QE[q.id] = { ...E, edit: { ...(E.edit || {}), a: c.ci, ts: Date.now(), v: 2 }, cr: { d: 'applied', ts: Date.now() } };
+    await kv.set('qedits', QE); await loadQE(); const r = await qRecalc(q.id, c.ci); await refresh('edit');
+    return undoToast(`Applied Claude’s answer${r.changed ? ` · ${r.changed} earlier attempt${r.changed === 1 ? '' : 's'} re-marked` : ''}`, snap);
+  }
+  if (a === 'revert') {
+    const snap = await undoSnap('Back to the source answer (Claude review)', ['qedits', 'qstats']), was = c.state === 'applied';
+    if (E.edit) { const d = { ...E.edit }; delete d.a; if (Object.keys(d).filter(k => k !== 'ts' && k !== 'v').length) E.edit = d; else delete E.edit; }
+    delete E.cr; QE[q.id] = E; qPrune(q.id); await kv.set('qedits', QE); await loadQE();
+    if (c.si >= 0 && (was || q.a !== c.si)) await qRecalc(q.id, c.si);
+    await refresh('edit'); return undoToast('Back to the source answer — to decide again', snap);
+  }
+}
+const crList = async () => (await allQsAll()).filter(q => q.cr);
 const qLive = list => (list || []).filter(q => !qOff(q)).map(qApply);
 const mockqRaw = async id => kv.get('mockq:' + id, []);
 const mockqLive = async id => qLive(await mockqRaw(id));
@@ -9756,7 +9842,7 @@ async function qSave(snapLabel, mutate) {
   const snap = await undoSnap(snapLabel, ['qedits']);
   mutate(QE); await kv.set('qedits', QE); await loadQE(); return snap;
 }
-const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off) delete QE[id]; };
+const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off && !e.cr) delete QE[id]; };
 async function qRefreshPage() { const y = window.scrollY; await route(); window.scrollTo(0, y); }
 
 // ---------- edit a question ----------
@@ -9894,6 +9980,7 @@ async function qmAct(a, q, hooks = {}) {
   if (a === 'enable') { const snap = await qEnable(q); await (hooks.onChanged || qRefreshPage)('on', q); return undoToast('Question enabled again', snap); }
   if (a.startsWith('off-')) { const why = a.slice(4), snap = await qSetOff(q, why); await (hooks.onChanged || qRefreshPage)('off', q); return undoToast(`Disabled · ${QOFF[why][1]}`, snap); }
 }
+document.addEventListener('click', async e => { const b = e.target.closest('[data-cr]'); if (!b) return; e.preventDefault(); await crAct(b.dataset.cr, b.dataset.qid); });
 const qMgmtBtn = (q, cls = 'link text-xs') => `<button type="button" class="${cls}" data-qmg="${esc(q.id)}" data-tip="Edit this question, or disable it (old lesson / wrong / duplicate)">✏️ Edit / disable</button>`;
 document.addEventListener('click', async e => {
   const m = e.target.closest('[data-qmg],[data-qact]'); if (!m) return;
@@ -9906,15 +9993,16 @@ document.addEventListener('click', async e => {
 // ---------- Settings / Questions tab: everything you disabled or edited ----------
 async function qMgmtMount(el, modId) {
   if (!el) return;
-  let tab = 'off', why = '', term = '', all = [], limit = 60;
+  let tab = window.__qmTab || 'off', why = '', term = '', all = [], limit = 60, crS = '';
   const load = async () => { all = (await allQsAll()).filter(q => !modId || modKey(q) === modId); };
   const draw = () => {
-    const off = all.filter(q => q.off), ed = all.filter(q => q.edited), byId = new Map(all.map(q => [q.id, q]));
-    let list = tab === 'off' ? off : ed;
+    const off = all.filter(q => q.off), ed = all.filter(q => q.edited), cr = all.filter(q => q.cr && !q.off), byId = new Map(all.map(q => [q.id, q]));
+    let list = tab === 'off' ? off : tab === 'cr' ? cr.filter(q => !crS || q.cr.state === crS) : ed;
     if (tab === 'off' && why) list = list.filter(q => q.off.why === why);
     if (term.trim()) { const t = term.trim().toLowerCase(); list = list.filter(q => (q.q + ' ' + qLabel(q)).toLowerCase().includes(t)); }
     list = list.sort((a, b) => ((b.off?.ts || b.edited && QE[b.id]?.edit?.ts) || 0) - ((a.off?.ts || a.edited && QE[a.id]?.edit?.ts) || 0));
     const row = q => {
+      if (tab === 'cr') return `<div class="card"><div class="text-xs text-slate-500">${esc(qLabel(q))}</div><div class="text-sm mt-1">${esc(shortTxt(q.q, 220))}</div>${crBox(q)}<details class="mt-2"><summary class="link text-xs cursor-pointer">Show the options</summary><div class="mt-2 text-sm space-y-1">${q.o.map((x, i) => `<div class="${i === q.a ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : ''}">${'ABCDEFGH'[i]}. ${esc(x)}</div>`).join('')}</div></details></div>`;
       const o = q.off, dupQ = o?.dupOf ? byId.get(o.dupOf) : null, id = esc(q.id);
       return `<div class="card"><div class="flex flex-wrap items-start gap-2">
         ${o ? `<span class="chip">${QOFF[o.why][0]} ${QOFF[o.why][1]}</span>` : '<span class="chip">✏️ Edited</span>'}
@@ -9924,14 +10012,15 @@ async function qMgmtMount(el, modId) {
     };
     el.innerHTML = `<h3 class="sec">\uD83D\uDEE0 Questions${modId ? ' · this module' : ''} — disabled &amp; edited</h3>
       <p class="text-sm text-slate-600 dark:text-slate-300">Use <b>✏️ Edit / disable</b> on any question while you practise or review. Disabled questions are hidden everywhere and do not count in your accuracy or readiness; edits are kept even if you upload the question file again.</p>
-      <div class="flex flex-wrap items-center gap-2 mt-3"><button type="button" class="chip ${tab === 'off' ? 'chip-on' : ''}" data-qt="off">\uD83D\uDEAB Disabled (${off.length})</button><button type="button" class="chip ${tab === 'ed' ? 'chip-on' : ''}" data-qt="ed">✏️ Edited (${ed.length})</button>
+      <div class="flex flex-wrap items-center gap-2 mt-3"><button type="button" class="chip ${tab === 'off' ? 'chip-on' : ''}" data-qt="off">\uD83D\uDEAB Disabled (${off.length})</button><button type="button" class="chip ${tab === 'ed' ? 'chip-on' : ''}" data-qt="ed">✏️ Edited (${ed.length})</button><button type="button" class="chip ${tab === 'cr' ? 'chip-on' : ''}" data-qt="cr">🧪 Claude disputes (${cr.filter(q => q.cr.state === 'pending').length} to decide · ${cr.length})</button>
+        ${tab === 'cr' ? `<select id="crSel" class="inp w-auto" aria-label="Decision"><option value="">All</option><option value="pending" ${crS === 'pending' ? 'selected' : ''}>To decide</option><option value="applied" ${crS === 'applied' ? 'selected' : ''}>Applied</option><option value="kept" ${crS === 'kept' ? 'selected' : ''}>Kept the source answer</option></select>` : ''}
         ${tab === 'off' ? `<select id="qmW" class="inp w-auto" aria-label="Reason"><option value="">All reasons</option>${Object.entries(QOFF).map(([k, v]) => `<option value="${k}" ${why === k ? 'selected' : ''}>${v[0]} ${v[1]}</option>`).join('')}</select>` : ''}
         <input id="qmS" class="inp w-auto flex-1 min-w-[10rem]" placeholder="Search…" value="${esc(term)}" autocomplete="off"></div>
-      <div class="space-y-2 mt-3">${list.slice(0, limit).map(row).join('') || `<div class="text-sm text-slate-500 py-4 text-center">${tab === 'off' ? 'No disabled questions.' : 'No edited questions yet.'}</div>`}</div>
+      <div class="space-y-2 mt-3">${list.slice(0, limit).map(row).join('') || `<div class="text-sm text-slate-500 py-4 text-center">${tab === 'off' ? 'No disabled questions.' : tab === 'cr' ? 'No questions disputed by Claude.' : 'No edited questions yet.'}</div>`}</div>
       ${list.length > limit ? `<button type="button" class="btn-ghost mt-3" data-qmore>Show more (${list.length - limit})</button>` : ''}`;
   };
-  el.onclick = e => { const t = e.target.closest('[data-qt],[data-qmore]'); if (!t) return; if (t.dataset.qt) { tab = t.dataset.qt; limit = 60; } else limit += 60; draw(); };
-  el.onchange = e => { if (e.target.id === 'qmW') { why = e.target.value; draw(); } };
+  el.onclick = e => { const t = e.target.closest('[data-qt],[data-qmore]'); if (!t) return; if (t.dataset.qt) { tab = t.dataset.qt; window.__qmTab = tab; limit = 60; } else limit += 60; draw(); };
+  el.onchange = e => { if (e.target.id === 'qmW') { why = e.target.value; draw(); } if (e.target.id === 'crSel') { crS = e.target.value; draw(); } };
   el.oninput = e => { if (e.target.id === 'qmS') { term = e.target.value; const p = e.target.selectionStart; draw(); const n = el.querySelector('#qmS'); n.focus(); n.setSelectionRange(p, p); } };
   await load(); draw();
 }
