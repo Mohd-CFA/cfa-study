@@ -4625,13 +4625,13 @@ function pqClean(s) {
   for (const [re, rep] of PQ_LIG) t = t.replace(re, rep);
   return t.replace(/(\w)\s+-[ \t]*\n\s*(\w)/g, '$1$2').replace(/[ \t]*\n[ \t]*/g, ' ').replace(/\s{2,}/g, ' ').replace(/\s+([.,;:?)])/g, '$1').trim();
 }
-function pqSplitOptions(body, style) {
+function pqSplitOptions(body, style, minOpts = 3) {
   const re = style === 'any' ? /(?:^|\n)\s*\(?([ABC])[.)]\s*/g : style === 'paren' ? /(?:^|\n)\s*([ABC])\)\s*/g : /(?:^|\n)\s*([ABC])\.\s+/g;
   const idx = []; let m;
   while ((m = re.exec(body))) idx.push({ k: m[1], s: m.index, e: re.lastIndex });
   const seq = [];
   for (const i of idx) { if (i.k === 'ABC'[seq.length]) seq.push(i); if (seq.length === 3) break; }
-  if (seq.length < 3) return null;
+  if (seq.length < minOpts) return null;
   return { pre: body.slice(0, seq[0].s), seq };
 }
 function parseUWorld(text) {
@@ -4655,9 +4655,9 @@ function parseSchweserQB(text) {
   for (let i = 1; i < blocks.length; i += 2) {
     const qno = +blocks[i], b = blocks[i + 1].replace(/Question ID:\s*\d+/, '');
     const [qpart, ...exp] = b.split(/\n\s*Explanation\s*\n/);
-    const q = '\n' + qpart, sp = pqSplitOptions(q, 'paren'); if (!sp) { (out.skipped = out.skipped || []).push({ qno, reason: 'options not found in the text' }); continue; }
+    const q = '\n' + qpart, sp = pqSplitOptions(q, 'paren', 2); if (!sp) { (out.skipped = out.skipped || []).push({ qno, reason: 'options not found in the text' }); continue; }
     const opts = {};
-    sp.seq.forEach((o, j) => { opts[o.k] = pqClean(q.slice(o.e, j < 2 ? sp.seq[j + 1].s : q.length)); });
+    sp.seq.forEach((o, j) => { opts[o.k] = pqClean(q.slice(o.e, j < sp.seq.length - 1 ? sp.seq[j + 1].s : q.length)); });
     const ex = exp.join(' ').replace(/\(Module[^)]*\)/, '');
     out.push({ qno, stem: pqClean(sp.pre), options: opts, answer: null, explanation: pqClean(ex) });
   }
