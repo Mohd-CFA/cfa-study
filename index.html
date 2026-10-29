@@ -4784,20 +4784,23 @@ function parseCurriculumPP(text) {
   const t = text.replace(/<<PAGE \d+>>/g, '\n').replace(/©\s*CFA Institute[^\n]*/g, '')
     .replace(/\n\s*(Learning Module \d+[^\n]*|Practice Problems[^\n]*|Solutions\s+\d+)\s*\n/g, '\n');
   const [pp, sol = ''] = t.split(/\n\s*SOLUTIONS\s*\n/);
-  const probs = pp.split(/\n\s*(\d{1,2})\.\s+/); const out = [], skippedAll = [];
+  // a question number must have text on the same line; diagram labels such as "3.   6. 2." or a lone "9." are not questions
+  const QSPLIT = /\n\s*(\d{1,2})\.[ \t]+(?=\S)(?!(?:\d{1,2}\.[ \t]*)+(?:\n|$))/;
+  const probs = pp.split(QSPLIT); const out = [], skippedAll = [];
   for (let i = 1; i < probs.length; i += 2) {
     const qno = +probs[i], body = ('\n' + probs[i + 1]).split(/\n\s*The following information relates to questions?/)[0];   // the next case set starts after the last option
-    const sp = pqSplitOptions(body, 'dot'); if (!sp) { skippedAll.push({ qno, reason: 'options not found in the text' }); continue; }
+    const tf = /true\s+or\s+false/i.test(body.slice(0, 300));   // True/False items have only A and B
+    const sp = pqSplitOptions(body, 'dot', tf ? 2 : 3); if (!sp) { skippedAll.push({ qno, reason: 'options not found in the text' }); continue; }
     const opts = {};
-    sp.seq.forEach((o, j) => { opts[o.k] = pqClean(body.slice(o.e, j < 2 ? sp.seq[j + 1].s : body.length)); });
+    sp.seq.forEach((o, j) => { opts[o.k] = pqClean(body.slice(o.e, j < sp.seq.length - 1 ? sp.seq[j + 1].s : body.length)); });
     if (out.some(z => z.qno === qno)) continue;      // “Exhibit 1.” at a line start is not question 1 again
     out.push({ qno, stem: pqClean(sp.pre), options: opts, answer: null, explanation: '' });
   }
   const skipped = skippedAll.filter(k => !out.some(z => z.qno === k.qno)); if (skipped.length) out.skipped = skipped;
-  const sols = ('\n' + sol).split(/\n\s*(\d{1,2})\.\s+/);
+  const sols = ('\n' + sol).split(QSPLIT);
   for (let i = 1; i < sols.length; i += 2) {
     const q = out.find(z => z.qno === +sols[i]); if (!q) continue;
-    const m = sols[i + 1].match(/^\s*([ABC]) is correct\.\s*/);
+    const m = sols[i + 1].match(/^\s*([ABC]) is correct\.\s*/) || sols[i + 1].match(/^\s*The correct answer is ([ABC])\b/);
     if (m) q.answer = m[1];
     q.explanation = pqClean(sols[i + 1]);
   }
