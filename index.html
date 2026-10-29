@@ -2616,8 +2616,91 @@ body.auth #cmdBtn { display: none !important; }
 .dark .qm-btn { border-color: #475569; }
 .qm-btn:hover, .qm-btn:focus-visible { border-color: #6366f1; background: rgba(99, 102, 241, .12); outline: none; }
 .qm-ico { font-size: 1.25rem; width: 1.75rem; text-align: center; flex-shrink: 0; }
+
+/* ================= v17 · patch: iOS no-zoom inputs · modal scroll-lock & focus · RTL-friendly fields ================= */
+/* 1) iOS Safari zooms the page when a focused field is < 16px. Touch devices only; still follows the Aa size control. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]),
+  textarea, select { font-size: max(16px, calc(14px * var(--fs, 1))) !important; }
+}
+/* 2) background does not scroll while a dialog is open */
+body.modal-open { overflow: hidden !important; }
+.modal-bg { overscroll-behavior: contain; }
+.modal-bg:focus { outline: none; }
+
+/* ================= v19 · patch: 90 s pace colour · resizable book side panel · swipe cards · floating calculator ================= */
+/* resizable side panel next to the book (wide screens only) */
+@media (min-width: 1024px) {
+  .rd-side { position: relative; flex-shrink: 0; width: var(--rd-side-w, 380px); max-width: 75vw; }
+}
+.rd-grip { display: none; }
+@media (min-width: 1024px) {
+  .rd-grip { display: block; position: absolute; left: -5px; top: 0; bottom: 0; width: 10px; cursor: col-resize; z-index: 6; touch-action: none; }
+  .rd-grip::after { content: ""; position: absolute; left: 4px; top: 50%; width: 2px; height: 44px; margin-top: -22px; border-radius: 2px; background: #94a3b8; opacity: .55; transition: opacity .15s, background .15s; }
+  .rd-grip:hover::after, .rd-grip:focus-visible::after, .rd-grip.on::after { opacity: 1; background: #6366f1; }
+  .rd-grip:focus-visible { outline: none; }
+}
+.rd-guide { position: fixed; top: 0; bottom: 0; width: 2px; background: #6366f1; z-index: 90; pointer-events: none; }
+body.rd-resizing { user-select: none; cursor: col-resize; }
+body.rd-resizing * { cursor: col-resize !important; }
+
+/* swipe on flashcards (touch) */
+.fcard { touch-action: pan-y; }
+.fcard.sw-yes { box-shadow: 0 0 0 3px #10b981 inset; }
+.fcard.sw-no { box-shadow: 0 0 0 3px #f43f5e inset; }
+.fcard.sw-back { transition: transform .18s ease; transform: none !important; }
+@keyframes fcnudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.fcard.sw-nudge { animation: fcnudge .28s ease; }
+.fc-swipehint { text-align: center; font-size: 12px; color: #64748b; margin-top: .5rem; }
+.dark .fc-swipehint { color: #a3b1c6; }
+
+/* floating BA II Plus-style calculator */
+.bc-fab { position: fixed; right: 1rem; bottom: 5.25rem; z-index: 60; width: 48px; height: 48px; border-radius: 9999px; border: 0; background: #4f46e5; color: #fff; font-size: 22px; box-shadow: 0 6px 18px rgba(0,0,0,.3); cursor: pointer; }
+.bc-fab:hover { background: #4338ca; }
+@media (min-width: 640px) { .bc-fab { bottom: 1.25rem; } }
+.bacalc { position: fixed; z-index: 70; width: 300px; max-width: calc(100vw - 16px); background: #fff; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,.28); font-size: 13px; overflow: hidden; }
+.dark .bacalc { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+.bacalc[hidden], .bc-fab[hidden] { display: none; }
+.bc-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: #312e81; color: #fff; cursor: move; touch-action: none; user-select: none; }
+.bc-head b { flex: 1; font-size: 12px; letter-spacing: .03em; }
+.bc-head button { background: transparent; border: 0; color: #fff; width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+.bc-head button:hover { background: rgba(255,255,255,.18); }
+.bc-tabs { display: flex; border-bottom: 1px solid #e2e8f0; }
+.dark .bc-tabs { border-color: #475569; }
+.bc-tabs button { flex: 1; padding: 9px 4px; border: 0; background: transparent; color: inherit; font-weight: 600; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+.bc-tabs button[aria-selected="true"] { border-bottom-color: #4f46e5; color: #4f46e5; }
+.dark .bc-tabs button[aria-selected="true"] { color: #a5b4fc; border-bottom-color: #a5b4fc; }
+.bc-body:focus { outline: none; }
+.bc-body { padding: 10px; max-height: min(68vh, 520px); overflow: auto; }
+.bc-disp { background: #f1f5f9; border-radius: 10px; padding: 8px 10px; text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; margin-bottom: 8px; min-height: 52px; }
+.dark .bc-disp { background: #0f172a; }
+.bc-disp small { display: block; height: 15px; font-size: 11px; color: #64748b; }
+.dark .bc-disp small { color: #a3b1c6; }
+.bc-disp div { font-size: 24px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.bc-keys button, .bc-btn { min-height: 40px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.dark .bc-keys button, .dark .bc-btn { background: #334155; border-color: #475569; }
+.bc-keys button:active, .bc-btn:active { transform: scale(.96); }
+.bc-keys .op { background: #eef2ff; color: #3730a3; } .dark .bc-keys .op { background: #3730a3; color: #e0e7ff; }
+.bc-keys .fn { background: #f1f5f9; font-size: 12px; } .dark .bc-keys .fn { background: #1e293b; }
+.bc-keys .eq { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+.bc-keys .clr { background: #fee2e2; color: #991b1b; border-color: #fecaca; } .dark .bc-keys .clr { background: #7f1d1d; color: #fee2e2; border-color: #991b1b; }
+.bc-row { display: grid; grid-template-columns: 52px 1fr 52px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.bc-row label { font-weight: 700; font-size: 12px; }
+.bc-row input, .bc-in { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: inherit; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; text-align: right; }
+.dark .bc-row input, .dark .bc-in { background: #0f172a; border-color: #475569; }
+.bc-row .bc-btn { min-height: 34px; font-size: 12px; background: #4f46e5; color: #fff; border-color: #4f46e5; }
+.bc-opts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 12px; }
+.bc-opts .bc-in { width: 64px; padding: 5px 6px; }
+.bc-opts .bc-btn { min-height: 32px; padding: 0 10px; font-size: 12px; }
+.bc-msg { min-height: 18px; margin-top: 6px; font-size: 12px; color: #64748b; }
+.bc-msg.err { color: #dc2626; } .dark .bc-msg.err { color: #fca5a5; }
+.bc-msg.ok { color: #047857; font-weight: 700; } .dark .bc-msg.ok { color: #6ee7b7; }
+.bc-note { font-size: 11px; color: #64748b; margin-top: 6px; line-height: 1.4; } .dark .bc-note { color: #a3b1c6; }
+.bc-cfrow { display: grid; grid-template-columns: 38px 1fr 56px; gap: 6px; align-items: center; margin-bottom: 5px; }
+.bc-cfrow span { font-size: 11px; font-weight: 700; color: #64748b; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <style id="cr-css">
 .cr-ban{margin:0 0 .75rem;padding:.7rem .9rem;border-radius:.9rem;background:#fff7ed;border:1.5px solid #fb923c;color:#9a3412;font-size:.875rem;line-height:1.45}
 .cr-hold{display:block;margin-top:.25rem;font-size:.8125rem;font-weight:600}
@@ -4196,7 +4279,41 @@ function toast(msg) {
 // ---- Supabase project (publishable key is designed to be public; data is protected by Row Level Security) ----
 const SB_URL = 'https://ipqtcbkplcjfuhyavzdi.supabase.co';
 const SB_KEY = 'sb_publishable_3Wh7j632JsbqOW9tgUIWwQ__uerRywK';
-const sb = window.__SB_MOCK ? window.__SB_MOCK() : window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+// ---- Supabase client ----
+// The library comes from a CDN (cached by sw.js after the first visit). If it cannot be loaded we try a second CDN,
+// and if that fails too the app still opens in offline mode (everything is stored on the device and uploads later).
+const SB_LIB_FALLBACK = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';
+const SB_STORE_KEY = 'sb-' + new URL(SB_URL).hostname.split('.')[0] + '-auth-token';
+function storedSession() {            // the session Supabase keeps in localStorage — readable without the library or network
+  try { const v = JSON.parse(localStorage.getItem(SB_STORE_KEY) || 'null'), x = v?.currentSession || v; return x?.user?.id ? x : null; } catch { return null; }
+}
+function clearStoredSession() { try { localStorage.removeItem(SB_STORE_KEY); localStorage.removeItem(SB_STORE_KEY + '-user'); } catch { } }
+function makeOfflineClient() {
+  const err = { name: 'AuthRetryableFetchError', message: 'Cloud library is not loaded (offline)' };
+  const chain = () => new Proxy(function () { }, { get: (_, k) => k === 'then' ? (res => res({ data: null, error: err })) : chain(), apply: () => chain() });
+  return { __offline: true, from: () => chain(),
+    auth: {
+      getSession: async () => ({ data: { session: storedSession() }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() { } } } }),
+      signInWithPassword: async () => ({ data: {}, error: { message: 'Sign-in needs an internet connection.' } }),
+      resetPasswordForEmail: async () => ({ error: { message: 'You are offline.' } }),
+      updateUser: async () => ({ error: { message: 'You are offline.' } }),
+      signOut: async () => { clearStoredSession(); return { error: null }; },
+    } };
+}
+function loadSbFallback() {
+  return new Promise(res => {
+    const el = document.createElement('script'); el.src = SB_LIB_FALLBACK; el.crossOrigin = 'anonymous';
+    const t = setTimeout(() => res(false), 8000);
+    el.onload = () => { clearTimeout(t); res(!!window.supabase?.createClient); };
+    el.onerror = () => { clearTimeout(t); res(false); };
+    document.head.appendChild(el);
+  });
+}
+const sbLibOk = window.__SB_MOCK || window.supabase?.createClient ? true : (navigator.onLine ? await loadSbFallback() : false);
+let sb;
+try { sb = window.__SB_MOCK ? window.__SB_MOCK() : sbLibOk ? window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : makeOfflineClient(); }
+catch (e) { console.warn('Supabase init failed, running offline:', e); sb = makeOfflineClient(); }
 let user = null, recovering = false;
 
 
@@ -5774,7 +5891,7 @@ async function qbankRun() {
         <span class="font-semibold">${S.title ? esc(S.title) + ' · ' : ''}Question ${S.i + 1} / ${S.items.length}</span>
         <span class="chip" data-tip="${esc(m.tip)}">${esc(m.chip)}</span>
         <span class="ml-auto flex items-center gap-1">
-          <span id="qclock" class="font-mono text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700" data-tip="Time on this question (target ≈ 90 s)">⏱ ${fmtSec(qSecs(it))}</span>
+          <span id="qclock" class="font-mono text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700" data-tip="Time on this question (target ≈ 90 s · amber after 90 s · red after 3 min)">⏱ ${fmtSec(qSecs(it))}</span>
           ${S.mode === 'exam' ? `<span id="pace" class="font-mono text-xs px-2 py-1" data-tip="Pace vs 90 s per answered question: ▲ ahead · ▼ behind"></span>` : ''}
           ${S.mode === 'exam' ? `<span id="clock" class="font-mono text-xs px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40" data-tip="Exam time left"></span>` : ''}
           <button id="pz" class="ib" data-tip="${S.paused ? 'Resume (R or P)' : 'Pause the timer (P)'}">${S.paused ? '▶' : '⏸'}</button>
@@ -5826,7 +5943,7 @@ async function qbankRun() {
     clearInterval(ticker);
     const upd = () => {
       const qc = document.getElementById('qclock'); if (!qc) return clearInterval(ticker);
-      const sec = qSecs(cur()); qc.textContent = '⏱ ' + fmtSec(sec); qc.classList.toggle('text-rose-600', sec > SLOW);
+      const sec = qSecs(cur()); qc.textContent = '⏱ ' + fmtSec(sec); qc.classList.toggle('text-rose-600', sec > SLOW); qc.classList.toggle('text-amber-600', sec > 90 && sec <= SLOW);
       if (S.mode === 'exam') {
         const left = examLeft(), el = document.getElementById('clock');
         const pc = document.getElementById('pace'); if (pc && !S.paused) { const d = S.items.filter(x => x.pick !== null).length * 90 - (S.limit - left); pc.textContent = (d >= 0 ? '▲ ' : '▼ ') + fmtSec(Math.abs(d)); pc.className = 'font-mono text-xs px-2 py-1 rounded-lg ' + (d >= 0 ? 'text-emerald-600' : 'text-rose-600'); }
@@ -7451,7 +7568,7 @@ async function settings() {
   };
   document.getElementById('logout').onclick = async () => {
     if (!(await signOutGuard())) return;
-    await sb.auth.signOut(); await wipeDevice(); user = null; location.hash = '#/'; loginScreen('Signed out.');
+    try { await sb.auth.signOut(); } catch { } clearStoredSession(); await wipeDevice(); user = null; location.hash = '#/'; loginScreen('Signed out.');
   };
   await mountClean(document.getElementById('cleanBox'));
   await mountUndoLib(document.getElementById('undoLib'));
@@ -10058,6 +10175,7 @@ function loginScreen(msg = '') {
   document.getElementById('lf').onsubmit = async e => {
     e.preventDefault();
     const b = document.getElementById('lb'); b.disabled = true; b.textContent = 'Signing in…'; lm.textContent = '';
+    if (!navigator.onLine) { lm.innerHTML = '<span class="text-amber-600">You are offline — sign-in needs an internet connection.</span>'; b.disabled = false; b.textContent = 'Sign in'; return; }
     const { data, error } = await sb.auth.signInWithPassword({ email: document.getElementById('le').value.trim(), password: document.getElementById('lp').value });
     if (error) { lm.innerHTML = `<span class="text-rose-600">❌ ${esc(error.message === 'Invalid login credentials' ? 'Wrong email or password.' : error.message)}</span>`; b.disabled = false; b.textContent = 'Sign in'; return; }
     await startSession(data.session);
@@ -10122,13 +10240,423 @@ document.addEventListener('visibilitychange', async () => {
   } catch {}
 });
 
+// Offline-first start: when the server cannot be reached (offline, library missing, token refresh impossible) the app opens with the
+// session saved on this device, so your downloaded books, notes and question history are usable. Uploads resume when you are back online.
+const isNetErr = e => !!e && (e.name === 'AuthRetryableFetchError' || e.status === 0 || /fetch|network|timeout|offline|load failed/i.test(e.message || ''));
+async function offlineSession() {
+  const st = storedSession(); if (!st) return null;
+  const owner = await local.get('kv', '__owner');
+  return owner === st.user.id ? st : null;                    // only if this device already holds this account's data
+}
+let offlineBoot = false;
 (async () => {
-  try {
-    const { data } = await sb.auth.getSession();
-    if (data.session) await startSession(data.session); else if (!recovering) loginScreen();
-  } catch (e) { loginScreen(`<span class="text-rose-600">Cannot reach the server: ${esc(e.message)}</span>`); }
+  let session = null, err = null;
+  try { const r = await sb.auth.getSession(); session = r.data?.session || null; err = r.error || null; } catch (e) { err = e; }
+  if (!session && !recovering && (!navigator.onLine || sb.__offline || isNetErr(err))) {
+    session = await offlineSession(); offlineBoot = !!session;
+  }
+  if (session) {
+    await startSession(session);
+    if (offlineBoot || !navigator.onLine) setStatus('offline');
+  } else if (!recovering) {
+    loginScreen(!navigator.onLine || (err && isNetErr(err)) ? '<span class="text-amber-600">You are offline. The first sign-in on a device needs an internet connection; after that the app works offline.</span>' : '');
+  }
 })();
+window.addEventListener('online', async () => {
+  if (!user) return;
+  if (sb.__offline) { toast('Back online — reload the page to sync'); return; }
+  try {
+    const r = await sb.auth.getSession();
+    if (r.data?.session) { offlineBoot = false; flush(); }
+    else if (r.error && !isNetErr(r.error)) toast('Session expired — sign in again to sync. Your data is safe on this device.');
+  } catch { }
+});
+window.addEventListener('offline', () => { if (user) toast('Offline — your work is saved on this device'); });
 
+</script>
+<script>
+/* v17 patch: modal scroll-lock + focus trap + focus restore, and dir="auto" on text fields. Self-contained; touches no app code. */
+(function () {
+  'use strict';
+  var MODAL = '.modal-bg';
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+  var DIR_SEL = 'textarea:not([dir]),input[type="text"]:not([dir]),input[type="search"]:not([dir]),input:not([type]):not([dir])';
+  var lastOutside = null, opener = null, current = null, queued = false;
+
+  var topModal = function () { var m = document.querySelectorAll(MODAL); return m.length ? m[m.length - 1] : null; };
+  var isVisible = function (el) { return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); };
+
+  document.addEventListener('focusin', function (e) {
+    if (!(e.target.closest && e.target.closest(MODAL))) lastOutside = e.target;
+  }, true);
+
+  function lock(on) {
+    var b = document.body;
+    if (on) {
+      var gap = window.innerWidth - document.documentElement.clientWidth;   // keep layout steady when the scrollbar disappears
+      if (gap > 0) b.style.paddingRight = gap + 'px';
+    } else b.style.paddingRight = '';
+    b.classList.toggle('modal-open', on);
+  }
+
+  function sync() {
+    queued = false;
+    var m = topModal();
+    if (m !== current) {
+      var was = current; current = m;
+      if (m) {
+        if (!was) opener = lastOutside;
+        if (!m.hasAttribute('role')) m.setAttribute('role', 'dialog');
+        if (!m.hasAttribute('aria-modal')) m.setAttribute('aria-modal', 'true');
+        if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1');
+        if (!m.contains(document.activeElement)) {
+          var f = Array.prototype.filter.call(m.querySelectorAll(FOCUSABLE), isVisible)[0];
+          (f || m).focus({ preventScroll: true });
+        }
+      }
+      lock(!!m);
+      if (!m && opener && opener.isConnected && (!document.activeElement || document.activeElement === document.body)) {
+        try { opener.focus({ preventScroll: true }); } catch (e) {}
+      }
+      if (!m) opener = null;
+    }
+    // text fields: let the browser pick LTR/RTL from what is typed (Arabic notes, mixed text)
+    var fields = document.querySelectorAll(DIR_SEL);
+    for (var i = 0; i < fields.length; i++) fields[i].setAttribute('dir', 'auto');
+  }
+  function schedule() { if (!queued) { queued = true; requestAnimationFrame(sync); } }
+
+  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    var m = topModal(); if (!m) return;
+    var list = Array.prototype.filter.call(m.querySelectorAll(FOCUSABLE), isVisible);
+    if (!list.length) { e.preventDefault(); m.focus(); return; }
+    var first = list[0], last = list[list.length - 1], a = document.activeElement;
+    if (!m.contains(a)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && (a === first || a === m)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+  }, true);
+
+  schedule();
+})();
+</script>
+<script>
+/* v19 patch: resizable book side panel · swipe on flashcards · floating BA II Plus-style calculator (Calc / TVM / Cash flow).
+   Self-contained: it only reads the page; cards are rated by clicking the app's own Mastered / Not-mastered buttons. */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+
+  /* ---------------- 1) resizable side panel next to the book ---------------- */
+  var KEY = 'rdSideW', DEF = 380, MIN = 300;
+  function getW() { var v = parseInt(localStorage.getItem(KEY), 10); return v >= MIN ? v : DEF; }
+  function setW(px) {
+    var max = Math.min(900, Math.round(window.innerWidth * 0.7));
+    px = Math.max(MIN, Math.min(max, Math.round(px)));
+    document.documentElement.style.setProperty('--rd-side-w', px + 'px');
+    try { localStorage.setItem(KEY, String(px)); } catch (e) {}
+    return px;
+  }
+  document.documentElement.style.setProperty('--rd-side-w', getW() + 'px');
+
+  function addGrip(side) {
+    if (side.querySelector(':scope > .rd-grip')) return;
+    var g = document.createElement('div');
+    g.className = 'rd-grip'; g.tabIndex = 0;
+    g.setAttribute('role', 'separator'); g.setAttribute('aria-orientation', 'vertical');
+    g.setAttribute('aria-label', 'Resize the notes panel'); g.title = 'Drag to resize · double-click to reset';
+    side.insertBefore(g, side.firstChild);
+    var guide = null;
+    g.addEventListener('pointerdown', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault(); g.setPointerCapture(e.pointerId); g.classList.add('on');
+      document.body.classList.add('rd-resizing');
+      guide = document.createElement('div'); guide.className = 'rd-guide'; guide.style.left = e.clientX + 'px'; document.body.appendChild(guide);
+    });
+    g.addEventListener('pointermove', function (e) { if (guide) guide.style.left = e.clientX + 'px'; });
+    function end(e, apply) {
+      if (!guide) return;
+      var r = side.getBoundingClientRect();
+      guide.remove(); guide = null; g.classList.remove('on'); document.body.classList.remove('rd-resizing');
+      if (apply) setW(r.right - e.clientX);          // panel is anchored to the right edge
+    }
+    g.addEventListener('pointerup', function (e) { end(e, true); });
+    g.addEventListener('pointercancel', function (e) { end(e, false); });
+    g.addEventListener('dblclick', function () { setW(DEF); });
+    g.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setW(side.getBoundingClientRect().width + 24); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setW(side.getBoundingClientRect().width - 24); }
+      else if (e.key === 'Home') { e.preventDefault(); setW(DEF); }
+    });
+  }
+
+  /* ---------------- 2) swipe on flashcards: right = Mastered, left = Not mastered ---------------- */
+  var sw = null;
+  document.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse') return;
+    var c = e.target.closest && e.target.closest('.fcard');
+    if (!c || e.target.closest('button,a,input,select,textarea')) return;
+    sw = { c: c, x: e.clientX, y: e.clientY, id: e.pointerId, lock: false };
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (!sw || e.pointerId !== sw.id) return;
+    var dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (!sw.lock) { if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) sw.lock = true; }
+    if (!sw.lock) return;
+    sw.c.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 40) + 'deg)';
+    sw.c.classList.toggle('sw-yes', dx > 80); sw.c.classList.toggle('sw-no', dx < -80);
+  }, true);
+  var swipedAt = 0;
+  function endSwipe(e, cancelled) {
+    if (!sw || e.pointerId !== sw.id) return;
+    var s = sw; sw = null; var c = s.c, dx = e.clientX - s.x;
+    c.classList.remove('sw-yes', 'sw-no');
+    if (!s.lock) return;
+    swipedAt = Date.now();
+    var ok = !cancelled && Math.abs(dx) > 80, flipped = c.classList.contains('flipped');
+    var btn = ok && flipped && c.parentElement ? c.parentElement.querySelector('button[data-cx="' + (dx > 0 ? 'yes' : 'no') + '"]') : null;
+    if (btn) { c.style.transform = ''; btn.click(); return; }
+    c.classList.add('sw-back'); c.style.transform = '';
+    if (ok && !flipped) c.classList.add('sw-nudge');          // flip first, then rate
+    setTimeout(function () { c.classList.remove('sw-back', 'sw-nudge'); }, 320);
+  }
+  document.addEventListener('pointerup', function (e) { endSwipe(e, false); }, true);
+  document.addEventListener('pointercancel', function (e) { endSwipe(e, true); }, true);
+  // swallow the click that can follow a swipe so the card does not flip by accident
+  document.addEventListener('click', function (e) { if (Date.now() - swipedAt < 350 && e.target.closest && e.target.closest('.fcard')) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  function addSwipeHint(c) {
+    if (!coarse) return;
+    var nxt = c.nextElementSibling;
+    if (nxt && nxt.classList.contains('fc-swipehint')) return;
+    var h = document.createElement('div'); h.className = 'fc-swipehint';
+    h.textContent = '← swipe left: Not mastered · swipe right: Mastered → (flip the card first)';
+    c.insertAdjacentElement('afterend', h);
+  }
+
+  /* ---------------- 3) floating calculator ---------------- */
+  var fmt = function (v) { if (typeof v !== 'number' || !isFinite(v)) return 'Error'; var s = String(parseFloat(v.toPrecision(12))); return s.indexOf('e') > -1 ? v.toExponential(6) : s; };
+  var num = function (el) { var t = String(el.value).replace(/,/g, '').trim(); if (t === '') return 0; var n = Number(t); return isNaN(n) ? NaN : n; };
+
+  // generic root finder: smallest |x| among sign changes of f on a grid, refined by bisection
+  function roots(f, lo, hi, step) {
+    var found = [], a = lo, fa = f(a);
+    for (var x = lo + step; x <= hi + 1e-12; x += step) {
+      var fb = f(x);
+      if (isFinite(fa) && isFinite(fb) && fa !== fb && ((fa < 0 && fb > 0) || (fa > 0 && fb < 0) || fb === 0)) {
+        var l = a, h = x, fl = fa;
+        for (var k = 0; k < 80; k++) { var m = (l + h) / 2, fm = f(m); if ((fl < 0) === (fm < 0)) { l = m; fl = fm; } else h = m; }
+        found.push((l + h) / 2);
+      }
+      a = x; fa = fb;
+    }
+    found.sort(function (p, q) { return Math.abs(p) - Math.abs(q); });
+    return found;
+  }
+
+  // TVM:  PV + PMT(1+i·b)·a(i,N) + FV(1+i)^-N = 0
+  function tvmF(i, N, PV, PMT, FV, b) {
+    if (Math.abs(i) < 1e-12) return PV + PMT * N + FV;
+    var v = Math.pow(1 + i, -N); return PV + PMT * (1 + i * b) * (1 - v) / i + FV * v;
+  }
+  function tvmSolve(t, d) {
+    var i = d.iy / 100 / d.py, b = d.bgn ? 1 : 0, N = d.n, PV = d.pv, PMT = d.pmt, FV = d.fv, z = Math.abs(i) < 1e-12;
+    if (t === 'fv') return z ? -(PV + PMT * N) : -(PV * Math.pow(1 + i, N) + PMT * (1 + i * b) * (Math.pow(1 + i, N) - 1) / i);
+    if (t === 'pv') return z ? -(FV + PMT * N) : -(FV * Math.pow(1 + i, -N) + PMT * (1 + i * b) * (1 - Math.pow(1 + i, -N)) / i);
+    if (t === 'pmt') { if (z) return N === 0 ? NaN : -(PV + FV) / N; var an = (1 + i * b) * (1 - Math.pow(1 + i, -N)) / i; return an === 0 ? NaN : -(PV + FV * Math.pow(1 + i, -N)) / an; }
+    if (t === 'n') {
+      if (z) return PMT === 0 ? NaN : -(PV + FV) / PMT;
+      var k = PMT * (1 + i * b) / i, q = (k - FV) / (k + PV); return q > 0 && 1 + i > 0 ? Math.log(q) / Math.log(1 + i) : NaN;
+    }
+    if (t === 'iy') { var r = roots(function (x) { return tvmF(x, N, PV, PMT, FV, b); }, -0.95, 5, 0.0025); return r.length ? r[0] * 100 * d.py : NaN; }
+    return NaN;
+  }
+
+  var host = null, fab = null, tab = 'calc';
+  var C = { acc: null, op: null, cur: '0', fresh: true, hist: '' };
+  var T = { n: '', iy: '', pv: '', pmt: '', fv: '', py: '1', bgn: false, msg: '', cls: '' };
+  var CF = { c0: '', rows: [{ c: '', f: '1' }, { c: '', f: '1' }, { c: '', f: '1' }], r: '', msg: '', cls: '' };
+
+  var OPS = { '+': function (a, b) { return a + b; }, '-': function (a, b) { return a - b; }, '*': function (a, b) { return a * b; }, '/': function (a, b) { return b === 0 ? NaN : a / b; }, '^': function (a, b) { return Math.pow(a, b); } };
+  var SYM = { '+': '+', '-': '−', '*': '×', '/': '÷', '^': 'yˣ' };
+  function press(k) {
+    var v = parseFloat(C.cur);
+    if (/^\d$/.test(k)) { if (C.fresh) { C.cur = k; C.fresh = false; } else if (C.cur.replace(/[-.]/g, '').length < 14) C.cur = C.cur === '0' ? k : C.cur === '-0' ? '-' + k : C.cur + k; }
+    else if (k === '.') { if (C.fresh) { C.cur = '0.'; C.fresh = false; } else if (C.cur.indexOf('.') < 0) C.cur += '.'; }
+    else if (k === 'neg') { C.cur = C.cur[0] === '-' ? C.cur.slice(1) : (C.cur === '0' ? '0' : '-' + C.cur); }
+    else if (k === 'back') { if (!C.fresh) { C.cur = C.cur.length > 1 && !(C.cur.length === 2 && C.cur[0] === '-') ? C.cur.slice(0, -1) : '0'; } }
+    else if (k === 'C') { C = { acc: null, op: null, cur: '0', fresh: true, hist: '' }; }
+    else if (OPS[k]) {   // chain mode, like the BA II Plus default: evaluated left to right
+      if (C.op && !C.fresh) C.acc = OPS[C.op](C.acc, v); else if (C.acc === null || !C.op) C.acc = v;
+      C.op = k; C.cur = fmt(C.acc); C.fresh = true; C.hist = C.cur + ' ' + SYM[k];
+    }
+    else if (k === '=') { if (C.op) { var r = OPS[C.op](C.acc, v); C.hist = fmt(C.acc) + ' ' + SYM[C.op] + ' ' + fmt(v) + ' ='; C.cur = fmt(r); C.acc = null; C.op = null; C.fresh = true; } }
+    else if (k === '%') { C.cur = fmt(C.op && C.acc !== null ? C.acc * v / 100 : v / 100); C.fresh = true; }
+    else {
+      var u = { sqrt: Math.sqrt, sq: function (x) { return x * x; }, inv: function (x) { return x === 0 ? NaN : 1 / x; }, ln: function (x) { return x > 0 ? Math.log(x) : NaN; }, exp: Math.exp }[k];
+      if (u) { C.hist = ({ sqrt: '√', sq: 'sq', inv: '1/x', ln: 'ln', exp: 'eˣ' }[k]) + '(' + fmt(v) + ')'; C.cur = fmt(u(v)); C.fresh = true; }
+    }
+    if (C.cur === 'Error') { C.acc = null; C.op = null; }
+    paint();
+  }
+
+  var KEYS = [['C', 'clr', 'C'], ['back', 'fn', '⌫'], ['%', 'fn', '%'], ['/', 'op', '÷'], ['neg', 'fn', '±'],
+    ['7', '', '7'], ['8', '', '8'], ['9', '', '9'], ['*', 'op', '×'], ['sqrt', 'fn', '√'],
+    ['4', '', '4'], ['5', '', '5'], ['6', '', '6'], ['-', 'op', '−'], ['sq', 'fn', 'x²'],
+    ['1', '', '1'], ['2', '', '2'], ['3', '', '3'], ['+', 'op', '+'], ['inv', 'fn', '1/x'],
+    ['0', '', '0'], ['.', '', '.'], ['^', 'op', 'yˣ'], ['ln', 'fn', 'ln'], ['exp', 'fn', 'eˣ']];
+
+  function calcHTML() {
+    return '<div class="bc-disp"><small data-h>' + C.hist + '</small><div data-d>' + C.cur + '</div></div><div class="bc-keys">' +
+      KEYS.map(function (k) { return '<button type="button" class="' + k[1] + '" data-k="' + k[0] + '">' + k[2] + '</button>'; }).join('') +
+      '<button type="button" class="eq" data-k="=" style="grid-column:1/-1">=</button></div>' +
+      '<div class="bc-note">Chain mode (left to right), like the BA II Plus default: 2 + 3 × 4 = 20.</div>';
+  }
+  function tvmHTML() {
+    var rows = [['n', 'N'], ['iy', 'I/Y'], ['pv', 'PV'], ['pmt', 'PMT'], ['fv', 'FV']].map(function (r) {
+      return '<div class="bc-row"><label for="bc-' + r[0] + '">' + r[1] + '</label><input id="bc-' + r[0] + '" data-t="' + r[0] + '" inputmode="decimal" autocomplete="off" value="' + T[r[0]] + '"><button type="button" class="bc-btn" data-cpt="' + r[0] + '" title="Compute ' + r[1] + ' from the other four">CPT</button></div>';
+    }).join('');
+    return rows + '<div class="bc-opts"><label>P/Y <input class="bc-in" data-t="py" inputmode="numeric" value="' + T.py + '"></label>' +
+      '<button type="button" class="bc-btn" data-bgn="1" aria-pressed="' + T.bgn + '">' + (T.bgn ? 'BGN (annuity due)' : 'END (ordinary)') + '</button>' +
+      '<button type="button" class="bc-btn" data-tclr="1">Clear</button></div>' +
+      '<div class="bc-msg ' + T.cls + '" role="status" data-m>' + T.msg + '</div>' +
+      '<div class="bc-note">Enter four values, then press CPT beside the fifth. Cash you pay out is negative (e.g. PV = −1000). I/Y is the annual % rate; N counts periods. Same convention as the BA II Plus (C/Y = P/Y).</div>';
+  }
+  function cfHTML() {
+    return '<div class="bc-cfrow"><span>CF0</span><input class="bc-in" data-cf0="1" inputmode="decimal" placeholder="0" value="' + CF.c0 + '"><span></span></div>' +
+      CF.rows.map(function (r, i) { var n = String(i + 1).padStart(2, '0'); return '<div class="bc-cfrow"><span>C' + n + '</span><input class="bc-in" data-cc="' + i + '" inputmode="decimal" placeholder="0" value="' + r.c + '"><input class="bc-in" data-cf="' + i + '" inputmode="numeric" title="Frequency F' + n + '" value="' + r.f + '" style="width:56px"></div>'; }).join('') +
+      '<div class="bc-opts"><button type="button" class="bc-btn" data-cfadd="1">+ Row</button><button type="button" class="bc-btn" data-cfdel="1">− Row</button><button type="button" class="bc-btn" data-cfclr="1">Clear</button></div>' +
+      '<div class="bc-opts"><label>I (%) <input class="bc-in" data-cfr="1" inputmode="decimal" value="' + CF.r + '"></label><button type="button" class="bc-btn" data-cfnpv="1" style="background:#4f46e5;color:#fff">NPV</button><button type="button" class="bc-btn" data-cfirr="1" style="background:#4f46e5;color:#fff">IRR</button></div>' +
+      '<div class="bc-msg ' + CF.cls + '" role="status" data-m>' + CF.msg + '</div>' +
+      '<div class="bc-note">Right box = frequency (how many periods in a row the cash flow repeats). NPV discounts CF0 at time 0.</div>';
+  }
+
+  function paint() {
+    if (!host) return;
+    if (tab === 'calc' && host.querySelector('[data-d]')) { host.querySelector('[data-d]').textContent = C.cur; host.querySelector('[data-h]').textContent = C.hist; return; }
+    var b = host.querySelector('.bc-body');
+    b.innerHTML = tab === 'calc' ? calcHTML() : tab === 'tvm' ? tvmHTML() : cfHTML();
+    host.querySelectorAll('.bc-tabs button').forEach(function (x) { x.setAttribute('aria-selected', String(x.dataset.tab === tab)); });
+  }
+
+  function cptTvm(t) {
+    var d = { n: num($('#bc-n', host)), iy: num($('#bc-iy', host)), pv: num($('#bc-pv', host)), pmt: num($('#bc-pmt', host)), fv: num($('#bc-fv', host)), py: Number(T.py) || 1, bgn: T.bgn };
+    ['n', 'iy', 'pv', 'pmt', 'fv'].forEach(function (k) { T[k] = $('#bc-' + k, host).value; });
+    var bad = Object.keys(d).filter(function (k) { return k !== 'bgn' && k !== 'py' && k !== t && isNaN(d[k]); });
+    if (bad.length) { T.msg = 'Check the number in ' + bad.join(', ').toUpperCase() + '.'; T.cls = 'err'; return paint(); }
+    var r = tvmSolve(t, d);
+    if (!isFinite(r)) { T.msg = 'No solution with these inputs (check the signs: money paid and received must have opposite signs).'; T.cls = 'err'; }
+    else { T[t] = fmt(r); T.msg = t.toUpperCase().replace('IY', 'I/Y') + ' = ' + fmt(r); T.cls = 'ok'; }
+    paint();
+  }
+  function flows() {
+    var out = [num({ value: CF.c0 })];
+    if (isNaN(out[0])) return null;
+    for (var i = 0; i < CF.rows.length; i++) {
+      var c = num({ value: CF.rows[i].c }), f = Math.round(Number(CF.rows[i].f === '' ? 1 : CF.rows[i].f));
+      if (isNaN(c) || !(f >= 0)) return null;
+      for (var k = 0; k < f && out.length < 2000; k++) out.push(c);
+    }
+    return out;
+  }
+  var npvAt = function (a, r) { var s = 0; for (var t = 0; t < a.length; t++) s += a[t] / Math.pow(1 + r, t); return s; };
+  function cfCalc(kind) {
+    var a = flows();
+    if (!a) { CF.msg = 'Check the cash flows and frequencies.'; CF.cls = 'err'; return paint(); }
+    if (kind === 'npv') {
+      var r = Number(String(CF.r).replace(/,/g, '')); if (CF.r === '' || isNaN(r)) { CF.msg = 'Enter the discount rate I.'; CF.cls = 'err'; return paint(); }
+      CF.msg = 'NPV = ' + fmt(npvAt(a, r / 100)); CF.cls = 'ok';
+    } else {
+      var hasP = a.some(function (x) { return x > 0; }), hasN = a.some(function (x) { return x < 0; });
+      var rt = hasP && hasN ? roots(function (x) { return npvAt(a, x); }, -0.95, 5, 0.0025) : [];
+      if (rt.length) { CF.msg = 'IRR = ' + fmt(rt[0] * 100) + ' %'; CF.cls = 'ok'; } else { CF.msg = 'No IRR: the flows need both positive and negative values.'; CF.cls = 'err'; }
+    }
+    paint();
+  }
+
+  function onRoute() {
+    var on = location.hash.indexOf('#/qbank/run') === 0 && !document.body.classList.contains('auth');
+    if (fab) fab.hidden = !on;
+    if (host && !on) host.hidden = true;
+  }
+  function build() {
+    fab = document.createElement('button'); fab.type = 'button'; fab.className = 'bc-fab'; fab.hidden = true;
+    fab.setAttribute('aria-label', 'Open calculator'); fab.title = 'Calculator (Calc · TVM · Cash flow)'; fab.textContent = '\uD83E\uDDEE';
+    host = document.createElement('div'); host.className = 'bacalc'; host.hidden = true;
+    host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Financial calculator');
+    host.innerHTML = '<div class="bc-head"><b>\uD83E\uDDEE Calculator</b><button type="button" data-x="1" aria-label="Close calculator">✕</button></div>' +
+      '<div class="bc-tabs" role="tablist"><button type="button" role="tab" data-tab="calc">Calc</button><button type="button" role="tab" data-tab="tvm">TVM</button><button type="button" role="tab" data-tab="cf">Cash flow</button></div><div class="bc-body" tabindex="-1"></div>';
+    document.body.append(fab, host);
+    fab.onclick = function () {
+      host.hidden = !host.hidden;
+      if (!host.hidden) { if (!host.style.left) { host.style.right = '1rem'; host.style.bottom = '9rem'; } paint(); }
+    };
+    // drag by the header
+    var dr = null, head = $('.bc-head', host);
+    head.addEventListener('pointerdown', function (e) { if (e.target.closest('button')) return; var r = host.getBoundingClientRect(); dr = { dx: e.clientX - r.left, dy: e.clientY - r.top }; head.setPointerCapture(e.pointerId); });
+    head.addEventListener('pointermove', function (e) {
+      if (!dr) return; var w = host.offsetWidth, h = host.offsetHeight;
+      host.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, e.clientX - dr.dx)) + 'px'; host.style.top = Math.max(4, Math.min(window.innerHeight - 60, e.clientY - dr.dy)) + 'px';
+      host.style.right = 'auto'; host.style.bottom = 'auto';
+    });
+    head.addEventListener('pointerup', function () { dr = null; });
+    // keep keystrokes inside the calculator away from the quiz shortcuts
+    host.addEventListener('keydown', function (e) {
+      e.stopPropagation();
+      if (e.key === 'Escape') { host.hidden = true; fab.focus(); return; }
+      if (tab === 'calc' && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) {
+        var k = e.key, m = { Enter: '=', '=': '=', Backspace: 'back', Delete: 'C', 'x': '*', 'X': '*' }[k] || k;
+        if (/^\d$/.test(m) || m === '.' || OPS[m] || m === '=' || m === 'back' || m === 'C' || m === '%') { if (!(e.target.tagName === 'BUTTON' && (k === 'Enter' || k === ' '))) { e.preventDefault(); press(m); if (e.target.tagName === 'BUTTON') $('.bc-body', host).focus({ preventScroll: true }); } }
+      }
+    });
+    host.addEventListener('click', function (e) {
+      var t = e.target.closest('button'); if (!t) return;
+      if (t.dataset.x) { host.hidden = true; fab.focus(); return; }
+      if (t.dataset.tab) { tab = t.dataset.tab; C.hist = C.hist; paint(); return; }
+      if (t.dataset.k !== undefined) return press(t.dataset.k);
+      if (t.dataset.cpt) return cptTvm(t.dataset.cpt);
+      if (t.dataset.bgn) { T.bgn = !T.bgn; return paint(); }
+      if (t.dataset.tclr) { T = { n: '', iy: '', pv: '', pmt: '', fv: '', py: '1', bgn: false, msg: '', cls: '' }; return paint(); }
+      if (t.dataset.cfadd) { if (CF.rows.length < 24) CF.rows.push({ c: '', f: '1' }); return paint(); }
+      if (t.dataset.cfdel) { if (CF.rows.length > 1) CF.rows.pop(); return paint(); }
+      if (t.dataset.cfclr) { CF = { c0: '', rows: [{ c: '', f: '1' }, { c: '', f: '1' }, { c: '', f: '1' }], r: '', msg: '', cls: '' }; return paint(); }
+      if (t.dataset.cfnpv) return cfCalc('npv');
+      if (t.dataset.cfirr) return cfCalc('irr');
+    });
+    host.addEventListener('input', function (e) {
+      var el = e.target, d = el.dataset;
+      if (d.t) T[d.t] = el.value; else if (d.cf0) CF.c0 = el.value; else if (d.cc !== undefined) CF.rows[+d.cc].c = el.value; else if (d.cf !== undefined) CF.rows[+d.cf].f = el.value; else if (d.cfr) CF.r = el.value;
+    });
+    window.addEventListener('hashchange', onRoute); onRoute();
+  }
+
+  /* ---------------- observers ---------------- */
+  var queued = false;
+  function scan() {
+    queued = false;
+    var s = $('.rd-side'); if (s) addGrip(s);
+    var c = $('.fcard'); if (c) addSwipeHint(c);
+    if (!host && document.body) build(); else onRoute();
+  }
+  new MutationObserver(function () { if (!queued) { queued = true; requestAnimationFrame(scan); } }).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('resize', function () { var v = parseInt(localStorage.getItem(KEY), 10); if (v >= MIN) setW(v); });
+  scan();
+})();
+</script>
+<script>
+/* v20: offline support — registers sw.js (needs https or localhost; skipped on file://). sw.js must sit next to this file. */
+(function () {
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
+      var urls = [].map.call(document.querySelectorAll('script[src*="supabase-js"]'), function (e) { return e.src; });
+      if (reg.active && urls.length) reg.active.postMessage({ type: 'precache', urls: urls });
+    }).catch(function () { });
+  });
+})();
 </script>
 </body>
 </html>
