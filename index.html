@@ -2700,7 +2700,70 @@ body.rd-resizing * { cursor: col-resize !important; }
 .bc-cfrow { display: grid; grid-template-columns: 38px 1fr 56px; gap: 6px; align-items: center; margin-bottom: 5px; }
 .bc-cfrow span { font-size: 11px; font-weight: 700; color: #64748b; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://ipqtcbkplcjfuhyavzdi.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script>/* v21 · runtime helpers: diagnostics log, "work in progress" guard for uploads, boot timings, web-vitals, upload status pill */
+(function () {
+  var W = window, LOGKEY = 'cfaDiag', BOOTKEY = 'cfaBoots';
+  var log = []; try { log = JSON.parse(localStorage.getItem(LOGKEY) || '[]'); } catch (e) { }
+  function saveLog() { try { if (log.length > 80) log = log.slice(-80); localStorage.setItem(LOGKEY, JSON.stringify(log)); } catch (e) { } }
+  W.__diag = {
+    log: function (type, msg) { log.push({ t: Date.now(), type: type, msg: String(msg == null ? '' : msg).slice(0, 300) }); saveLog(); },
+    get: function () { return log.slice(); },
+    clear: function () { log = []; saveLog(); }
+  };
+  addEventListener('error', function (e) {
+    var m = e && e.message || ''; if (!m || /ResizeObserver loop|^Script error/i.test(m)) return;
+    W.__diag.log('error', m + ' @' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || 0));
+  });
+  addEventListener('unhandledrejection', function (e) { var r = e && e.reason; W.__diag.log('rejection', (r && (r.message || r.name)) || r); });
+
+  /* boot timings (kept for the last 20 starts) */
+  var rec = { t: Date.now() }, boots = []; try { boots = JSON.parse(localStorage.getItem(BOOTKEY) || '[]'); } catch (e) { }
+  boots.push(rec);
+  W.__boot = {
+    set: function (k, v) { rec[k] = (v == null ? Math.round(performance.now()) : v); try { localStorage.setItem(BOOTKEY, JSON.stringify(boots.slice(-20))); } catch (e) { } },
+    get: function () { try { return JSON.parse(localStorage.getItem(BOOTKEY) || '[]'); } catch (e) { return []; } }
+  };
+  document.addEventListener('DOMContentLoaded', function () { W.__boot.set('dom_ready_ms'); });
+
+  /* core web vitals (approximate, this tab only) */
+  var P = W.__perf = { lcp: null, cls: 0, inp: null, longTasks: 0, longMs: 0 };
+  try {
+    new PerformanceObserver(function (l) { var e = l.getEntries(); P.lcp = Math.round(e[e.length - 1].startTime); }).observe({ type: 'largest-contentful-paint', buffered: true });
+    new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { if (!e.hadRecentInput) P.cls = Math.round((P.cls + e.value) * 1000) / 1000; }); }).observe({ type: 'layout-shift', buffered: true });
+    new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { if (e.interactionId && (P.inp == null || e.duration > P.inp)) P.inp = Math.round(e.duration); }); }).observe({ type: 'event', durationThreshold: 40, buffered: true });
+    new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { P.longTasks++; P.longMs += Math.round(e.duration); }); }).observe({ type: 'longtask', buffered: true });
+  } catch (e) { }
+
+  /* uploads: while something is uploading the page must not re-render, and the browser should not sleep or close the tab silently */
+  var wl = null; W.__busy = 0; W.__acted = false;
+  function getWake() { if (W.__busy > 0 && navigator.wakeLock && !wl) navigator.wakeLock.request('screen').then(function (l) { wl = l; l.addEventListener('release', function () { wl = null; }); }).catch(function () { }); }
+  W.__busyStart = function () { W.__busy++; getWake(); };
+  W.__busyEnd = function () { if (W.__busy > 0) W.__busy--; if (W.__busy === 0 && wl) { try { wl.release(); } catch (e) { } wl = null; } if (W.__upUI) W.__upUI.kick(); };
+  W.__withBusy = function (fn) { W.__busyStart(); return Promise.resolve().then(fn).then(function (v) { W.__busyEnd(); return v; }, function (e) { W.__busyEnd(); throw e; }); };
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') getWake(); });
+  addEventListener('beforeunload', function (e) { if (W.__busy > 0) { e.preventDefault(); e.returnValue = ''; return ''; } });
+  ['pointerdown', 'keydown', 'wheel'].forEach(function (n) { addEventListener(n, function () { W.__acted = true; }, { capture: true, passive: true }); });
+
+  /* a small status pill that survives page changes (upload progress, retries, errors) */
+  var timer = null;
+  W.__upUI = {
+    set: function (txt, isErr) {
+      var e = document.getElementById('upPill');
+      if (!e) {
+        e = document.createElement('div'); e.id = 'upPill'; e.setAttribute('role', 'status'); e.setAttribute('aria-live', 'polite');
+        e.style.cssText = 'position:fixed;left:12px;bottom:76px;z-index:70;max-width:min(92vw,440px);padding:9px 14px;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #6366f1;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.45)';
+        document.body.appendChild(e);
+      }
+      e.style.borderColor = isErr ? '#f43f5e' : '#6366f1'; e.textContent = txt;
+      clearTimeout(timer); timer = setTimeout(function () { var x = document.getElementById('upPill'); if (x) x.remove(); }, W.__busy > 0 ? 45000 : 6000);
+    },
+    kick: function () { var e = document.getElementById('upPill'); if (!e) return; clearTimeout(timer); timer = setTimeout(function () { var x = document.getElementById('upPill'); if (x) x.remove(); }, 6000); }
+  };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous" defer></script>
 <style id="cr-css">
 .cr-ban{margin:0 0 .75rem;padding:.7rem .9rem;border-radius:.9rem;background:#fff7ed;border:1.5px solid #fb923c;color:#9a3412;font-size:.875rem;line-height:1.45}
 .cr-hold{display:block;margin-top:.25rem;font-size:.8125rem;font-weight:600}
@@ -2725,7 +2788,7 @@ body.rd-resizing * { cursor: col-resize !important; }
       <a data-nav href="#/study">Study</a><a data-nav href="#/plan">Plan</a><a data-nav href="#/qbank">Qbank</a><a data-nav href="#/library">Library</a><a data-nav href="#/settings">Settings</a>
     </nav>
     <span id="sync" class="ml-auto text-sm cursor-help" title="Saved to cloud">☁️</span>
-    <button id="cmdBtn" class="ib" title="Command palette (Ctrl+K)" aria-label="Command palette" style="font-weight:700;font-size:15px">⌘</button><a href="#/search" class="ib" title="Search everything">🔍</a><button id="fsBtn" class="ib" title="Text size" aria-label="Text size" aria-expanded="false" style="font-weight:700;font-size:13px">Aa</button><button id="themeBtn" class="ib" title="Dark / light">🌓</button>
+    <button id="cmdBtn" class="ib" title="Command palette (Ctrl+K)" aria-label="Command palette" style="font-weight:700;font-size:15px">⌘</button><a href="#/search" class="ib" title="Search everything" aria-label="Search everything">🔍</a><button id="fsBtn" class="ib" title="Text size" aria-label="Text size" aria-expanded="false" style="font-weight:700;font-size:13px">Aa</button><button id="themeBtn" class="ib" title="Dark / light" aria-label="Dark / light mode">🌓</button>
   </div>
 </header>
 <main id="view" class="max-w-6xl mx-auto p-3 sm:p-5 pb-24"></main>
@@ -2862,12 +2925,25 @@ let flushTimer, flushing = null;
 async function queue(op) { await local.add('outbox', op); setStatus('saving'); clearTimeout(flushTimer); flushTimer = setTimeout(flush, 700); }
 async function pendingCount() { return (await local.keys('outbox')).length; }
 
+// ---- sync index: remembers the server timestamp of every row this device already holds, so a normal start only downloads what changed ----
+const ik = (s, id) => s + '\u0000' + id;
+let _idx = null, _idxDirty = false;
+async function idxLoad() { if (_idx === null) _idx = (await local.get('kv', 'syncIdx')) || null; return _idx; }
+async function idxSave() { if (_idx && _idxDirty) { _idxDirty = false; await local.put('kv', _idx, 'syncIdx'); } }
+const idxSet = (s, id, ts) => { if (_idx) { _idx[ik(s, id)] = tsNum(ts); _idxDirty = true; } };
+const idxDel = (s, id) => { if (_idx) { delete _idx[ik(s, id)]; _idxDirty = true; } };
+const tsNum = t => { const n = Date.parse(t); return Number.isFinite(n) ? n : 0; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const jsonSize = v => { try { return JSON.stringify(v).length; } catch { return 1e5; } };
+const isNetMsg = e => /fetch|network|timeout|offline|load failed|aborted/i.test((e && (e.message || e)) || '');
+
 function flush() {
   if (!cloud) return Promise.resolve();
   if (!navigator.onLine) { setStatus('offline'); return Promise.resolve(); }
   if (flushing) return flushing;
   flushing = (async () => {
     try {
+      await idxLoad();
       for (;;) {
         const items = await local.entries('outbox');
         if (!items.length) break;
@@ -2890,58 +2966,219 @@ function flush() {
             qsMerged.push({ id: u.id, key, merged: u.data, sent });
           }
         }
-        for (let i = 0; i < ups.length; i += 200) {
-          const { error } = await cloud.from('items').upsert(ups.slice(i, i + 200));
-          if (error) throw error;
+        // upload in batches limited by SIZE (not only count); a failing batch is retried, then split so one bad row cannot block the others
+        const failed = new Map();
+        const sendRows = async rows => {
+          let lastErr;
+          const tries = rows.length > 1 ? 2 : 3;
+          for (let a = 0; a < tries; a++) {
+            const { error } = await cloud.from('items').upsert(rows);
+            if (!error) { for (const r of rows) idxSet(r.store, r.id, r.updated_at); return; }
+            lastErr = error;
+            if (!navigator.onLine || isNetMsg(error)) throw error;
+            await sleep(600 * 2 ** a);
+          }
+          if (rows.length > 1) { for (const r of rows) await sendRows([r]); return; }
+          failed.set(ik(rows[0].store, rows[0].id), lastErr);
+          window.__diag && __diag.log('sync-fail', `${rows[0].store}/${rows[0].id}: ${lastErr.message || lastErr}`);
+        };
+        let cur = [], sz = 0;
+        for (const u of ups) {
+          const s = jsonSize(u.data);
+          if (cur.length && (sz + s > 1.5e6 || cur.length >= 200)) { await sendRows(cur); cur = []; sz = 0; }
+          cur.push(u); sz += s;
         }
+        if (cur.length) await sendRows(cur);
         for (const m of qsMerged) {
+          if (failed.has(ik('kv', m.id))) continue;
           await local.put('kv', m.merged, m.key);                                  // the copy the next merge starts from (never uploaded itself)
           const mj = JSON.stringify(m.merged);
           if (mj !== m.sent && JSON.stringify(await local.get('kv', m.id)) === m.sent) { await local.put('kv', m.merged, m.id); _qsSnap.set(m.id, mj); kvCache.delete('qstats'); }
         }
         for (const [s, ids] of Object.entries(dels)) {
-          const { error } = await cloud.from('items').delete().eq('store', s).in('id', ids);
-          if (error) throw error;
+          for (let i = 0; i < ids.length; i += 200) {
+            const part = ids.slice(i, i + 200);
+            const { error } = await cloud.from('items').delete().eq('store', s).in('id', part);
+            if (error) throw error;
+            part.forEach(id => idxDel(s, id));
+          }
         }
-        await local.delKeys('outbox', items.map(x => x.k));
+        await local.delKeys('outbox', items.filter(x => !failed.has(ik(x.v.store, x.v.id))).map(x => x.k));
+        await idxSave();
+        if (failed.size) { const [k, e] = failed.entries().next().value; throw new Error(`${failed.size} item(s) could not be uploaded (${k.replace('\u0000', '/')}): ${e.message || e}`); }
       }
+      await idxSave();
       markSynced(); setStatus('synced');
-    } catch (e) { setStatus(navigator.onLine ? 'error' : 'offline', e.message || String(e)); }
+    } catch (e) { try { await idxSave(); } catch { } setStatus(navigator.onLine ? 'error' : 'offline', e.message || String(e)); }
     finally { flushing = null; }
   })();
   return flushing;
 }
 window.addEventListener('online', () => flush());
 
-// Download everything from the cloud and make this device match it.
-async function pull() {
-  if (!cloud || !navigator.onLine) return false;
-  await flush();
-  const pending = await local.entries('outbox');
-  if (pending.length) return false; // never overwrite unsent local changes
-  const rows = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await cloud.from('items').select('store,id,data').order('store').order('id').range(from, from + 999);
-    if (error) throw error;
-    rows.push(...data);
-    if (data.length < 1000) break;
+// ---- download ----
+// List every row of the account with only store, id and timestamp (small), pages fetched in parallel.
+async function listRemote() {
+  const PAGE = 1000, out = [];
+  const first = await cloud.from('items').select('store,id,updated_at', { count: 'exact' }).order('store').order('id').range(0, PAGE - 1);
+  if (first.error) throw first.error;
+  out.push(...first.data);
+  const total = first.count;
+  if (typeof total === 'number' && total > PAGE) {
+    const rs = await Promise.all(Array.from({ length: Math.ceil(total / PAGE) - 1 }, (_, i) => cloud.from('items').select('store,id,updated_at').order('store').order('id').range((i + 1) * PAGE, (i + 2) * PAGE - 1)));
+    for (const r of rs) { if (r.error) throw r.error; out.push(...r.data); }
+  } else if (first.data.length === PAGE) {
+    for (let from = PAGE; ; from += PAGE) {
+      const r = await cloud.from('items').select('store,id,updated_at').order('store').order('id').range(from, from + PAGE - 1);
+      if (r.error) throw r.error; out.push(...r.data); if (r.data.length < PAGE) break;
+    }
   }
+  const uniq = new Set(out.map(r => ik(r.store, r.id)));
+  if (uniq.size !== out.length || (typeof total === 'number' && total !== out.length)) throw new Error('row list changed while it was being read');   // paging shifted → fall back to the full download
+  return out;
+}
+
+// Only what changed since the last visit (usually a few rows). Returns the number of rows changed locally; throws when it cannot be trusted.
+async function pullDiff() {
+  const idx = _idx;
+  const remote = await listRemote();
+  for (const s of ['files', 'notes', 'highlights']) {          // the index claims rows that are no longer on this device → rebuild with a full download
+    const have = (await local.keys(s)).length, pre = s + '\u0000'; let want = 0;
+    for (const k in idx) if (k.startsWith(pre)) want++;
+    if (have < want) throw new Error('local ' + s + ' smaller than the sync index');
+  }
+  const pend0 = new Set((await local.entries('outbox')).map(x => ik(x.v.store, x.v.id)));
+  const seen = new Set(), need = {};
+  for (const r of remote) {
+    if (r.store === 'kv' && LOCAL_KV.has(r.id)) continue;
+    const key = ik(r.store, r.id); seen.add(key);
+    if (pend0.has(key)) continue;
+    if (idx[key] !== tsNum(r.updated_at)) (need[r.store] = need[r.store] || []).push(String(r.id));
+  }
+  let gone = Object.keys(idx).filter(k => !seen.has(k) && !pend0.has(k));
+  if (gone.length) {                                              // double-check against the server before deleting anything locally
+    const byStore = {};
+    for (const k of gone) { const [s, id] = k.split('\u0000'); (byStore[s] = byStore[s] || []).push(id); }
+    const still = new Set();
+    for (const [s, ids] of Object.entries(byStore)) for (let i = 0; i < ids.length; i += 100) {
+      const { data, error } = await cloud.from('items').select('id').eq('store', s).in('id', ids.slice(i, i + 100));
+      if (error) throw error;
+      for (const r of data || []) { still.add(ik(s, r.id)); (need[s] = need[s] || []).push(String(r.id)); }
+    }
+    gone = gone.filter(k => !still.has(k));
+  }
+  const jobs = [];
+  for (const [s, ids] of Object.entries(need)) for (let i = 0; i < ids.length; i += 20) jobs.push([s, ids.slice(i, i + 20)]);
+  const got = []; let ji = 0;
+  await Promise.all([0, 1, 2, 3].map(async () => {
+    while (ji < jobs.length) {
+      const [s, ids] = jobs[ji++];
+      const { data, error } = await cloud.from('items').select('store,id,data,updated_at').eq('store', s).in('id', ids);
+      if (error) throw error;
+      got.push(...data);
+    }
+  }));
+  // apply — skip anything the user changed in the meantime and has not uploaded yet
+  const pend1 = new Set((await local.entries('outbox')).map(x => ik(x.v.store, x.v.id)));
+  const rows = got.filter(r => !pend1.has(ik(r.store, r.id)));
   for (const s of ['notes', 'highlights', 'files']) {
-    await local.clear(s);
-    await local.bulk(s, rows.filter(r => r.store === s).map(r => [r.data]));
+    const rs = rows.filter(r => r.store === s);
+    if (rs.length) await local.bulk(s, rs.map(r => [r.data]));
   }
-  const keep = {};
-  for (const k of LOCAL_KV) { const v = await local.get('kv', k); if (v !== undefined) keep[k] = v; }
-  await local.clear('kv');
-  await local.bulk('kv', rows.filter(r => r.store === 'kv' && !LOCAL_KV.has(r.id)).map(r => [r.data, r.id]).concat(Object.entries(keep).map(([k, v]) => [v, k])));
-  for (const r of rows) if (r.store === 'kv' && String(r.id).startsWith('qstats:')) await local.put('kv', r.data, 'qsbase:' + String(r.id).slice(7));
+  const kvr = rows.filter(r => r.store === 'kv' && !LOCAL_KV.has(r.id));
+  if (kvr.length) await local.bulk('kv', kvr.map(r => [r.data, r.id]).concat(kvr.filter(r => String(r.id).startsWith('qstats:')).map(r => [r.data, 'qsbase:' + String(r.id).slice(7)])));
+  for (const r of rows) idx[ik(r.store, r.id)] = tsNum(r.updated_at);
+  let removed = 0;
+  for (const k of gone) {
+    if (pend1.has(k)) continue;
+    const [s, id] = k.split('\u0000');
+    if (s === 'kv') { await local.delKeys('kv', [id].concat(id.startsWith('qstats:') ? ['qsbase:' + id.slice(7)] : [])); }
+    else { const lk = (await local.keys(s)).find(x => String(x) === id); if (lk !== undefined) await local.delKeys(s, [lk]); }
+    delete idx[k]; removed++;
+  }
+  _idxDirty = true; await idxSave();
   kvCache.clear();
   markSynced(); setStatus('synced');
+  window.__lastPullInfo = { mode: 'diff', remote: remote.length, fetched: rows.length, removed };
+  return rows.length + removed;
+}
+
+// Whole account (first visit on this device, once every few days, or after a failed diff). Replaces each store inside ONE transaction.
+async function pullFull() {
+  const pending = await local.entries('outbox');
+  if (pending.length) return false; // never overwrite unsent local changes
+  const PAGE = 1000, rows = [];
+  const first = await cloud.from('items').select('store,id,data,updated_at', { count: 'exact' }).order('store').order('id').range(0, PAGE - 1);
+  if (first.error) throw first.error;
+  rows.push(...first.data);
+  const total = first.count;
+  if (typeof total === 'number' && total > PAGE) {
+    const n = Math.ceil(total / PAGE) - 1; let next = 1; const parts = new Array(n);
+    await Promise.all([0, 1, 2].map(async () => {
+      while (next <= n) {
+        const i = next++;
+        const r = await cloud.from('items').select('store,id,data,updated_at').order('store').order('id').range(i * PAGE, (i + 1) * PAGE - 1);
+        if (r.error) throw r.error; parts[i - 1] = r.data;
+      }
+    }));
+    for (const p of parts) rows.push(...p);
+  } else if (first.data.length === PAGE) {
+    for (let from = PAGE; ; from += PAGE) {
+      const r = await cloud.from('items').select('store,id,data,updated_at').order('store').order('id').range(from, from + PAGE - 1);
+      if (r.error) throw r.error; rows.push(...r.data); if (r.data.length < PAGE) break;
+    }
+  }
+  if ((await local.keys('outbox')).length) return false;       // something was saved while downloading — try again next time
+  for (const s of ['notes', 'highlights', 'files']) {
+    const vals = rows.filter(r => r.store === s).map(r => r.data);
+    await tx(s, 'readwrite', async st => {
+      const keys = await req(st.getAllKeys()), keep = new Set(vals.map(v => v.id));
+      for (const v of vals) st.put(v);
+      for (const k of keys) if (!keep.has(k)) st.delete(k);
+    });
+  }
+  const want = new Map();
+  for (const r of rows) if (r.store === 'kv' && !LOCAL_KV.has(r.id)) { want.set(r.id, r.data); if (String(r.id).startsWith('qstats:')) want.set('qsbase:' + String(r.id).slice(7), r.data); }
+  await tx('kv', 'readwrite', async st => {
+    const keys = await req(st.getAllKeys());
+    for (const [k, v] of want) st.put(v, k);
+    for (const k of keys) if (!want.has(k) && !LOCAL_KV.has(k) && k !== 'syncIdx') st.delete(k);
+  });
+  _idx = {}; for (const r of rows) if (!(r.store === 'kv' && LOCAL_KV.has(r.id))) _idx[ik(r.store, r.id)] = tsNum(r.updated_at);
+  _idxDirty = true; await idxSave();
+  try { localStorage.setItem('lastFullPull', String(Date.now())); } catch { }
+  kvCache.clear();
+  markSynced(); setStatus('synced');
+  window.__lastPullInfo = { mode: 'full', remote: rows.length, fetched: rows.length, removed: 0 };
   return true;
+}
+
+let pulling = null;
+function pull() {
+  if (!cloud || !navigator.onLine) return Promise.resolve(false);
+  if (pulling) return pulling;
+  pulling = (async () => {
+    const t0 = performance.now();
+    await flush();
+    let out, mode = 'full';
+    const idx = await idxLoad();
+    const fresh = Date.now() - (+localStorage.getItem('lastFullPull') || 0) < 3 * 86400000;
+    if (idx && fresh) {
+      try { out = await pullDiff(); mode = 'diff'; }
+      catch (e) { out = undefined; window.__diag && __diag.log('pull-diff-failed', e.message || e); }
+    }
+    if (out === undefined) out = await pullFull();
+    const ms = Math.round(performance.now() - t0), info = window.__lastPullInfo || {};
+    window.__diag && __diag.log('pull', `${mode} ${ms} ms · rows ${info.remote ?? '?'} · downloaded ${info.fetched ?? '?'}`);
+    window.__boot && __boot.set('pull_' + mode + '_ms', ms);
+    return out;
+  })().finally(() => { pulling = null; });
+  return pulling;
 }
 
 async function wipeDevice() {
   for (const s of ['files', 'blobs', 'kv', 'highlights', 'notes', 'outbox']) await local.clear(s);
+  _idx = null; _idxDirty = false; try { localStorage.removeItem('lastFullPull'); } catch { }
   kvCache.clear(); await undoClear(); try { localStorage.removeItem('lastSyncAt'); } catch { }
 }
 
@@ -3078,17 +3315,56 @@ function qPack(q) {
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 // ---------------- books (private storage) ----------------
-const CHUNK = 20 * 1024 * 1024; // split big PDFs so they fit the per-file limit of the free plan
+const CHUNK = 8 * 1024 * 1024; // pieces of 8 MB: a dropped connection only repeats the current piece, and every piece fits the per-file limit of the free plan
 const partPath = (id, i) => `${userId}/${id}/part-${i}`;
+const resumeKey = (id, size) => `upl:${userId}:${id}:${size}:${CHUNK}`;
+
+// one piece, with real byte progress (XHR) — same request the Supabase library sends
+function putPart(path, blob, token, onBytes) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest(), fd = new FormData();
+    fd.append('cacheControl', '3600'); fd.append('', blob);
+    x.open('POST', `${SB_URL}/storage/v1/object/books/${path.split('/').map(encodeURIComponent).join('/')}`);
+    x.setRequestHeader('apikey', SB_KEY); x.setRequestHeader('Authorization', 'Bearer ' + token); x.setRequestHeader('x-upsert', 'true');
+    x.upload.onprogress = e => { if (e.lengthComputable) onBytes(e.loaded); };
+    x.onload = () => x.status >= 200 && x.status < 300 ? resolve() : reject(Object.assign(new Error(`Upload failed (${x.status}) ${String(x.responseText || '').slice(0, 120)}`), { status: x.status }));
+    x.onerror = () => reject(new Error('Network error during upload'));
+    x.ontimeout = () => reject(new Error('Upload timed out'));
+    x.timeout = 10 * 60 * 1000;
+    x.send(fd);
+  });
+}
+const waitOnline = () => navigator.onLine ? Promise.resolve() : new Promise(res => { const f = () => { removeEventListener('online', f); res(); }; addEventListener('online', f); setTimeout(f, 120000); });
 
 async function uploadBook(id, file, onProgress) {
-  const parts = Math.max(1, Math.ceil(file.size / CHUNK));
-  for (let i = 0; i < parts; i++) {
-    onProgress && onProgress(i / parts);
-    const { error } = await cloud.storage.from('books').upload(partPath(id, i), file.slice(i * CHUNK, (i + 1) * CHUNK), { upsert: true, contentType: 'application/octet-stream' });
-    if (error) throw error;
+  const parts = Math.max(1, Math.ceil(file.size / CHUNK)), rk = resumeKey(id, file.size);
+  let start = 0; try { start = Math.min(parts, +(localStorage.getItem(rk) || 0)); } catch { }   // pieces already uploaded by an earlier attempt of the same file
+  let useXhr = true;
+  for (let i = start; i < parts; i++) {
+    const piece = file.slice(i * CHUNK, (i + 1) * CHUNK);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await waitOnline();
+        onProgress && onProgress((i * CHUNK) / file.size);
+        if (useXhr) {
+          const { data } = await cloud.auth.getSession();
+          await putPart(partPath(id, i), piece, data?.session?.access_token || SB_KEY, b => onProgress && onProgress(Math.min(1, (i * CHUNK + b) / file.size)));
+        } else {
+          const { error } = await cloud.storage.from('books').upload(partPath(id, i), piece, { upsert: true, contentType: 'application/octet-stream' });
+          if (error) throw error;
+        }
+        break;
+      } catch (e) {
+        if (useXhr && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429) { useXhr = false; window.__diag && __diag.log('upload', 'direct upload refused (' + e.status + ') — using the library'); attempt--; continue; }
+        window.__diag && __diag.log('upload', `${file.name || id} piece ${i + 1}/${parts} attempt ${attempt + 1}: ${e.message || e}`);
+        if (attempt >= 4 || /exceeded|too large|payload|413/i.test(e.message || '')) throw e;
+        await sleep(1500 * 2 ** attempt);
+      }
+    }
+    try { localStorage.setItem(rk, String(i + 1)); } catch { }
   }
   onProgress && onProgress(1);
+  try { localStorage.removeItem(rk); } catch { }
   return parts;
 }
 
@@ -3096,6 +3372,7 @@ async function deleteBookFiles(meta) {
   const paths = Array.from({ length: meta.parts || 1 }, (_, i) => partPath(meta.id, i));
   const { error } = await cloud.storage.from('books').remove(paths);
   if (error) throw error;
+  try { const pre = `upl:${userId}:${meta.id}:`; Object.keys(localStorage).filter(k => k.startsWith(pre)).forEach(k => localStorage.removeItem(k)); } catch { }
 }
 
 async function cacheBlob(id, blob) { await local.put('blobs', { id, blob }); }
@@ -4270,7 +4547,7 @@ async function copy(t) {
 
 function toast(msg) {
   let t = document.getElementById('toast');
-  if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.append(t); }
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); document.body.append(t); }
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
@@ -6776,7 +7053,7 @@ async function home() {
         ${row('🃏', 'Flashcards due', cardsDue, '#/cards')}
         ${row('🔁', 'Questions due for review', dueN, '#/qbank', 'data-pool="due"')}
         ${row('❌', 'Last answered wrong', wrongNow, '#/qbank', 'data-pool="wrong"')}
-        ${QA.some(q => q.cr?.state === 'pending') ? row('\uD83E\uDDEA', 'Claude disputes — to decide', QA.filter(q => q.cr?.state === 'pending').length, '#/qbank', 'data-pool="crp"') : ''}
+        ${QA.some(q => q.cr?.state === 'pending' && inScope(q, false)) ? row('\uD83E\uDDEA', 'Claude disputes — to decide', QA.filter(q => q.cr?.state === 'pending' && inScope(q, false)).length, '#/qbank', 'data-pool="crp"') : ''}
         ${miniReady.length ? row('📝', `Mini-exam ready · ${esc(miniReady[0].s.name)} · ${miniReady[0].g.label}`, null, `#/study/${miniReady[0].s.id}`) : ''}
       </div>
       <div class="card"><div class="flex items-center justify-between"><h3 class="sec mb-0">Today's tasks</h3><a href="#/plan" class="link text-xs">Study plan →</a></div>
@@ -7077,10 +7354,10 @@ function studyCardHTML(z) {
     ${w ? `<div class="flex flex-wrap items-center gap-2 text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-900"><span class="min-w-0 flex-1"><b>Weakest:</b> LM ${globalLM(w.m)} · LOS ${esc(w.z.id)} — ${w.z.acc}% <span class="text-slate-500">· ${w.z.n} of ${w.z.of} answered</span></span><button type="button" class="btn-ghost text-xs" data-weakgo="${esc(w.m.id)}|${esc(w.z.id)}">Practice it</button></div>`
       : z.allExc ? '<div class="text-xs p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">✅ Every rated LOS is Excellent.</div>' : ''}
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
-      ${item('Mini-exams', z.minis.length ? z.minis.map(v => v === null ? '—' : v + '%').join(' · ') : '—', 'Scores of the mini-exams of this topic, in order')}
-      ${item('Avg time / question', `${fmtSec(z.avgT)}${z.avgT !== null ? ' <span class="text-[11px] font-normal text-slate-500">target 1:30</span>' : ''}`, 'Average time of your latest answers')}
+      ${z.minis.some(v => v !== null) ? item('Mini-exams', z.minis.map(v => v === null ? '—' : v + '%').join(' · '), 'Scores of the mini-exams of this topic, in order') : ''}
+      ${z.avgT !== null ? item('Avg time / question', `${fmtSec(z.avgT)} <span class="text-[11px] font-normal text-slate-500">target 1:30</span>`, 'Average time of your latest answers') : ''}
       ${item('Sure but wrong', z.sure, 'Questions you answered "Sure" and got wrong — the most dangerous kind')}
-      ${item('Top mistake reason', z.top ? `${esc(z.top.name)} ${z.top.p}%` : '—')}
+      ${z.top ? item('Top mistake reason', `${esc(z.top.name)} ${z.top.p}%`) : ''}
       ${item('Due for review', z.due)}${item('Flagged ⚑', z.flag)}</div>
     <div data-tip="Questions answered per day, last 14 days"><div class="text-[11px] text-slate-500 mb-1">Last 14 days · ${spTot} answered</div><div class="flex items-end gap-[3px] h-8" role="img" aria-label="Questions answered per day over the last 14 days: ${spTot} in total">${z.spark.map(v => `<span class="flex-1 rounded-sm ${v ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}" style="height:${v ? Math.max(14, Math.round(v / spMax * 100)) : 6}%"></span>`).join('')}</div></div>
     <div class="flex flex-wrap gap-2 mt-auto">
@@ -7365,7 +7642,7 @@ async function qbankSetup() {
   <div class="flex flex-wrap items-center justify-between gap-2 mb-4"><h1 class="h1 mb-0">\uD83C\uDFAF Qbank</h1><div class="flex flex-wrap gap-2"><a href="#/qbank/mocks" class="btn-ghost">\uD83D\uDCDD Mocks</a><button class="btn-ghost text-rose-600" id="weakGo" data-tip="20 questions from every LOS that is red in mastery (score below 50), across all topics">\uD83C\uDFAF Weakest LOS</button><a href="#/cards" class="btn-ghost">\uD83C\uDCCF Flashcards</a><a href="#/qbank/stats" class="btn-ghost">\uD83D\uDCCA Performance</a></div></div>
   <div class="grid lg:grid-cols-3 gap-4 items-start">
     <div class="lg:col-span-2 space-y-4 min-w-0">
-      <div class="card space-y-3"><div class="text-xs text-slate-500">All your questions in scope · ${Qin.length} questions in ${mods.length} module${mods.length === 1 ? '' : 's'}</div>${qKpiHTML(Qin, st)}</div>
+      <div class="card space-y-3"><div class="text-xs text-slate-500">All your questions in scope · ${Qin.length} questions in ${mods.length} module${mods.length === 1 ? '' : 's'}${Qin.some(q => q.hold) ? ` · ${Qin.filter(q => q.hold).length} on hold (left out of the answered / accuracy counts)` : ''}</div>${qKpiHTML(Qin, st)}</div>
       <div class="card">${mods.length ? `<div class="flex flex-wrap items-center justify-between gap-2 mb-2"><h3 class="sec mb-0">Topics &amp; modules</h3><span class="text-xs"><button class="link" data-all="1" data-g="*">Select all</button> · <button class="link" data-all="0" data-g="*">Clear</button></span></div><p class="text-xs text-slate-500 mb-2">Choose modules from any topic — progress is shared with each module's own Qbank.</p><div class="space-y-2">${groups}</div>` : '<p class="text-sm text-slate-500">No questions yet. Add question PDFs in the Library, in the row of a module.</p>'}
         <div class="text-xs text-slate-500 mt-2" id="selInfo"></div></div>
       <div class="card"><h3 class="sec flex items-center justify-between">Sources <span><button class="link text-xs" data-sall="1">All</button> · <button class="link text-xs" data-sall="0">None</button></span></h3>
@@ -8403,6 +8680,7 @@ async function library() {
   <h1 class="h1">📁 Library</h1>
   <p class="text-sm text-slate-500 -mt-2 mb-4">Organised by topic and module. Open a topic and upload each book next to its module — it is linked automatically. One Schweser or Curriculum book often covers several modules: upload it once, then pick it for the other modules and set the page where each module starts.</p>
   <label class="flex items-center gap-2 text-sm mb-3" data-tip="The book is kept only in this browser and does not use your cloud space. Other devices will list it but cannot open it until you upload it to the cloud."><input type="checkbox" id="locOnly" class="accent-indigo-600"> Keep new uploads on this device only</label>
+  <div id="locWarn" class="hidden text-xs text-amber-600 mb-3" role="note">⚠ Books uploaded while this is ticked are NOT sent to your account — they will not open on your other devices.</div>
   <div id="upMsg" class="text-sm my-2"></div>
   ${await qvBarHTML()}
   <div id="vlibBox">${await vidLibHTML()}</div>
@@ -8423,8 +8701,9 @@ async function library() {
 
   const vlRedraw = async () => { const bx = document.getElementById('vlibBox'); if (!bx) return; bx.innerHTML = await vidLibHTML(); bindVidLib(bx.firstElementChild, vlRedraw); };
   bindVidLib(document.getElementById('vlib'), vlRedraw);
-  const msg = () => document.getElementById('upMsg');
-  async function addBook(f, kind, mid) {
+  const msg = () => { const e = document.getElementById('upMsg'); return { set textContent(v) { if (e) e.textContent = v; __upUI.set(v); }, set innerHTML(v) { if (e) e.innerHTML = v; __upUI.set(String(v).replace(/<[^>]*>/g, ''), true); } }; };
+  const addBook = (f, kind, mid) => __withBusy(() => addBook0(f, kind, mid));
+  async function addBook0(f, kind, mid) {
     const { inspectPdf } = await reader(), locOnly = document.getElementById('locOnly').checked;
     if (!navigator.onLine && !locOnly) throw new Error('You are offline. Connect to the internet to upload books.');
     msg().textContent = `Reading ${f.name}…`;
@@ -8438,13 +8717,16 @@ async function library() {
   view.onchange = async e => {
     const t = e.target;
     try {
+      if (t.id === 'locOnly') { document.getElementById('locWarn')?.classList.toggle('hidden', !t.checked); return; }
       if (await qlibChange(e)) return;
-      if (t.dataset.lup && t.files[0]) { const [mid, k] = t.dataset.lup.split('|');
-        if (k === 'aipdf' && /\.docx?$/i.test(t.files[0].name)) { const f = t.files[0]; await saveAiDocx(mid, modInfo(mid)?.x, f); OPEN_SUBJ.add(mid.split('-')[0]); toast('Word summary saved — it opens in the module\'s AI Summary tab'); return library(); }
-        const oldL = ((await kv.get('moduleMap', {}))[mid] || {})[k]?.fileId; const info = await addBook(t.files[0], k === 'aipdf' ? 'aisum' : k, mid); await link(mid, k, info.id, 1); await askDropOldBook(oldL, info.id); OPEN_SUBJ.add(mid.split('-')[0]); toast('Uploaded and linked — set the start page if the book covers several modules'); return library(); }
+      if (t.dataset.lup && t.files[0]) { const [mid, k] = t.dataset.lup.split('|'); const lf = t.files[0]; t.value = '';
+        if (k === 'aipdf' && /\.docx?$/i.test(lf.name)) { const f = lf; await saveAiDocx(mid, modInfo(mid)?.x, f); OPEN_SUBJ.add(mid.split('-')[0]); toast('Word summary saved — it opens in the module\'s AI Summary tab'); return library(); }
+        const oldL = ((await kv.get('moduleMap', {}))[mid] || {})[k]?.fileId; const info = await addBook(lf, k === 'aipdf' ? 'aisum' : k, mid); await link(mid, k, info.id, 1); await askDropOldBook(oldL, info.id); OPEN_SUBJ.add(mid.split('-')[0]); toast('Uploaded and linked — set the start page if the book covers several modules'); return library(); }
       if (t.dataset.lpick && t.value) { const [mid, k] = t.dataset.lpick.split('|'); const oldP = ((await kv.get('moduleMap', {}))[mid] || {})[k]?.fileId; await link(mid, k, t.value, 1); await askDropOldBook(oldP, t.value); toast('Linked — now set the page where this module starts'); return library(); }
       if (t.dataset.lpage) { const [mid, k] = t.dataset.lpage.split('|'), M = await kv.get('moduleMap', {}); M[mid][k].page = Math.max(1, +t.value || 1); await kv.set('moduleMap', M); toast('Start page saved'); return; }
-      if (t.id === 'up') { for (const f of t.files) await addBook(f, /schweser|kaplan|notes/i.test(f.name) ? 'schweser' : /curric|cfa ?inst|volume/i.test(f.name) ? 'curriculum' : 'other'); return library(); }
+      if (t.id === 'up') { const fl = [...t.files], errs = []; t.value = '';
+        for (const f of fl) { try { await addBook(f, /schweser|kaplan|notes/i.test(f.name) ? 'schweser' : /curric|cfa ?inst|volume/i.test(f.name) ? 'curriculum' : 'other'); } catch (err) { errs.push(`${f.name}: ${err.message || err}`); } }
+        await library(); if (errs.length) msg().innerHTML = `<span class="text-rose-600">❌ ${errs.map(esc).join('<br>')}</span>`; return; }
       if (t.dataset.kind || t.dataset.label) { const id = t.dataset.kind || t.dataset.label, f = await db.get('files', id); if (t.dataset.kind) f.kind = t.value; else f.label = t.value; await db.put('files', f); }
     } catch (err) { msg().innerHTML = `<span class="text-rose-600">❌ ${esc(err.message || String(err))}</span>`; }
   };
@@ -8837,7 +9119,7 @@ document.addEventListener('click', e => { const a = e.target.closest && e.target
 
 // ================= v20 · backup with pictures · books · clean start =================
 async function backupData() {
-  const kvs = {}; for (const { k, v } of await local.entries('kv')) if (!['qsession', '__owner'].includes(k) && !String(k).startsWith('qsbase:')) kvs[k] = v;
+  const kvs = {}; for (const { k, v } of await local.entries('kv')) if (!['qsession', '__owner', 'syncIdx'].includes(k) && !String(k).startsWith('qsbase:')) kvs[k] = v;
   const qv = {}, metas = kvs['qpacks'] || {};
   for (const id of Object.keys(metas)) { try { qv[id] = await (await getBlob(metas[id])).text(); } catch (e) { console.warn('backup: question pictures', id, e); } }
   return { app: 'cfa-l1', v: 3, at: new Date().toISOString(), kv: kvs, notes: await db.all('notes'), highlights: await db.all('highlights'), files: await db.all('files'), qv };
@@ -9221,7 +9503,7 @@ async function route() {
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', h.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '#/' || (h === '#/' && a.getAttribute('href') === '#/')));
   for (const [re, fn] of routes) {
     const m = h.match(re);
-    if (m) { view.scrollTop = 0; window.scrollTo(0, 0); const c = await fn(...m.slice(1)); if (typeof c === 'function') cleanup = c; showNotices(); return; }
+    if (m) { const keepY = window.__keepScroll ? window.scrollY : null; window.__keepScroll = false; if (keepY === null) { view.scrollTop = 0; window.scrollTo(0, 0); } const c = await fn(...m.slice(1)); if (typeof c === 'function') cleanup = c; if (keepY !== null) window.scrollTo(0, keepY); showNotices(); return; }
   }
   home(); showNotices();
 }
@@ -9733,7 +10015,8 @@ async function syncPanel() {
       <div class="text-sm space-y-1"><div>${esc(stText)}</div><div><b>${n}</b> change${n === 1 ? '' : 's'} waiting to upload${n ? '' : ' — everything is uploaded'}</div><div>Last successful sync: <b>${esc(fmtSyncT(last))}</b></div></div>
       <div class="flex gap-2 mt-3"><button type="button" class="btn-primary text-xs" data-sp="now" ${navigator.onLine ? '' : 'disabled'}>↻ Sync now</button><button type="button" class="btn-ghost text-xs" data-sp="x">Close</button></div>
       ${st === 'error' ? `<p class="text-xs text-rose-700 dark:text-rose-300 mt-2">${esc(CLOUD_HELP)}</p>` : ''}
-      <p class="text-xs text-slate-500 mt-2">Everything is saved on this device first, then uploaded in the background.</p>`;
+      <p class="text-xs text-slate-500 mt-2">Everything is saved on this device first, then uploaded in the background.</p>
+      ${await diagHTML()}`;
   };
   await draw(); document.body.append(pop);
   const off = e => { if (!pop.contains(e.target) && !e.target.closest('#sync')) { pop.remove(); document.removeEventListener('click', off, true); } };
@@ -9742,7 +10025,31 @@ async function syncPanel() {
     const a = e.target.closest('[data-sp]')?.dataset.sp;
     if (a === 'x') { pop.remove(); document.removeEventListener('click', off, true); }
     if (a === 'now') { e.target.disabled = true; e.target.textContent = 'Syncing…'; try { await flush(); } catch { } await refreshSyncLabel(); await draw(); }
+    if (a === 'full') { e.target.disabled = true; e.target.textContent = 'Downloading…'; try { localStorage.removeItem('lastFullPull'); await pull(); window.__keepScroll = true; route(); } catch (err) { toast(err.message || 'Failed'); } await draw(); }
+    if (a === 'copy') { try { await navigator.clipboard.writeText(await diagReport()); toast('Report copied'); } catch { toast('Could not copy'); } }
+    if (a === 'clrlog') { __diag.clear(); await draw(); }
   };
+}
+async function diagReport() {
+  let est = null; try { est = await navigator.storage.estimate(); } catch { }
+  return JSON.stringify({ at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
+}
+async function diagHTML() {
+  let est = '', pers = '?'; try { const e = await navigator.storage.estimate(); est = `${Math.round(e.usage / 1048576)} MB used of ${Math.round(e.quota / 1048576)} MB`; } catch { }
+  try { pers = (await navigator.storage.persisted()) ? 'protected' : 'not protected'; } catch { }
+  const P = window.__perf || {}, boots = __boot.get().slice(-5).reverse(), log = __diag.get().slice(-8).reverse(), I = window.__lastPullInfo;
+  const f = v => v == null ? '–' : v;
+  return `<details class="mt-3 text-xs"><summary class="cursor-pointer font-semibold">🩺 Diagnostics</summary>
+    <div class="mt-2 space-y-1">
+      <div>Device storage: <b>${esc(est || '–')}</b> · ${esc(pers)}</div>
+      <div>Last download: <b>${I ? esc(I.mode) : '–'}</b>${I ? ` · ${I.remote} rows · ${I.fetched} downloaded` : ''}</div>
+      <div>This tab: first content <b>${f(P.lcp)}</b> ms · slowest tap <b>${f(P.inp)}</b> ms · layout shift <b>${f(P.cls)}</b> · long tasks <b>${P.longTasks || 0}</b> (${P.longMs || 0} ms)</div>
+      <div class="font-semibold mt-2">Last starts (ms)</div>
+      ${boots.map(b => `<div class="tabular-nums">${esc(new Date(b.t).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }))} · page ${f(b.dom_ready_ms)} · session ${f(b.session_ms)} · first screen ${f(b.first_route_ms)} · synced ${f(b.synced_ms)}${b.pull_full_ms ? ' · full ' + b.pull_full_ms : ''}${b.pull_diff_ms ? ' · diff ' + b.pull_diff_ms : ''}</div>`).join('') || '<div>–</div>'}
+      <div class="font-semibold mt-2">Recent events</div>
+      ${log.map(l => `<div class="${/error|fail|reject/.test(l.type) ? 'text-rose-600' : ''}">${esc(new Date(l.t).toLocaleTimeString('en-GB'))} · ${esc(l.type)} · ${esc(l.msg)}</div>`).join('') || '<div>Nothing recorded.</div>'}
+      <div class="flex flex-wrap gap-2 mt-2"><button type="button" class="btn-ghost text-xs" data-sp="copy">Copy report</button><button type="button" class="btn-ghost text-xs" data-sp="full" ${navigator.onLine ? '' : 'disabled'} title="Download everything again and rebuild the local copy">Full resync</button><button type="button" class="btn-ghost text-xs" data-sp="clrlog">Clear log</button></div>
+    </div></details>`;
 }
 // resolves true = go ahead and sign out
 async function signOutGuard() {
@@ -10218,11 +10525,35 @@ async function startSession(session) {
   user = session.user; setClient(sb, user.id);
   document.body.classList.remove('auth');
   if (recovering) return newPasswordScreen();
-  view.innerHTML = '<div class="py-20 text-center text-slate-500">☁️ Syncing your study data…</div>';
-  try { await pull(); lastPull = Date.now(); } catch (e) { setStatus('error', e.message); }
+  __boot.set('session_ms');
+  try { navigator.storage?.persist?.().then(ok => __diag.log('storage', 'persistent storage: ' + ok)); } catch { }
+  const quick = !!prev && prev === newUser && !!localStorage.getItem('lastSyncAt') && !!(await idxLoad());   // this device already holds the account → open at once
+  if (!quick) {
+    view.innerHTML = '<div class="py-20 text-center text-slate-500"><div class="text-4xl mb-3" aria-hidden="true">☁️</div>Syncing your study data for the first time on this device…<div class="text-xs mt-2">Next time the site opens instantly.</div></div>';
+    try { await pull(); lastPull = Date.now(); } catch (e) { setStatus('error', e.message); }
+  }
   if (/access_token|type=recovery/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/');
   if (location.search.includes('code=')) history.replaceState(null, '', location.pathname + location.hash);
-  route();
+  route(); __boot.set('first_route_ms');
+  if (quick) pull().then(n => { lastPull = Date.now(); __boot.set('synced_ms'); if (n) afterPullChanged(); }).catch(e => setStatus('error', e.message || String(e)));
+}
+
+// New data arrived from another device: refresh quietly on overview pages, otherwise offer a button (never jump the page while you are working).
+function showUpdateBar() {
+  if (document.getElementById('updBar')) return;
+  const b = document.createElement('div'); b.id = 'updBar'; b.setAttribute('role', 'status');
+  b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:76px;z-index:70;display:flex;gap:10px;align-items:center;padding:9px 14px;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #6366f1;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.45)';
+  b.innerHTML = '<span>Newer data from another device is ready.</span><button type="button" class="btn-primary text-xs">Refresh view</button><button type="button" class="ib" aria-label="Dismiss">✕</button>';
+  const [go, x] = b.querySelectorAll('button');
+  go.onclick = () => { b.remove(); window.__keepScroll = true; route(); };
+  x.onclick = () => b.remove();
+  document.body.append(b);
+  window.addEventListener('hashchange', () => b.remove(), { once: true });
+}
+function afterPullChanged() {
+  const h = location.hash || '#/', typing = /TEXTAREA|INPUT|SELECT/.test(document.activeElement?.tagName || '');
+  const busy = window.__busy > 0 || typing || document.body.classList.contains('reading') || h.startsWith('#/qbank/run') || !!document.querySelector('.modal-bg');
+  if (!busy && /^#\/(study|plan)?$/.test(h)) { window.__keepScroll = true; route(); } else showUpdateBar();
 }
 
 sb.auth.onAuthStateChange((event) => {
@@ -10233,14 +10564,8 @@ sb.auth.onAuthStateChange((event) => {
 document.addEventListener('visibilitychange', async () => {
   if (!user || recovering) return;
   if (document.visibilityState === 'hidden') { flush(); return; }
-  if (Date.now() - lastPull < 60000) return;
-  try {
-    if (await pull()) {
-      lastPull = Date.now();
-      const busy = document.body.classList.contains('reading') || location.hash.startsWith('#/qbank/run') || /TEXTAREA|INPUT/.test(document.activeElement?.tagName);
-      if (!busy) route();
-    }
-  } catch {}
+  if (window.__busy > 0 || Date.now() - lastPull < 60000) return;      // never refresh while a file is uploading
+  try { const n = await pull(); if (n !== false) lastPull = Date.now(); if (n) afterPullChanged(); } catch { }
 });
 
 // Offline-first start: when the server cannot be reached (offline, library missing, token refresh impossible) the app opens with the
@@ -10654,6 +10979,16 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
 (function () {
   if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
   window.addEventListener('load', function () {
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      if (!e.data || e.data.type !== 'update-ready' || document.getElementById('swBar')) return;
+      var b = document.createElement('div'); b.id = 'swBar'; b.setAttribute('role', 'status');
+      b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:76px;z-index:80;display:flex;gap:10px;align-items:center;padding:9px 14px;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #22c55e;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.45)';
+      b.innerHTML = '<span>A new version of the site is ready.</span><button type="button" class="btn-primary text-xs">Reload</button><button type="button" class="ib" aria-label="Later">✕</button>';
+      var bt = b.querySelectorAll('button');
+      bt[0].onclick = function () { if (window.__busy > 0 && !confirm('A file is still uploading. Reload anyway?')) return; location.reload(); };
+      bt[1].onclick = function () { b.remove(); };
+      document.body.appendChild(b);
+    });
     navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
       var urls = [].map.call(document.querySelectorAll('script[src*="supabase-js"]'), function (e) { return e.src; });
       if (reg.active && urls.length) reg.active.postMessage({ type: 'precache', urls: urls });
