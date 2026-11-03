@@ -8792,12 +8792,19 @@ async function qsrcParse(x, src, f, o) {
   const D = PACKS[x.id], idx = (D.questions || []).filter(q => q.source === so.data), parsed = FSA_PARSERS[src](raw);
   P.total = idx.length; P.sections = parsed.sections || []; P.skipped = parsed.skipped || [];
   for (const p of parsed) {
-    const q = idx.find(z => z.q_no === p.qno); if (!q) { P.ignored.push(p.qno); continue; }
+    const q = idx.find(z => z.q_no === p.qno && !z.part); if (!q) { if (!idx.some(z => z.q_no === p.qno)) P.ignored.push(p.qno); continue; }
     if (p.answer && p.answer !== q.answer) P.diff.push(p.qno);
     const notes = notesOf(q);
     P.items.push({ id: q.question_ref, ref: `${so.name} #${q.q_no}`, qno: q.q_no, m: x.id, src, los: losCodeOf(q.los_id), scope: q.scope,
       q: (p.caseText ? p.caseText + '\n\n' : '') + p.stem, o: ['A', 'B', 'C'].map(k => p.options[k] || ''), a: 'ABC'.indexOf(q.answer), x: (notes ? notes + '\n\n' : '') + (p.explanation || ''), xr: p.explanation || '', xh: notes ? notes.length + 2 : 0,
       vk: q.q_no, ...(p.caseText ? { qs: p.stem, ct: p.caseText, cs: 'c:' + p.caseKey } : {}) });
+  }
+  // split matching items (e.g. CUR-0006A/B/C): every part with a "part" object becomes its own question, even when the PDF block cannot be read
+  for (const q of idx) {
+    if (!q.part || P.items.some(i => i.id === q.question_ref)) continue;
+    const po = q.part.options || {}, notes = notesOf(q), ks = ['A', 'B', 'C', 'D'].filter(k => po[k]);
+    P.items.push({ id: q.question_ref, ref: `${so.name} #${q.q_no}${String(q.question_ref).slice(-1)}`, qno: q.q_no, m: x.id, src, los: losCodeOf(q.los_id), scope: q.scope,
+      q: q.part.stem || '', o: ks.map(k => po[k]), a: ks.indexOf(q.answer), x: (notes ? notes + '\n\n' : '') + (q.part.explanation || ''), xr: q.part.explanation || '', xh: notes ? notes.length + 2 : 0, vk: q.q_no });
   }
   P.notFound = idx.filter(q => !P.items.some(i => i.id === q.question_ref)).map(q => q.q_no);
   P.vis = await qvRun(f, src, P.items.map(i => i.vk), o.qvm, p => say(`Capturing tables, graphs and formulas… ${Math.round(p * 100)}%`));
