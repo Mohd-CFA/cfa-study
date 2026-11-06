@@ -2951,7 +2951,9 @@ function flush() {
         for (const { v } of items) latest.set(v.store + '\u0000' + v.id, v);
         const ups = [], dels = {};
         for (const v of latest.values()) {
-          if (v.op === 'up') ups.push({ user_id: userId, store: v.store, id: String(v.id), data: cleanForSync(v.data), updated_at: new Date().toISOString() });
+          // a value of null/undefined cannot be stored in the cloud (items.data is NOT NULL) → it means "this key was cleared": send it as a delete
+          if (v.op === 'up' && (v.data === null || v.data === undefined)) (dels[v.store] = dels[v.store] || []).push(String(v.id));
+          else if (v.op === 'up') ups.push({ user_id: userId, store: v.store, id: String(v.id), data: cleanForSync(v.data), updated_at: new Date().toISOString() });
           else (dels[v.store] = dels[v.store] || []).push(String(v.id));
         }
         // question statistics: merge with what another device may have uploaded in the meantime
@@ -7981,7 +7983,7 @@ async function repairStrayPacks0() {
     if (Array.isArray(sq) && sq.length) {
       const tq = await kv.get('qbank:' + T, []), have = new Set((tq || []).map(q => q.id));
       await kv.set('qbank:' + T, [...(tq || []), ...sq.filter(q => !have.has(q.id)).map(q => ({ ...q, m: T }))]);
-      await kv.set('qbank:' + S, []);
+      await delKv('qbank:' + S);
     }
     // notes written in the stray copy
     for (const o of await db.byIndex('notes', 'moduleId', S)) {
@@ -7992,7 +7994,7 @@ async function repairStrayPacks0() {
     for (const key of ['moduleMap', 'modTrack']) { const d = await kv.get(key, {}); if (d && d[S] !== undefined) { if (d[T] === undefined) d[T] = d[S]; delete d[S]; await kv.set(key, d); } }
     for (const key of ['fsaLos', 'reread']) { const d = await kv.get(key, {}); let ch = false; for (const k of Object.keys(d || {})) if (k.startsWith(S + ':')) { const nk = T + k.slice(S.length); if (d[nk] === undefined) d[nk] = d[k]; delete d[k]; ch = true; } if (ch) await kv.set(key, d); }
     for (const pre of ['aisum:', 'cards:']) { const v = await kv.get(pre + S, null); if (v != null) { if ((await kv.get(pre + T, null)) == null) await kv.set(pre + T, v); await delKv(pre + S); } }
-    await kv.set('pack:' + S, null);
+    await delKv('pack:' + S);
     ids = ids.filter(z => z !== S);
   }
   await kv.set('packIds', ids); await flush();
