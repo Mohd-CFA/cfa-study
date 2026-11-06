@@ -1,4 +1,4 @@
-/* CFA L1 · Study — service worker (offline support) — v2
+/* CFA L1 · Study — service worker (offline support) — v3
  *
  * Put this file NEXT TO index.html (same folder on GitHub Pages).
  *
@@ -11,7 +11,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
 const META = new URL('__sw-meta', self.registration.scope).href;

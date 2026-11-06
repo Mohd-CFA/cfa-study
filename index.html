@@ -10087,7 +10087,7 @@ async function syncPanel() {
 }
 async function diagReport() {
   let est = null; try { est = await navigator.storage.estimate(); } catch { }
-  return JSON.stringify({ at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
+  return JSON.stringify({ build: 'econ-fix-3 (null-delete sync + stray Economics repair)', at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
 }
 async function diagHTML() {
   let est = '', pers = '?'; try { const e = await navigator.storage.estimate(); est = `${Math.round(e.usage / 1048576)} MB used of ${Math.round(e.quota / 1048576)} MB`; } catch { }
