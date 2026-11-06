@@ -2654,6 +2654,17 @@ body.rd-resizing * { cursor: col-resize !important; }
 .fc-swipehint { text-align: center; font-size: 12px; color: #64748b; margin-top: .5rem; }
 .dark .fc-swipehint { color: #a3b1c6; }
 
+
+/* ux-1 · touch devices: hide keyboard-only hints, keep floating buttons clear of the question */
+.touch-only { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .kb-only, .keys-fab { display: none !important; }
+  .touch-only { display: inline; }
+  .bc-fab.bc-fab { width: 36px; height: 36px; font-size: 16px; right: .25rem; bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); opacity: .7; }
+  .qnav { max-height: 5.75rem; }
+}
+.onb li { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; }
+.onb .ok { color: #10b981; }
 /* floating BA II Plus-style calculator */
 .bc-fab { position: fixed; right: 1rem; bottom: 5.25rem; z-index: 60; width: 48px; height: 48px; border-radius: 9999px; border: 0; background: #4f46e5; color: #fff; font-size: 22px; box-shadow: 0 6px 18px rgba(0,0,0,.3); cursor: pointer; }
 .bc-fab:hover { background: #4338ca; }
@@ -3005,6 +3016,14 @@ function flush() {
             part.forEach(id => idxDel(s, id));
           }
         }
+        // a row rejected by the server 3 times in a row is parked (Settings → Diagnostics → Retry) instead of failing on every sync
+        let dead = []; try { dead = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { }
+        let fc = {}; try { fc = JSON.parse(localStorage.getItem('syncFailCnt') || '{}'); } catch { }
+        const parkK = new Set();
+        for (const [k, e] of failed) { fc[k] = (fc[k] || 0) + 1; if (fc[k] >= 3) { parkK.add(k); delete fc[k]; const [st, id] = k.split('\u0000'); dead = dead.filter(d => !(d.store === st && d.id === id)); dead.push({ store: st, id, msg: String(e.message || e).slice(0, 200), t: Date.now() }); } }
+        for (const x of items) { const k = ik(x.v.store, x.v.id); if (!failed.has(k)) delete fc[k]; }
+        try { localStorage.setItem('syncFailCnt', JSON.stringify(fc)); localStorage.setItem('syncDead', JSON.stringify(dead.slice(-50))); } catch { }
+        for (const k of parkK) failed.delete(k);
         await local.delKeys('outbox', items.filter(x => !failed.has(ik(x.v.store, x.v.id))).map(x => x.k));
         await idxSave();
         if (failed.size) { const [k, e] = failed.entries().next().value; throw new Error(`${failed.size} item(s) could not be uploaded (${k.replace('\u0000', '/')}): ${e.message || e}`); }
@@ -6058,7 +6077,7 @@ function qHistTip(q, s) {
 
 // ---------- pools & filters ----------
 const POOLS = [['all', 'All questions', ''], ['new', 'Unanswered', ''], ['wrong', 'Last answered wrong', 'Your last attempt was wrong'], ['ever', 'Ever answered wrong', 'Any question you got wrong at least once, even if you later got it right'], ['due', 'Due for review', 'Spaced-repetition review is due'], ['flag', 'Flagged', 'Questions marked ⚑ — they stay until you remove the flag'], ['slow', 'Slow (over 3 min last time)', 'Your last attempt took more than 3 minutes'],
-  ['crp', '\uD83E\uDDEA Claude disputes — to decide', 'Claude\'s review disagrees with the source answer and you have not decided yet'], ['cra', '\uD83E\uDDEA Claude disputes — applied', 'You applied Claude\'s answer'], ['crk', '\uD83E\uDDEA Claude disputes — kept source', 'You kept the source answer']];
+  ['crp', '\uD83E\uDDEA Answer disputes — to decide', 'The AI review disagrees with the source answer and you have not decided yet'], ['cra', '\uD83E\uDDEA Answer disputes — applied', 'You applied Claude\'s answer'], ['crk', '\uD83E\uDDEA Answer disputes — kept source', 'You kept the source answer']];
 function filterPool(qs, pool, st) {
   const t = Date.now();
   return qs.filter(q => { const s = st[q.id]; return pool === 'all' || (pool === 'new' && !s?.n) || (pool === 'wrong' && s?.n && !s.last) || (pool === 'ever' && s?.n > s?.c) || (pool === 'flag' && s?.flag) || (pool === 'due' && s?.n && s.due <= t) || (pool === 'slow' && (lastH(s)?.s || 0) > SLOW) || (pool === 'crp' && q.cr?.state === 'pending') || (pool === 'cra' && q.cr?.state === 'applied') || (pool === 'crk' && q.cr?.state === 'kept'); });
@@ -6201,7 +6220,7 @@ async function qbankRun() {
           <span class="text-xs text-slate-500">How sure are you?</span>${Object.entries(CONF).map(([k, v]) => `<button class="chip ${it.conf === k ? 'chip-on' : ''}" data-conf="${k}" data-tip="Optional — used for the confidence filter and readiness score">${v.icon} ${v.name}</button>`).join('')}</div>
           <div class="flex items-center gap-3 mt-3">
           <button id="submit" class="btn-primary" ${(it.sel ?? null) === null ? 'disabled' : ''}>${S.mode === 'exam' && answered ? 'Update answer' : 'Submit'}</button>
-          <span class="text-xs text-slate-500">${S.mode === 'exam' && answered ? `Saved: ${L[it.pick]}` : 'Click a letter to select · click the text to cross it out · Enter = Submit · ← → = move · F = flag · P / R = pause / resume'}</span></div>
+          <span class="text-xs text-slate-500">${S.mode === 'exam' && answered ? `Saved: ${L[it.pick]}` : '<span class="kb-only">Click a letter to select · click the text to cross it out · Enter = Submit · ← → = move · F = flag · P / R = pause / resume</span><span class="touch-only">Tap a letter to select · tap the text to cross it out</span>'}</span></div>
           ${note ? `<details class="mt-3 text-xs"><summary class="cursor-pointer text-indigo-600">📝 You have a note on this question</summary><div class="mt-1 whitespace-pre-wrap p-2 rounded-lg bg-amber-50 dark:bg-slate-900">${esc(note.text)}</div></details>` : ''}`}
         ${showFb ? `<div class="mt-4 p-4 rounded-xl ${ok ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300' : 'bg-rose-50 dark:bg-rose-900/30 border border-rose-300'}">
           <div class="font-bold mb-1 flex flex-wrap gap-2 items-center">${ok ? '✅ Correct' : `❌ Incorrect — answer is ${L[correctIdx]}`}<span class="text-xs font-normal text-slate-500">⏱ ${fmtSec(qSecs(it))}${it.conf ? ' · ' + CONF[it.conf].icon + ' ' + CONF[it.conf].name : ''}${ok && it.conf === 'guess' ? ' · correct by guess — it will come back soon' : ''}</span></div>
@@ -6990,7 +7009,7 @@ async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip">LM ${globalLM(m)}</span>${prioRoundsHTML(modId, T0)}</div><div class="flex items-center gap-4">${ring(p.overall, 52, 6, pcol(p.overall))}<div class="flex-1">${trackRows(p, modId)}</div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}</div><div class="flex items-center gap-4">${ring(p.overall, 52, 6, pcol(p.overall))}<div class="flex-1">${trackRows(p, modId)}</div>
     <div class="text-center hidden sm:block" data-tip="Module readiness: reading 20% + summary 10% + question accuracy × coverage 70% (correct-by-guess counts half · answering Sure and being wrong counts extra against you)">${ring(rd, 52, 6, rd >= 70 ? '#10b981' : rd >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[10px] text-slate-500 mt-0.5">readiness</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="Green ≥ 75 · amber 50–74 · red < 50 · grey = not started. Based on reading, accuracy, coverage and confidence.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
@@ -7026,8 +7045,12 @@ async function home() {
   const topic = z => `<a href="#/study/${z.sj.id}" class="subject block ${z.loaded ? '' : 'opacity-60'}" data-tip="${esc(`${z.sj.name}\nExam weight ${W_RANGE[z.sj.id]} · readiness ${z.r}% · progress ${z.prog}% · ${z.loaded}/${z.total} modules loaded · ${z.mt}/${z.mn} mini-exams taken`)}">
     <div class="flex items-center gap-2"><span class="text-xl">${z.sj.icon}</span><span class="flex-1 min-w-0 truncate font-semibold text-sm">${z.sj.name}</span><b class="text-sm">${z.r}%</b></div>
     <div class="mt-2">${bar(z.r, z.r >= 70 ? 'bg-emerald-500' : z.r >= 50 ? 'bg-amber-500' : 'bg-rose-500')}</div>
-    <div class="flex justify-between text-[11px] text-slate-500 mt-1.5"><span>${z.loaded}/${z.total} modules</span><span>📝 ${z.mt}/${z.mn}</span><span class="text-slate-400">weight ${W_RANGE[z.sj.id]}</span></div></a>`;
+    <div class="flex justify-between text-[11px] text-slate-500 mt-1.5"><span title="Module files loaded / modules in this topic">${z.loaded}/${z.total} loaded</span><span>📝 ${z.mt}/${z.mn}</span><span class="text-slate-400">weight ${W_RANGE[z.sj.id]}</span></div></a>`;
   const row = (icon, label, val, href, attrs = '') => `<a href="${href}" ${attrs} class="rowlink flex items-center gap-2 py-2 text-sm"><span class="w-6 text-center">${icon}</span><span class="flex-1 min-w-0 truncate">${label}</span>${val != null ? `<b class="${val ? '' : 'text-slate-400'}">${val}</b>` : '<span class="text-slate-400">›</span>'}</a>`;
+  const nextMod = ps.find(z => z.m.x && z.p.overall < 100) || null;
+  const nFiles = (await db.all('files')).length;
+  const onb = [[!!exam, 'Set your exam date', '#/settings'], [mods.some(m => m.x), 'Upload your first module file', '#/library'], [nFiles > 0, 'Add a Schweser or Curriculum book', '#/library'], [!!plan, 'Create your study plan', '#/plan'], [ans.length > 0, 'Answer your first questions', '#/qbank']];
+  const onbHTML = onb.every(z => z[0]) || localStorage.getItem('onbHide') ? '' : `<div class="card onb"><div class="flex items-center justify-between mb-1"><h3 class="sec mb-0">Get started · ${onb.filter(z => z[0]).length}/${onb.length}</h3><button type="button" class="link text-xs" onclick="localStorage.setItem('onbHide','1');this.closest('.onb').remove()">Hide</button></div><ol>${onb.map(([d, l, h]) => `<li>${d ? '<span class="ok">✓</span>' : '<span class="text-slate-400">○</span>'}${d ? `<span class="text-slate-500 line-through">${l}</span>` : `<a class="link" href="${h}">${l}</a>`}</li>`).join('')}</ol></div>`;
   const kpi = (v, l) => `<div class="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur"><div class="text-xl font-bold leading-tight">${v}</div><div class="text-[11px] opacity-85">${l}</div></div>`;
   view.innerHTML = `
   <section class="hero rounded-3xl p-6 sm:p-8 text-white mb-6">
@@ -7036,7 +7059,7 @@ async function home() {
       <div class="flex-1 min-w-[220px]"><div class="text-xs uppercase tracking-[.2em] opacity-80">CFA Program · Level I</div>
         <h1 class="text-2xl sm:text-3xl font-extrabold mt-1">Exam readiness ${examR}%</h1>
         <p class="opacity-90 mt-1 text-sm">${overall}% of the study steps done · ${ps.filter(z => z.p.overall >= 100).length}/${ps.length} modules complete · ${days !== null ? (days > 0 ? days + ' days to exam' : 'exam date passed') : '<a href="#/settings" class="underline">set exam date</a>'}</p>
-        <div class="flex flex-wrap gap-2 mt-3">${lastFile ? `<a href="#/read/${encodeURIComponent(last.fileId)}?p=${last.page || 1}" class="btn-hero">▶ Continue reading</a>` : lastMod ? `<a href="${lastMod.href}" class="btn-hero">▶ Continue ${lastMod.short}</a>` : ''}<a href="#/search" class="rounded-xl bg-white/15 px-4 py-2 text-sm hover:bg-white/25">🔍 Search everything</a></div></div>
+        <div class="flex flex-wrap gap-2 mt-3">${!lastFile && !lastMod && nextMod ? `<a href="${nextMod.m.href}" class="btn-hero">▶ Start ${nextMod.m.short} · ${esc(nextMod.m.title)}</a>` : ''}${lastFile ? `<a href="#/read/${encodeURIComponent(last.fileId)}?p=${last.page || 1}" class="btn-hero">▶ Continue reading</a>` : lastMod ? `<a href="${lastMod.href}" class="btn-hero">▶ Continue ${lastMod.short}</a>` : ''}<a href="#/search" class="rounded-xl bg-white/15 px-4 py-2 text-sm hover:bg-white/25">🔍 Search everything</a></div></div>
       <div class="kpi-grid">${kpi(ans.length ? pct(cor.length, ans.length) + '%' : '—', 'Qbank accuracy')}${kpi(`${ans.length}/${Q.length}`, 'questions answered')}${kpi(streak + (streak === 1 ? ' day' : ' days'), 'practice streak')}${kpi(plan ? planSummary(plan, c).pct + '%' : '—', plan ? 'study plan done' : '<a href="#/plan" class="underline">create a plan</a>')}</div>
     </div>
   </section>
@@ -7050,12 +7073,13 @@ async function home() {
           : '<div class="text-sm text-slate-500">Nothing flagged yet. Finish a module\'s questions to get a rating per LOS, or answer 3+ questions in a module to see your weakest areas.</div>'}</div>
     </div>
     <div class="space-y-4 min-w-0">
+      ${onbHTML}
       <div class="card"><h3 class="sec">Do next</h3>
         ${lastFile ? row('▶️', `Continue reading · ${esc(lastFile.label || lastFile.name)}`, null, `#/read/${encodeURIComponent(last.fileId)}?p=${last.page || 1}`) : ''}
         ${row('🃏', 'Flashcards due', cardsDue, '#/cards')}
         ${row('🔁', 'Questions due for review', dueN, '#/qbank', 'data-pool="due"')}
         ${row('❌', 'Last answered wrong', wrongNow, '#/qbank', 'data-pool="wrong"')}
-        ${QA.some(q => q.cr?.state === 'pending' && inScope(q, false)) ? row('\uD83E\uDDEA', 'Claude disputes — to decide', QA.filter(q => q.cr?.state === 'pending' && inScope(q, false)).length, '#/qbank', 'data-pool="crp"') : ''}
+        ${QA.some(q => q.cr?.state === 'pending' && inScope(q, false)) ? row('\uD83E\uDDEA', 'Answer disputes — to decide', QA.filter(q => q.cr?.state === 'pending' && inScope(q, false)).length, '#/qbank', 'data-pool="crp"') : ''}
         ${miniReady.length ? row('📝', `Mini-exam ready · ${esc(miniReady[0].s.name)} · ${miniReady[0].g.label}`, null, `#/study/${miniReady[0].s.id}`) : ''}
       </div>
       <div class="card"><div class="flex items-center justify-between"><h3 class="sec mb-0">Today's tasks</h3><a href="#/plan" class="link text-xs">Study plan →</a></div>
@@ -7350,11 +7374,11 @@ function studyCardHTML(z) {
       <div class="flex-1 min-w-0"><h2 id="${id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2><div class="text-xs text-slate-500 mt-0.5">Exam weight ${W_RANGE[sj.id]}</div></div></div>
     <div class="grid grid-cols-3 gap-3 items-start">
       <div class="text-center" data-tip="A rough estimate: reading 20% + summary 10% + accuracy × coverage 70%, with mini-exam scores mixed in. Modules that are not loaded count as 0. It is not a pass probability.">${ring(z.readiness, 64, 7, rc)}<div class="text-xs font-semibold mt-1">Readiness</div><div class="text-[11px] text-slate-500">rough estimate</div></div>
-      <div class="min-w-0" data-tip="Share of this topic's questions that you have answered at least once."><div class="text-2xl font-bold leading-none">${z.cov}%</div><div class="text-xs font-semibold mt-1">Coverage</div>${bar(z.cov, 'bg-indigo-500')}<div class="text-[11px] text-slate-500 mt-1">${z.a} of ${z.n} answered</div></div>
-      <div class="min-w-0" data-tip="Accuracy on the questions you have answered, using your latest answer on each."><div class="text-2xl font-bold leading-none">${z.acc === null ? '0%' : z.acc + '%'}</div><div class="text-xs font-semibold mt-1">Accuracy</div>${bar(z.acc || 0, accCls)}<div class="text-[11px] text-slate-500 mt-1">${z.cor} of ${z.a} correct</div></div></div>
+      <div class="min-w-0" data-tip="Share of this topic's questions that you have answered at least once."><div class="text-2xl font-bold leading-none">${z.cov}%</div><div class="text-xs font-semibold mt-1">Coverage</div>${bar(z.cov, 'bg-indigo-500')}<div class="text-[11px] text-slate-500 mt-1">${z.n ? `${z.a} of ${z.n} answered` : 'no questions yet'}</div></div>
+      <div class="min-w-0" data-tip="Accuracy on the questions you have answered, using your latest answer on each."><div class="text-2xl font-bold leading-none">${z.acc === null ? '0%' : z.acc + '%'}</div><div class="text-xs font-semibold mt-1">Accuracy</div>${bar(z.acc || 0, accCls)}<div class="text-[11px] text-slate-500 mt-1">${z.a ? `${z.cor} of ${z.a} correct` : '—'}</div></div></div>
     <div class="step-grid">${stepBar('Lecture', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Extras', z.steps.extras)}${stepBar('Summary', z.steps.summary)}${stepBar('Practice', z.steps.questions)}</div>
     <div class="text-xs flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>\uD83D\uDD34 ${cb.must} Must improve</span><span>\uD83D\uDFE1 ${cb.good} Good</span><span>\uD83D\uDFE2 ${cb.exc} Excellent</span><span class="text-slate-500">⚪ ${cb.few} not rated yet</span></div>
-    ${w ? `<div class="flex flex-wrap items-center gap-2 text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-900"><span class="min-w-0 flex-1"><b>Weakest:</b> LM ${globalLM(w.m)} · LOS ${esc(w.z.id)} — ${w.z.acc}% <span class="text-slate-500">· ${w.z.n} of ${w.z.of} answered</span></span><button type="button" class="btn-ghost text-xs" data-weakgo="${esc(w.m.id)}|${esc(w.z.id)}">Practice it</button></div>`
+    ${w ? `<div class="flex flex-wrap items-center gap-2 text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-900"><span class="min-w-0 flex-1"><b>Weakest:</b> LM${w.m.num} · LOS ${esc(w.z.id)} — ${w.z.acc}% <span class="text-slate-500">· ${w.z.n} of ${w.z.of} answered</span></span><button type="button" class="btn-ghost text-xs" data-weakgo="${esc(w.m.id)}|${esc(w.z.id)}">Practice it</button></div>`
       : z.allExc ? '<div class="text-xs p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">✅ Every rated LOS is Excellent.</div>' : ''}
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2">
       ${z.minis.some(v => v !== null) ? item('Mini-exams', z.minis.map(v => v === null ? '—' : v + '%').join(' · '), 'Scores of the mini-exams of this topic, in order') : ''}
@@ -7364,7 +7388,7 @@ function studyCardHTML(z) {
       ${item('Due for review', z.due)}${item('Flagged ⚑', z.flag)}</div>
     <div data-tip="Questions answered per day, last 14 days"><div class="text-[11px] text-slate-500 mb-1">Last 14 days · ${spTot} answered</div><div class="flex items-end gap-[3px] h-8" role="img" aria-label="Questions answered per day over the last 14 days: ${spTot} in total">${z.spark.map(v => `<span class="flex-1 rounded-sm ${v ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}" style="height:${v ? Math.max(14, Math.round(v / spMax * 100)) : 6}%"></span>`).join('')}</div></div>
     <div class="flex flex-wrap gap-2 mt-auto">
-      ${tgt ? `<a class="btn-primary text-xs" href="${tgt.kind === 'pack' ? tgt.href + '/map' : tgt.href}">▶ Continue LM ${globalLM(tgt)}</a>` : `<a class="btn-primary text-xs" href="#/library" data-lib="${sj.id}">⬆️ Load modules</a>`}
+      ${tgt ? `<a class="btn-primary text-xs" href="${tgt.kind === 'pack' ? tgt.href + '/map' : tgt.href}">▶ Continue LM${tgt.num}</a>` : `<a class="btn-primary text-xs" href="#/library" data-lib="${sj.id}">⬆️ Load modules</a>`}
       <button type="button" class="btn-ghost text-xs" data-sweak="${sj.id}" ${z.nWeak ? '' : 'disabled'} data-tip="Practise the LOS rated ${z.weakKind === 'must' ? 'Must improve' : 'Good to improve'} in this topic">\uD83C\uDFAF Practice weak LOS${z.nWeak ? ` (${z.nWeak})` : ''}</button>
       <a class="btn-ghost text-xs" href="#/qbank/stats/${sj.id}">\uD83D\uDCCA Details</a></div>
   </section>`;
@@ -7839,6 +7863,7 @@ async function settings() {
       <form id="pwf" class="flex gap-2 mt-3"><input id="pw" type="password" minlength="8" placeholder="New password" autocomplete="new-password" class="inp"><button class="btn-ghost whitespace-nowrap">Change</button></form>
       <div id="pwm" class="text-xs mt-1"></div>
       <button id="logout" class="btn-ghost text-red-600 mt-3">Sign out of this device</button>
+      <p class="text-[11px] text-slate-400 mt-2">Build ux-1 · 2026-11-06</p>
       <p class="text-[11px] text-slate-500 mt-1">Signing out removes the downloaded books and data from this browser (they stay in your account).</p></div>
     <div class="card md:col-span-2" id="undoLib"></div>
     <div class="card md:col-span-2" id="qMgmt"></div>
@@ -8062,7 +8087,7 @@ document.addEventListener('click', async e => {
 }, true);
 function notLoadedCard(m) {
   return `<a href="${m.href}" class="card flex items-start gap-3 opacity-60 hover:opacity-100 border-dashed">
-    <span class="mod-num scale-75 -ml-1 bg-slate-400">${m.num}</span><div class="flex-1 min-w-0"><div class="font-semibold leading-tight">${esc(m.title)}</div><div class="text-[11px] text-slate-500 mt-1">LM ${globalLM(m)} · Not loaded yet</div></div></a>`;
+    <span class="mod-num scale-75 -ml-1 bg-slate-400">${m.num}</span><div class="flex-1 min-w-0"><div class="font-semibold leading-tight">${esc(m.title)}</div><div class="text-[11px] text-slate-500 mt-1">LM${m.num} · Not loaded yet</div></div></a>`;
 }
 
 // ---------- lecture videos (OneDrive links, several per module) ----------
@@ -8319,7 +8344,7 @@ function moduleCard(m, p) {
     <div class="flex items-start gap-3">
       <div class="relative">${ring(p.overall, 58, 6, pcol(p.overall))}</div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM ${globalLM(m)}</span></div>
+        <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
         <div class="mt-2 relative z-10">${trackRows(p, m.id, true)}</div>
       </div>
@@ -8628,7 +8653,7 @@ function showKeys(set, list) {
   if (!b) { b = document.createElement('button'); b.id = 'keysFab'; b.className = 'keys-fab'; b.title = 'Keyboard shortcuts (?)'; b.textContent = '⌨️'; b.onclick = () => keysDialog(KEYS_ON); document.body.append(b); }
   b.hidden = false;
   const seen = JSON.parse(localStorage.getItem('keysSeen') || '{}');
-  if (!seen[set]) { seen[set] = 1; localStorage.setItem('keysSeen', JSON.stringify(seen)); setTimeout(() => toast('Tip: press ? to see the keyboard shortcuts'), 800); }
+  if (!seen[set]) { seen[set] = 1; localStorage.setItem('keysSeen', JSON.stringify(seen)); if (matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => toast('Tip: press ? to see the keyboard shortcuts'), 800); }
 }
 function hideKeys() { KEYS_ON = null; const b = document.getElementById('keysFab'); if (b) b.hidden = true; }
 function keysDialog(set) {
@@ -8664,7 +8689,7 @@ async function modulesLibHTML() {
       ${subjOpen(sj.id) ? `<div class="divide-y border-t border-slate-200 dark:border-slate-700">${ms.map(m => {
         const D = m.kind === 'pack' ? PACKS[m.id] : null, md = D?.module || {};
         return `<div class="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-          <span class="chip">LM ${globalLM(m)}</span><span class="chip">${m.short}</span><span class="flex-1 min-w-[180px] ${D ? 'font-medium' : 'text-slate-500'}">${esc(m.title)}</span>
+          <span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span><span class="chip">${m.short}</span><span class="flex-1 min-w-[180px] ${D ? 'font-medium' : 'text-slate-500'}">${esc(m.title)}</span>
           ${D ? `<span class="text-[11px] text-slate-500">✅ v${esc(String(md.version || '—'))}${md.last_updated ? ' · ' + esc(String(md.last_updated)) : ''} · ${D.los.length} LOS · ${D.questions.length} Q</span>
             <a class="link text-xs" href="${m.href}/map">Open</a><button class="link text-xs" data-pdl="${m.id}">Download</button>
             <label class="link text-xs cursor-pointer">Replace<input type="file" accept=".json,application/json" class="hidden" data-mup="${m.subject}-${m.num}"></label>
@@ -8738,7 +8763,7 @@ async function library() {
       <button class="w-full flex items-center gap-2 p-3 text-left" data-lsubj="${sj.id}"><span>${subjOpen(sj.id) ? '▾' : '▸'}</span><span class="font-semibold flex-1">${sj.icon} ${sj.name}</span>
         <span class="mx ${nb === ms.length ? 'mx-green' : nb ? 'mx-amber' : 'mx-grey'}" data-tip="Modules with at least one book linked">${nb}/${ms.length} with books</span></button>
       ${subjOpen(sj.id) ? `<div class="border-t border-slate-200 dark:border-slate-700 divide-y">
-        ${ms.map(m => `<div class="px-3 py-2"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip">LM ${globalLM(m)}</span><span class="font-medium flex-1">${m.num}. ${esc(m.title)}</span><a class="link text-xs" href="${m.href}/map">Open module</a></div>
+        ${ms.map(m => `<div class="px-3 py-2"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span><span class="font-medium flex-1">${m.num}. ${esc(m.title)}</span><a class="link text-xs" href="${m.href}/map">Open module</a></div>
           ${QLP.file[m.id]}${BOOK_KINDS.map(([k, l]) => slot(m, k, l)).join('')}${QLP.q[m.id]}</div>`).join('')}
         ${QLP.topic[sj.id]}</div>` : ''}</div>`; }).join('')}</div>
   <div class="card mt-4"><h3 class="sec">Other books & files <span class="normal-case font-normal">· not linked to a module (${loose.length})</span></h3>
@@ -10085,9 +10110,16 @@ async function syncPanel() {
     if (a === 'clrlog') { __diag.clear(); await draw(); }
   };
 }
+async function retryDead(btn) {
+  let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { }
+  localStorage.setItem('syncDead', '[]');
+  for (const x of d) { const v = await local.get(x.store, x.id); await queue(v === undefined || v === null ? { op: 'del', store: x.store, id: x.id } : { op: 'up', store: x.store, id: x.id, data: v }); }
+  await flush(); if (btn) btn.textContent = 'Sent again ✓'; toast('Sent again — check Diagnostics');
+}
+window.retryDead = retryDead;
 async function diagReport() {
   let est = null; try { est = await navigator.storage.estimate(); } catch { }
-  return JSON.stringify({ build: 'econ-fix-3 (null-delete sync + stray Economics repair)', at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
+  return JSON.stringify({ build: 'ux-1 · 2026-11-06', at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), parked: (() => { try { return JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch { return 0; } })(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
 }
 async function diagHTML() {
   let est = '', pers = '?'; try { const e = await navigator.storage.estimate(); est = `${Math.round(e.usage / 1048576)} MB used of ${Math.round(e.quota / 1048576)} MB`; } catch { }
@@ -10101,6 +10133,7 @@ async function diagHTML() {
       <div>This tab: first content <b>${f(P.lcp)}</b> ms · slowest tap <b>${f(P.inp)}</b> ms · layout shift <b>${f(P.cls)}</b> · long tasks <b>${P.longTasks || 0}</b> (${P.longMs || 0} ms)</div>
       <div class="font-semibold mt-2">Last starts (ms)</div>
       ${boots.map(b => `<div class="tabular-nums">${esc(new Date(b.t).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }))} · page ${f(b.dom_ready_ms)} · session ${f(b.session_ms)} · first screen ${f(b.first_route_ms)} · synced ${f(b.synced_ms)}${b.pull_full_ms ? ' · full ' + b.pull_full_ms : ''}${b.pull_diff_ms ? ' · diff ' + b.pull_diff_ms : ''}</div>`).join('') || '<div>–</div>'}
+      ${(() => { let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { } return d.length ? `<div class="font-semibold mt-2 text-rose-600">Not uploaded · ${d.length} item${d.length === 1 ? '' : 's'} the server rejected</div>${d.slice(-5).map(x => `<div>${esc(x.store)}/${esc(x.id)} · ${esc(x.msg)}</div>`).join('')}<button type="button" class="btn-ghost text-xs mt-1" onclick="retryDead(this)">Retry these</button>` : ''; })()}
       <div class="font-semibold mt-2">Recent events</div>
       ${log.map(l => `<div class="${/error|fail|reject/.test(l.type) ? 'text-rose-600' : ''}">${esc(new Date(l.t).toLocaleTimeString('en-GB'))} · ${esc(l.type)} · ${esc(l.msg)}</div>`).join('') || '<div>Nothing recorded.</div>'}
       <div class="flex flex-wrap gap-2 mt-2"><button type="button" class="btn-ghost text-xs" data-sp="copy">Copy report</button><button type="button" class="btn-ghost text-xs" data-sp="full" ${navigator.onLine ? '' : 'disabled'} title="Download everything again and rebuild the local copy">Full resync</button><button type="button" class="btn-ghost text-xs" data-sp="clrlog">Clear log</button></div>
