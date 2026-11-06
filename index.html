@@ -7255,6 +7255,7 @@ async function syncPackCards(id, D) {
 }
 async function syncAllCards() { for (const [id, D] of Object.entries(PACKS)) if (D.cards?.length) await syncPackCards(id, D); }
 async function loadPacks() {
+  try { await repairStrayPacks(); } catch (e) { console.warn('repairStrayPacks failed', e); }
   const ids = await kv.get('packIds', []);
   const fresh = { 'fsa-1': PACK_FSA1 };
   for (const id of ids) { const d = await kv.get('pack:' + id, null); if (d) fresh[id] = d; }
@@ -7284,7 +7285,7 @@ function moduleList() {
   const out = [];
   for (const sj of SUBJECTS) {
     const titles = CATALOG[sj.id] || [], nums = new Set(titles.map((_, i) => i + 1));
-    Object.keys(PACKS).filter(id => id.startsWith(sj.id + '-')).forEach(id => nums.add(+id.split('-')[1]));
+    Object.keys(PACKS).filter(id => id.startsWith(sj.id + '-') && !strayEconId(id)).forEach(id => nums.add(+id.split('-')[1]));
     for (const n of [...nums].sort((a, b) => a - b)) {
       const id = `${sj.id}-${n}`, short = `${SUBJ_SHORT[sj.id]} LM${n}`;
       if (PACKS[id]) { const x = packX(id); out.push({ id, subject: sj.id, num: n, title: x.m.title, short, href: x.href, x, kind: 'pack' }); continue; }
@@ -7953,6 +7954,50 @@ const CATALOG = {
 // global LM number in the 2027 curriculum (1–102)
 const LM_OFF = { quant: 0, econ: 11, corp: 19, fsa: 26, equity: 38, fi: 50, deriv: 69, alt: 79, pm: 86, ethics: 92 };
 const globalLM = m => (LM_OFF[m.subject] ?? 0) + m.num;
+
+// ---------- repair · Economics module files saved under the OLD numbers (econ-12…19) → econ-1…8 ----------
+// Before this fix the Library 'Upload' / 'Replace' button of an Economics module that was still the old built-in version
+// sent the OLD module id (econ-12 … econ-19) as the target, so the same module file was saved a second time as "12 … 19".
+const ECON_OLD_OFF = 11;
+function strayEconId(id) {
+  const m = /^econ-(\d+)$/.exec(String(id)); if (!m) return null;
+  const n = +m[1], c = (CATALOG.econ || []).length, k = n - ECON_OLD_OFF;
+  return n > c && k >= 1 && k <= c ? `econ-${k}` : null;
+}
+let _repairP = null;
+function repairStrayPacks() { return _repairP || (_repairP = repairStrayPacks0().finally(() => { _repairP = null; })); }
+async function repairStrayPacks0() {
+  let ids = await kv.get('packIds', []); const strays = ids.filter(id => strayEconId(id));
+  if (!strays.length) return false;
+  const delKv = async k => { kvCache.delete(k); await db.del('kv', k); };
+  for (const S of strays) {
+    const T = strayEconId(S), tn = +T.split('-')[1], D = await kv.get('pack:' + S, null), cur = await kv.get('pack:' + T, null);
+    // keep the proper copy; use the stray one only when the proper one is missing or clearly older
+    const newer = D && cur && (String(D.module?.last_updated || '') > String(cur.module?.last_updated || '') || (String(D.module?.last_updated || '') === String(cur.module?.last_updated || '') && String(D.module?.version || '') > String(cur.module?.version || '')));
+    if (D && (!cur || newer)) { D.module = D.module || {}; D.module.subject = 'ECON'; D.module.lm_no = tn; await kv.set('pack:' + T, D); }
+    if (!ids.includes(T) && (D || cur)) ids = [...ids, T];
+    // question PDFs imported into the stray copy → merge into the proper module
+    const sq = await kv.get('qbank:' + S, []);
+    if (Array.isArray(sq) && sq.length) {
+      const tq = await kv.get('qbank:' + T, []), have = new Set((tq || []).map(q => q.id));
+      await kv.set('qbank:' + T, [...(tq || []), ...sq.filter(q => !have.has(q.id)).map(q => ({ ...q, m: T }))]);
+      await kv.set('qbank:' + S, []);
+    }
+    // notes written in the stray copy
+    for (const o of await db.byIndex('notes', 'moduleId', S)) {
+      const ok = (D || cur)?.los?.some(l => l.los_code === o.los || l.los_id === o.los);
+      await db.put('notes', { ...o, moduleId: T, los: ok ? o.los : null });
+    }
+    // per-module settings keyed by module id: move only when the proper module has none yet
+    for (const key of ['moduleMap', 'modTrack']) { const d = await kv.get(key, {}); if (d && d[S] !== undefined) { if (d[T] === undefined) d[T] = d[S]; delete d[S]; await kv.set(key, d); } }
+    for (const key of ['fsaLos', 'reread']) { const d = await kv.get(key, {}); let ch = false; for (const k of Object.keys(d || {})) if (k.startsWith(S + ':')) { const nk = T + k.slice(S.length); if (d[nk] === undefined) d[nk] = d[k]; delete d[k]; ch = true; } if (ch) await kv.set(key, d); }
+    for (const pre of ['aisum:', 'cards:']) { const v = await kv.get(pre + S, null); if (v != null) { if ((await kv.get(pre + T, null)) == null) await kv.set(pre + T, v); await delKv(pre + S); } }
+    await kv.set('pack:' + S, null);
+    ids = ids.filter(z => z !== S);
+  }
+  await kv.set('packIds', ids); await flush();
+  return true;
+}
 let MINIRES = {};
 
 // ---------- context & 5-step progress ----------
@@ -8629,6 +8674,7 @@ async function modulesLibHTML() {
 }
 const tShortOf = id => { const [a, n] = id.split('-'); return `${SUBJ_SHORT[a] || a} LM${n}`; };
 async function uploadPackInto(target, file) {
+  target = strayEconId(target) || target;          // econ-12…19 (old numbering) → econ-1…8
   const D = JSON.parse(await file.text()), md = D.module = D.module || {};
   const [ts, tn] = target.split('-'), fs = SUBJ_CODE[String(md.subject || '').toUpperCase().trim()], fn = +md.lm_no;
   const tShort = `${SUBJ_SHORT[ts]} LM${tn}`;
@@ -8965,8 +9011,8 @@ const qrowHTML = (attrs, label, n, tot, pic, cls = '') => {
 function modFileRowHTML(m) {
   const D = m.kind === 'pack' ? PACKS[m.id] : null, md = D?.module || {}, J = '.json,application/json';
   return D
-    ? lrow('🧩 Module file', `<span class="text-slate-500">✅ v${esc(String(md.version || '—'))}${md.last_updated ? ' · ' + esc(String(md.last_updated)) : ''} · ${D.los.length} LOS · ${(D.questions || []).length} Q</span>`, `${lfile('Replace', J, `data-mup="${m.id}"`)}<button class="link" data-pdl="${m.id}">Download</button>${D === PACK_FSA1 ? '' : `<button class="link text-rose-600" data-pdel="${m.id}">Remove</button>`}`)
-    : lrow('🧩 Module file', `<span class="text-slate-500">⬜ not loaded${m.kind === 'legacy' ? ' · old built-in version' : ''}</span>`, lfile('⬆️ Upload', J, `data-mup="${m.id}"`, 'btn-primary'));
+    ? lrow('🧩 Module file', `<span class="text-slate-500">✅ v${esc(String(md.version || '—'))}${md.last_updated ? ' · ' + esc(String(md.last_updated)) : ''} · ${D.los.length} LOS · ${(D.questions || []).length} Q</span>`, `${lfile('Replace', J, `data-mup="${m.subject}-${m.num}"`)}<button class="link" data-pdl="${m.id}">Download</button>${D === PACK_FSA1 ? '' : `<button class="link text-rose-600" data-pdel="${m.id}">Remove</button>`}`)
+    : lrow('🧩 Module file', `<span class="text-slate-500">⬜ not loaded${m.kind === 'legacy' ? ' · old built-in version' : ''}</span>`, lfile('⬆️ Upload', J, `data-mup="${m.subject}-${m.num}"`, 'btn-primary'));
 }
 function modQRowsHTML(m, FQR) {
   if (m.kind !== 'pack') return `<div class="text-[11px] text-slate-400 py-1">❓ Question banks — available after the module file is uploaded.</div>`;
