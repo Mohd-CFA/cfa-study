@@ -2790,6 +2790,17 @@ body.rd-resizing * { cursor: col-resize !important; }
 .dark .cr-box{background:rgba(251,146,60,.12);color:#ffedd5;border-color:#fb923c}.dark .cr-box.cr-applied{background:rgba(16,185,129,.14);color:#d1fae5;border-color:#34d399}.dark .cr-box.cr-kept{background:rgba(148,163,184,.12);color:#e2e8f0;border-color:#64748b}.dark .cr-box.cr-notice{background:rgba(245,158,11,.12);color:#fef3c7;border-color:#f59e0b}
 .dark .cr-work,.dark .cr-ref{background:rgba(0,0,0,.25)}
 </style>
+<style id="v22-css">
+.mb-5{margin-bottom:1.25rem}.text-right{text-align:right}.divide-slate-200>*+*{border-color:#e2e8f0}.dark .dark\:divide-slate-700>*+*{border-color:#334155}
+.dark .dark\:text-amber-400{color:#fbbf24}.max-w-\[260px\]{max-width:260px}
+.mk-st{display:inline-flex;align-items:center;padding:.1rem .55rem;border-radius:999px;font-size:.75rem;font-weight:600;background:#e2e8f0;color:#334155}
+.mk-st.ok{background:#d1fae5;color:#065f46}.mk-st.mid{background:#fef3c7;color:#92400e}.mk-st.bad{background:#ffe4e6;color:#9f1239}.mk-st.prog{background:#e0e7ff;color:#3730a3}
+.dark .mk-st{background:#334155;color:#e2e8f0}.dark .mk-st.ok{background:rgba(16,185,129,.2);color:#6ee7b7}.dark .mk-st.mid{background:rgba(245,158,11,.2);color:#fcd34d}.dark .mk-st.bad{background:rgba(244,63,94,.2);color:#fda4af}.dark .mk-st.prog{background:rgba(99,102,241,.25);color:#c7d2fe}
+.mk-card.mk-next{border-color:#818cf8;box-shadow:0 0 0 2px rgba(129,140,248,.25)}
+.mk-hero{background:linear-gradient(135deg,#312e81,#4f46e5);color:#fff;border:0}.mk-hero .btn-primary{background:#fff;color:#312e81}
+.mk-bar{position:relative;height:.6rem;border-radius:999px;background:#e2e8f0;overflow:visible}.dark .mk-bar{background:#334155}
+.mk-bar>div{height:100%;border-radius:999px}.mk-bar>i{position:absolute;top:-3px;bottom:-3px;width:2px;background:#0f172a;opacity:.55}.dark .mk-bar>i{background:#f8fafc}
+</style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
 <header class="topbar sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
@@ -3227,8 +3238,16 @@ const kv = {
     const out = v === undefined ? def : v;
     kvCache.set(k, out); return out;
   },
-  async set(k, v) { if (k === 'qstats') return qsSet(v); kvCache.set(k, v); await db.put('kv', v, k); },
+  async set(k, v) { if (k === 'qstats') return qsSet(v); dataBump(k); kvCache.set(k, v); await db.put('kv', v, k); },
 };
+// v22 · data epoch — bumped whenever stored study data changes (not on reads, not on volatile UI keys).
+// route() rebuilds packs, card decks, mini-exam config and question edits only when the epoch moved.
+let DATA_EP = 1, _prepEp = 0;
+const VOLATILE_KV = new Set(['vpos', 'vUI', 'subStyle', 'theme', 'lastRead', 'lastModule', 'qsetup', 'syncIdx', 'fsaCurLos', 'rdHist']);
+function dataBump(k) { if (k == null || !(VOLATILE_KV.has(k) || String(k).startsWith('qstats'))) DATA_EP++; }
+{ const _d = kvCache.delete.bind(kvCache), _c = kvCache.clear.bind(kvCache);
+  kvCache.delete = k => { dataBump(k); return _d(k); };
+  kvCache.clear = () => { DATA_EP++; return _c(); }; }
 // ---------------- per-module question statistics (one synced row per module instead of one row for everything) ----------------
 let _qsSnap = new Map(), _qsP = null;
 const qsShard = id => {
@@ -7701,11 +7720,12 @@ async function qbankSetup() {
     return { sel, ss, gens, qs: Q.filter(q => sel.includes(modKey(q)) && (!q.src || ss.includes(srcKey(q))) && (inScope(q, false) || gens.includes(subjOf(q)))) };
   };
   const Qin = Q.filter(q => inScope(q, false));
+  const qbOpen = new Set(JSON.parse(localStorage.getItem('qbOpen') || '[]'));
   const groups = SUBJECTS.filter(sj => mods.some(m => m.subject === sj.id)).map(sj => {
     const ms = mods.filter(m => m.subject === sj.id), qsS = Q.filter(q => inScope(q, false) && subjOf(q) === sj.id), zS = qStat(qsS, st), genQ = Q.filter(q => !inScope(q, false) && subjOf(q) === sj.id), nGen = genQ.length;
     const row = m => { const qsM = Q.filter(q => modKey(q) === m.id && inScope(q, false)), z = qStat(qsM, st);
       return `<label class="qrow"><input type="checkbox" class="accent-indigo-600 mt-0.5" data-qm="${m.id}" ${s.sel.includes(m.id) ? 'checked' : ''}><span class="min-w-0 flex-1"><span class="flex items-start gap-2"><b class="shrink-0 text-sm">${m.short.replace(/^[A-Z]+ /, '')}</b><span class="qrow-t text-sm">${esc(m.title)}</span></span><span class="block mt-1.5">${qBar(z)}</span><span class="block text-[11px] text-slate-500 mt-0.5">${z.a} of ${z.n} answered${z.acc !== null ? ` · ${z.acc}% correct` : ''}</span></span><span class="shrink-0">${qAccChip(z)}</span></label>`; };
-    return `<details class="qsubj" data-grp="${sj.id}" ${ms.length <= 8 ? 'open' : ''}><summary><span class="text-2xl" aria-hidden="true">${sj.icon}</span><span class="min-w-0 flex-1"><span class="flex items-center gap-2"><b class="truncate">${esc(sj.name)}</b><span class="text-xs text-slate-500 whitespace-nowrap" data-sg="${sj.id}"></span></span><span class="block mt-1">${qBar(zS)}</span><span class="block text-[11px] text-slate-500 mt-0.5">${zS.a} of ${zS.n} answered${zS.acc !== null ? ` · ${zS.acc}% correct` : ''}</span></span>
+    return `<details class="qsubj" data-grp="${sj.id}" ${qbOpen.has(sj.id) ? 'open' : ''}><summary><span class="text-2xl" aria-hidden="true">${sj.icon}</span><span class="min-w-0 flex-1"><span class="flex items-center gap-2"><b class="truncate">${esc(sj.name)}</b><span class="text-xs text-slate-500 whitespace-nowrap" data-sg="${sj.id}"></span></span><span class="block mt-1">${qBar(zS)}</span><span class="block text-[11px] text-slate-500 mt-0.5">${zS.a} of ${zS.n} answered${zS.acc !== null ? ` · ${zS.acc}% correct` : ''}</span></span>
       <span class="shrink-0 whitespace-nowrap text-xs"><button type="button" class="link" data-all="1" data-g="${sj.id}">All</button> · <button type="button" class="link" data-all="0" data-g="${sj.id}">None</button></span></summary>
       <div class="grid sm:grid-cols-2 gap-2 pt-2">${ms.map(row).join('')}
         ${nGen ? `<label class="qrow" data-tip="Questions that cannot be linked to one LOS (later-module topics or off-curriculum detail)"><input type="checkbox" class="accent-indigo-600 mt-0.5" data-gen="${sj.id}" ${genSel.includes(sj.id) ? 'checked' : ''}><span class="min-w-0 flex-1"><b class="text-sm">General questions</b><span class="block text-[11px] text-slate-500 mt-0.5">${nGen} questions not tied to one LOS</span></span></label>` : ''}</div></details>`;
@@ -7720,10 +7740,8 @@ async function qbankSetup() {
         <div class="text-xs text-slate-500 mt-2" id="selInfo"></div></div>
       <div class="card"><h3 class="sec flex items-center justify-between">Sources <span><button class="link text-xs" data-sall="1">All</button> · <button class="link text-xs" data-sall="0">None</button></span></h3>
         <div class="grid sm:grid-cols-2 gap-2">${SRC.map(x => qSrcCard(x, Q.filter(q => srcKey(q) === x.k), st, 'data-src', srcSel.includes(x.k))).join('')}
-        ${others.length ? '' : `<span class="qsrc opacity-60" data-tip="Add another source in the Library, in a module's row — its name appears here"><input type="checkbox" disabled class="mt-0.5"><span class="flex-1 text-sm">\uD83D\uDCC4 Other source (…)</span></span>`}</div>
-        <p class="text-[11px] text-slate-500 mt-2">Old Economics questions have no source and are always included when their module is selected.</p></div>
-      <div class="grid md:grid-cols-2 gap-4 items-start">
-        <a href="#/qbank/mocks" class="card flex items-center gap-3 border-emerald-300 hover:border-indigo-400"><span class="text-3xl">\uD83D\uDCDD</span><div class="flex-1 min-w-0"><div class="font-semibold">Mocks</div><div class="text-xs text-slate-500">Your full mock exams (2 × 135 min) — isolated questions, available only here in the general Qbank</div></div><span class="btn-primary text-xs">Open →</span></a>
+</div></div>
+      <div>
         <div class="card border-indigo-300"><h3 class="sec">\uD83E\uDDEA Practice mock</h3>
           <p class="text-xs text-slate-600 dark:text-slate-300">A timed exam (90 s per question) from your module Qbanks, drawn from every topic in proportion to the 2027 topic weights.</p>
           <div class="flex flex-wrap items-end gap-2 mt-3"><label class="text-xs">Questions<select id="mockN" class="inp mt-1 w-auto">${[30, 60, 90, 180].map(n => `<option value="${n}">${n}</option>`).join('')}</select></label>
@@ -7749,10 +7767,11 @@ async function qbankSetup() {
   };
   const mockPrev = () => { const a = mockAlloc(+document.getElementById('mockN').value); document.getElementById('mockInfo').textContent = a.length ? 'This mock: ' + a.map(z => `${z.sj.name} ${z.n}`).join(' · ') + ` = ${a.reduce((t, z) => t + z.n, 0)} questions` : ''; };
   refresh(); mockPrev();
+  view.querySelectorAll('details.qsubj').forEach(d => d.addEventListener('toggle', () => { d.open ? qbOpen.add(d.dataset.grp) : qbOpen.delete(d.dataset.grp); try { localStorage.setItem('qbOpen', JSON.stringify([...qbOpen])); } catch { } }));
   view.onchange = e => { if (e.target.id === 'mockN') mockPrev(); refresh(); };
   view.onclick = async e => {
     const a = e.target.dataset.all, sa = e.target.dataset.sall;
-    if (a !== undefined) { e.preventDefault(); const g = e.target.dataset.g, scope = g === '*' ? view : view.querySelector(`[data-grp="${g}"]`); scope.querySelectorAll('[data-qm],[data-gen]').forEach(c => c.checked = a === '1'); refresh(); }
+    if (a !== undefined) { e.preventDefault(); e.stopPropagation(); const g = e.target.dataset.g, scope = g === '*' ? view : view.querySelector(`[data-grp="${g}"]`); scope.querySelectorAll('[data-qm],[data-gen]').forEach(c => c.checked = a === '1'); refresh(); }
     if (sa !== undefined) { view.querySelectorAll('[data-src]').forEach(c => c.checked = sa === '1'); refresh(); }
     const pk = e.target.closest('[data-poolset]'); if (pk && !pk.disabled) return qPoolKick(pk.dataset.poolset);
     if (e.target.closest('[data-startproxy]')) return document.getElementById('start').click();
@@ -8321,55 +8340,50 @@ function mockScore(x, r) {
   const ps = [...Array(mockParts(x))].map((_, i) => r && r['p' + (i + 1)]);
   return ps.every(Boolean) ? { done: true, sc: pct(ps.reduce((t, p) => t + p.c, 0), ps.reduce((t, p) => t + p.n, 0)), ps } : { done: false, ps };
 }
+// v22 · mock order: checkpoints first (curriculum topic order, then number), then full mocks (provider, then number — "Mock 2" before "Mock 10")
+const MOCK_SUBJ_RX = [['ethics', /ethic/i], ['quant', /quant|\bqm\b/i], ['econ', /econ/i], ['fsa', /\bfsa\b|financial statement/i], ['corp', /corporate|\bc[fi]\b/i], ['equity', /equit/i], ['fi', /fixed income|\bfi\b/i], ['deriv', /deriv/i], ['alt', /alternative|\balt\b/i], ['pm', /portfolio|\bp[mc]\b/i]];
+const mockIsCp = x => x.kind === 'checkpoint' || /check\s*-?point/i.test(x.name || '');
+function mockSubjIx(x) { const t = (x.name || '') + ' ' + (x.id || ''); const i = MOCK_SUBJ_RX.findIndex(([, re]) => re.test(t)); return i < 0 ? 99 : i; }
+function mockProvIx(x) { const t = (x.provider || '') + ' ' + (x.name || ''); return /kaplan|schweser/i.test(t) ? 0 : /\bift\b/i.test(t) ? 1 : /cfa ?inst|cfai/i.test(t) ? 2 : 3; }
+function mockSorted(ms) {
+  const nat = (a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id), 'en', { numeric: true, sensitivity: 'base' });
+  return ms.slice().sort((a, b) => (mockIsCp(b) - mockIsCp(a)) || (mockIsCp(a) ? mockSubjIx(a) - mockSubjIx(b) : mockProvIx(a) - mockProvIx(b)) || nat(a, b));
+}
+function mockStateOf(x, r, qs) {
+  const np = mockParts(x), S = mockScore(x, r), last = S.ps.findIndex(p => !p);
+  const has = p => x.link ? qs.some(q => q.part === p) : qs.length > 0;
+  const missing = x.link ? (x.sessions || []).filter(z => !has(z.session)).map(z => z.session) : (qs.length ? [] : [1]);
+  return { np, S, last, has, missing, started: !!S.ps[0], next: S.done ? null : (S.ps[0] && last > 0 ? last + 1 : 1) };
+}
 async function mocksView() {
-  const ms = await kv.get('mocks', []), res = await kv.get('mockRes', {});
+  const ms = mockSorted(await kv.get('mocks', [])), res = await kv.get('mockRes', {});
   const QS = {}; for (const x of ms) QS[x.id] = await mockqAll(x.id);
-  const sessRow = (x, z) => {
-    const qs = QS[x.id].filter(q => q.part === z.session), pics = qs.filter(q => q.pk).length, ok = qs.length && qs.length >= (z.questions || 0);
-    return `<div class="flex flex-wrap items-center gap-2 text-xs mt-1"><span class="chip">S${z.session}</span>
-      <span class="${ok ? 'text-emerald-600' : 'text-amber-700'}">${qs.length ? `${qs.length}/${z.questions || qs.length} questions read${pics ? ' · \uD83D\uDDBC ' + pics : ''}` : 'PDF needed'}</span>
-      <span class="text-slate-500 truncate max-w-[260px]" title="${esc(z.file || '')}">${esc(z.file || '')}</span>
-      <label class="link cursor-pointer">${qs.length ? '\u21BB Replace PDF' : '\u2B06 Add PDF'}<input type="file" accept=".pdf,application/pdf" class="hidden" data-mpdf="${esc(x.id)}" data-sess="${z.session}"></label></div>`;
+  const ST = Object.fromEntries(ms.map(x => [x.id, mockStateOf(x, res[x.id] || {}, QS[x.id])]));
+  const upNext = ms.find(x => !ST[x.id].S.done && ST[x.id].has(ST[x.id].next || 1));
+  const chip = x => { const z = ST[x.id]; return z.S.done ? `<span class="mk-st ${z.S.sc >= 70 ? 'ok' : z.S.sc >= 60 ? 'mid' : 'bad'}">${z.S.sc}%</span>` : z.started ? '<span class="mk-st prog">In progress</span>' : '<span class="mk-st">Not started</span>'; };
+  const card = x => {
+    const z = ST[x.id], r = res[x.id] || {};
+    const detail = z.S.done ? `Completed ${new Date(r.at).toLocaleDateString('en-GB')}${z.np > 1 ? ' · ' + z.S.ps.map((p, i) => `S${i + 1} ${pct(p.c, p.n)}%`).join(' · ') : ''}`
+      : z.started ? z.S.ps.map((p, i) => p ? `Session ${i + 1}: ${pct(p.c, p.n)}%` : `Session ${i + 1} not done`).join(' · ') : `${x.n} questions${z.np > 1 ? ` · ${z.np} sessions × ${Math.round(x.n / z.np * 1.5)} min` : ` · ${Math.round(x.n * 1.5)} min`}`;
+    const resume = z.started && !z.S.done && z.last > 0 && z.has(z.last + 1) ? `<button class="btn-primary text-xs" data-mk="${x.id}" data-part="${z.last + 1}">▶ Session ${z.last + 1}</button>` : '';
+    return `<div class="card mk-card ${upNext === x ? 'mk-next' : ''}"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="font-semibold flex items-center gap-2 flex-wrap">${esc(x.name)} ${chip(x)}</div><div class="text-xs text-slate-500 mt-0.5">${detail}</div>
+        ${z.missing.length ? `<div class="text-xs text-amber-700 dark:text-amber-400 mt-1">Session ${z.missing.join(' & ')} PDF not added yet — <a class="link" href="#/library?mocks">add it in Library</a></div>` : ''}</div>
+      ${resume}<button class="${resume ? 'btn-ghost' : 'btn-primary'} text-xs" data-mk="${x.id}" data-part="1" ${z.has(1) ? '' : 'disabled'}>${z.started ? 'Retake' : 'Start'}</button></div></div>`;
   };
+  const cps = ms.filter(mockIsCp), full = ms.filter(x => !mockIsCp(x));
+  const trend = (list, label) => { const d = list.filter(x => ST[x.id].S.done); if (!d.length) return '';
+    return `<div class="mb-3"><div class="text-xs font-semibold text-slate-500 mb-1">${label}</div>${d.map(x => { const sc = ST[x.id].S.sc; return `<div class="flex items-center gap-2 text-sm py-1"><span class="w-44 truncate">${esc(x.name)}</span><div class="flex-1 mk-bar"><div style="width:${sc}%" class="${sc >= 70 ? 'bg-emerald-500' : sc >= 60 ? 'bg-amber-500' : 'bg-rose-500'}"></div><i style="left:70%" title="70% target"></i></div><span class="w-10 text-right tabular-nums">${sc}%</span></div>`; }).join('')}</div>`; };
+  const tr = trend(cps, 'Checkpoints') + trend(full, 'Mock exams');
   view.innerHTML = crumbs([['Home', '#/'], ['Qbank', '#/qbank'], ['Mocks']]) + `
-  <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Performance</a></div>
-  <div class="card mb-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Full mock exams (2 sessions of 90 questions, 135 minutes each, with an optional break) and checkpoint exams (one session, 90 seconds per question). Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery, LOS rating and readiness.
-    <label class="upload mt-3" style="padding:1rem"><input type="file" accept=".json,.pdf,application/json,application/pdf" id="mockUp" class="hidden" multiple><div class="font-semibold text-sm">⬆️ Add mock files (.json + the answer PDFs)</div><div class="text-xs text-slate-500">Select the linking files and their PDFs together — each PDF is matched to its mock and session by file name. The PDF supplies the text, options, explanation and pictures; the .json supplies the answer key and the topic / module / LOS links.</div></label><div id="mockMsg" class="text-sm mt-2" aria-live="polite"></div></div>
-  <div class="space-y-2">${ms.map(x => {
-    const r = res[x.id] || {}, np = mockParts(x), S = mockScore(x, r), qs = QS[x.id];
-    const has = p => x.link ? qs.some(q => q.part === p) : qs.length > 0, last = S.ps.findIndex(p => !p);
-    const status = S.done ? ` · score <b class="${S.sc >= 70 ? 'text-emerald-600' : 'text-rose-600'}">${S.sc}%</b> · ${new Date(r.at).toLocaleDateString('en-GB')}` : S.ps[0] ? ` · ${S.ps.map((p, i) => p ? `session ${i + 1}: ${pct(p.c, p.n)}%` : `session ${i + 1} not done`).join(' · ')}` : ' · not started';
-    const resume = S.ps[0] && !S.done && last > 0 && has(last + 1) ? `<button class="btn-primary text-xs" data-mk="${x.id}" data-part="${last + 1}">▶ Start session ${last + 1}</button>` : '';
-    return `<div class="card"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="font-semibold">${esc(x.name)}${x.kind === 'checkpoint' ? ' <span class="chip">Checkpoint</span>' : ''}</div><div class="text-xs text-slate-500">${x.n} questions${np > 1 ? ` · ${np} sessions` : ''}${status}</div></div>
-      ${resume}<button class="${resume ? 'btn-ghost' : 'btn-primary'} text-xs" data-mk="${x.id}" data-part="1" ${has(1) ? '' : 'disabled title="Add the session 1 PDF first"'}>${S.ps[0] ? 'Retake' : 'Start'}</button>
-      <button class="link text-rose-600 text-xs" data-mdel="${x.id}">Remove</button></div>
-      ${x.link ? (x.sessions || []).map(z => sessRow(x, z)).join('') : ''}</div>`; }).join('') || '<div class="card text-sm text-slate-500">No mocks yet. They will be added after all topics are loaded.</div>'}</div>
-  ${ms.filter(x => mockScore(x, res[x.id]).done).length > 1 ? `<div class="card mt-4"><h3 class="sec">Score trend</h3>${ms.filter(x => mockScore(x, res[x.id]).done).map(x => { const s = mockScore(x, res[x.id]).sc; return `<div class="flex items-center gap-2 text-sm py-1"><span class="w-40 truncate">${esc(x.name)}</span><div class="flex-1">${bar(s, s >= 70 ? 'bg-emerald-500' : s >= 60 ? 'bg-amber-500' : 'bg-rose-500')}</div><span class="w-10 text-right">${s}%</span></div>`; }).join('')}</div>` : ''}`;
-  const say = t => { const el = document.getElementById('mockMsg'); if (el) el.textContent = t; };
-  view.onchange = async e => {
-    const t = e.target, out = [];
-    if (t.dataset.mpdf) {
-      const f = t.files[0]; if (!f) return;
-      try { out.push('✅ ' + esc(await mockPdfImport(t.dataset.mpdf, +t.dataset.sess, f, say))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
-    } else if (t.id === 'mockUp') {
-      const files = [...t.files], js = files.filter(f => /\.json$/i.test(f.name) || f.type === 'application/json'), pdfs = files.filter(f => /\.pdf$/i.test(f.name));
-      for (const f of js) { try { const D = JSON.parse(await f.text()); out.push('✅ ' + esc(await installMock(D))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); } }
-      const all = await kv.get('mocks', []);
-      for (const f of pdfs) {
-        const k = mockFileKey(f.name), hit = all.flatMap(x => (x.sessions || []).map(z => ({ x, z }))).find(h => mockFileKey(h.z.file) === k);
-        if (!hit) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: no mock lists this file name. Add its .json first, or use “Add PDF” on the mock's session.</span>`); continue; }
-        try { out.push('✅ ' + esc(await mockPdfImport(hit.x.id, hit.z.session, f, say))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
-      }
-    } else return;
-    await mocksView(); document.getElementById('mockMsg').innerHTML = out.join('<br>');
-  };
+  <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/library?mocks">\uD83D\uDCC1 Manage mock files</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Performance</a></div>
+  ${upNext ? `<div class="card mb-4 mk-hero flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="text-xs uppercase tracking-wide opacity-80">Next step</div><div class="font-bold text-lg">${esc(upNext.name)}</div><div class="text-xs opacity-90">${ST[upNext.id].started ? `Continue with session ${ST[upNext.id].next}` : `${upNext.n} questions · ${mockIsCp(upNext) ? 'checkpoint' : 'full mock'}`}</div></div><button class="btn-primary" data-mk="${upNext.id}" data-part="${ST[upNext.id].next || 1}">▶ ${ST[upNext.id].started ? 'Continue' : 'Start'}</button></div>` : ''}
+  <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery and readiness.</p>
+  ${ms.length ? `${cps.length ? `<h3 class="sec">Checkpoints · ${cps.filter(x => ST[x.id].S.done).length}/${cps.length} done</h3><div class="space-y-2 mb-5">${cps.map(card).join('')}</div>` : ''}
+  ${full.length ? `<h3 class="sec">Mock exams · ${full.filter(x => ST[x.id].S.done).length}/${full.length} done</h3><div class="space-y-2">${full.map(card).join('')}</div>` : ''}`
+  : '<div class="card text-sm text-slate-500">No mocks yet. Add the mock files in <a class="link" href="#/library?mocks">Library → Mocks &amp; Checkpoints</a>.</div>'}
+  ${tr ? `<div class="card mt-4"><h3 class="sec">Score trend <span class="normal-case font-normal">· line = 70% target</span></h3>${tr}</div>` : ''}`;
   view.onclick = async e => {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.mdel && confirm('Remove this mock and its questions? Your answers stay in your history.')) {
-      const id = t.dataset.mdel, sid = await undoSnap('Removed mock exam', ['mocks', 'mockq:' + id, 'mocklink:' + id]);
-      await kv.set('mocks', ms.filter(x => x.id !== id)); await kv.set('mockq:' + id, null); await kv.set('mocklink:' + id, null);
-      await mocksView(); undoToast('Mock removed', sid); return;
-    }
     if (t.dataset.mk) {
       const x = ms.find(z => z.id === t.dataset.mk), part = +t.dataset.part, qs = await mockqLive(x.id), np = mockParts(x);
       let sel, next = null;
@@ -8377,11 +8391,70 @@ async function mocksView() {
         const of = p => qs.filter(q => q.part === p).sort((a, b) => a.qno - b.qno);
         sel = of(part); if (part === 1 && np === 2 && of(2).length) next = of(2).map(q => q.id);
       } else { const half = Math.ceil(qs.length / 2); sel = part === 1 ? qs.slice(0, half) : qs.slice(half); if (part === 1) next = qs.slice(half).map(q => q.id); }
-      if (!sel.length) { toast(`Add the session ${part} PDF first`); return; }
+      if (!sel.length) { toast(`Add the session ${part} PDF in Library first`); return; }
       await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: np > 1 ? `${x.name} · Session ${part} of ${np}` : x.name, keepOrder: true, reasons: true, mockId: x.id, part, next });
     }
   };
-  return () => { view.onclick = view.onchange = null; };
+  return () => { view.onclick = null; };
+}
+// ---------- Library → Mocks & Checkpoints: the one place where mock files are added, replaced and removed ----------
+async function mockLibHTML() {
+  const ms = mockSorted(await kv.get('mocks', [])), QS = {}; for (const x of ms) QS[x.id] = await mockqAll(x.id);
+  const sessRow = (x, z) => {
+    const qs = QS[x.id].filter(q => q.part === z.session), pics = qs.filter(q => q.pk).length, ok = qs.length && qs.length >= (z.questions || 0);
+    return `<div class="flex flex-wrap items-center gap-2 text-xs mt-1"><span class="chip">S${z.session}</span>
+      <span class="${ok ? 'text-emerald-600' : 'text-amber-700'}">${qs.length ? `${qs.length}/${z.questions || qs.length} questions read${pics ? ' · \uD83D\uDDBC ' + pics : ''}` : 'PDF needed'}</span>
+      <span class="text-slate-500 truncate max-w-[260px]" title="${esc(z.file || '')}">${esc(z.file || '')}</span>
+      <label class="link cursor-pointer">${qs.length ? '\u21BB Replace PDF' : '\u2B06 Add PDF'}<input type="file" accept=".pdf,application/pdf" class="hidden" data-mpdf="${esc(x.id)}" data-sess="${z.session}"></label></div>`;
+  };
+  const ready = ms.filter(x => mockStateOf(x, {}, QS[x.id]).missing.length === 0).length;
+  return `<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" id="mockLib">
+    <button class="w-full flex items-center gap-2 p-3 text-left" data-mlt="1"><span>${OPEN_SUBJ.has('__mocks') ? '▾' : '▸'}</span><span class="font-semibold flex-1">\uD83D\uDCDD Mocks &amp; Checkpoints</span>
+      <span class="mx ${ms.length && ready === ms.length ? 'mx-green' : ms.length ? 'mx-amber' : 'mx-grey'}">${ready}/${ms.length} ready</span></button>
+    ${OPEN_SUBJ.has('__mocks') ? `<div class="border-t border-slate-200 dark:border-slate-700 p-3">
+      <label class="upload" style="padding:1rem"><input type="file" accept=".json,.pdf,application/json,application/pdf" id="mockUp" class="hidden" multiple><div class="font-semibold text-sm">⬆️ Add mock files (.json + the answer PDFs)</div><div class="text-xs text-slate-500">Select the linking files and their PDFs together — each PDF is matched to its mock and session by file name. The PDF supplies the text, options, explanation and pictures; the .json supplies the answer key and the topic / module / LOS links.</div></label>
+      <div id="mockMsg" class="text-sm mt-2" aria-live="polite"></div>
+      <div class="divide-y divide-slate-200 dark:divide-slate-700 mt-2">${ms.map(x => `<div class="py-2"><div class="flex flex-wrap items-center gap-2 text-sm"><span class="font-medium flex-1">${esc(x.name)}${mockIsCp(x) ? ' <span class="chip">Checkpoint</span>' : ''}</span><span class="text-xs text-slate-500">${x.n} questions</span><button class="link text-rose-600 text-xs" data-mdel="${esc(x.id)}">Remove</button></div>
+        ${x.link ? (x.sessions || []).map(z => sessRow(x, z)).join('') : ''}</div>`).join('') || '<div class="text-xs text-slate-500 py-2">No mocks yet.</div>'}</div>
+      <p class="text-xs text-slate-500 mt-2">Practise them in <a class="link" href="#/qbank/mocks">Qbank → Mocks</a>.</p></div>` : ''}</div>`;
+}
+function bindMockLib(box) {
+  if (!box || !box.querySelector('#mockLib')) return;
+  const el = () => box.querySelector('#mockLib');
+  const redraw = async (msg) => { box.innerHTML = await mockLibHTML(); bindMockLib(box); if (msg) { const m = box.querySelector('#mockMsg'); if (m) m.innerHTML = msg; } };
+  const say = t => { const m = box.querySelector('#mockMsg'); if (m) m.textContent = t; };
+  el().addEventListener('change', async e => {
+    e.stopPropagation();
+    const t = e.target, out = [];
+    if (t.dataset.mpdf) {
+      const f = t.files[0]; if (!f) return;
+      try { out.push('✅ ' + esc(await __withBusy(() => mockPdfImport(t.dataset.mpdf, +t.dataset.sess, f, say)))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
+    } else if (t.id === 'mockUp') {
+      const files = [...t.files], js = files.filter(f => /\.json$/i.test(f.name) || f.type === 'application/json'), pdfs = files.filter(f => /\.pdf$/i.test(f.name));
+      await __withBusy(async () => {
+        for (const f of js) { try { const D = JSON.parse(await f.text()); out.push('✅ ' + esc(await installMock(D))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); } }
+        const all = await kv.get('mocks', []);
+        for (const f of pdfs) {
+          const k = mockFileKey(f.name), hit = all.flatMap(x => (x.sessions || []).map(z => ({ x, z }))).find(h => mockFileKey(h.z.file) === k);
+          if (!hit) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: no mock lists this file name. Add its .json first, or use “Add PDF” on the mock's session.</span>`); continue; }
+          try { out.push('✅ ' + esc(await mockPdfImport(hit.x.id, hit.z.session, f, say))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
+        }
+      });
+    } else return;
+    await redraw(out.join('<br>'));
+  });
+  el().addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t || !el().contains(t)) return;
+    e.stopPropagation();
+    if (t.dataset.mlt) { toggleSubj('__mocks'); return redraw(); }
+    if (t.dataset.mdel) {
+      const ms = await kv.get('mocks', []), id = t.dataset.mdel, x = ms.find(z => z.id === id);
+      if (!confirm(`Remove ${x ? x.name : 'this mock'} and its questions? Your answers stay in your history.`)) return;
+      const sid = await undoSnap('Removed mock exam', ['mocks', 'mockq:' + id, 'mocklink:' + id]);
+      await kv.set('mocks', ms.filter(z => z.id !== id)); await kv.set('mockq:' + id, null); await kv.set('mocklink:' + id, null);
+      await redraw(); undoToast('Mock removed', sid);
+    }
+  });
 }
 async function installMock(D) {
   if (D && (D.format === 'cfa-mock-link' || (Array.isArray(D.questions) && D.questions.length && !D.questions.some(q => q.q || q.stem)))) return installMockLink(D);
@@ -8909,7 +8982,8 @@ async function mountModulesLib(el) {
 }
 
 // ---------- Library: topic → module → books ----------
-async function library() {
+async function library(libFocus) {
+  if (libFocus === 'mocks') OPEN_SUBJ.add('__mocks');
   const files = await db.all('files'), map = await kv.get('moduleMap', {}), mods = moduleList();
   const cached = {}; for (const f of files) cached[f.id] = await isCached(f.id);
   const aiDoc = {}; for (const m of mods) aiDoc[m.id] = await kv.get('aisum:' + m.id, null);
@@ -8946,6 +9020,7 @@ async function library() {
         ${ms.map(m => `<div class="px-3 py-2"><div class="flex items-center gap-2 text-sm mb-1"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span><span class="font-medium flex-1">${m.num}. ${esc(m.title)}</span><a class="link text-xs" href="${m.href}/map">Open module</a></div>
           ${QLP.file[m.id]}${BOOK_KINDS.map(([k, l]) => slot(m, k, l)).join('')}${QLP.q[m.id]}</div>`).join('')}
         ${QLP.topic[sj.id]}</div>` : ''}</div>`; }).join('')}</div>
+  <div id="mockLibBox" class="mt-2">${await mockLibHTML()}</div>
   <div class="card mt-4"><h3 class="sec">Other books & files <span class="normal-case font-normal">· not linked to a module (${loose.length})</span></h3>
     <label class="btn-ghost text-xs cursor-pointer">⬆️ Upload a PDF here<input type="file" accept="application/pdf" multiple class="hidden" id="up"></label> <button type="button" class="btn-ghost text-xs" data-fixnames="1" title="Replace short names like 1R38-I~1 with readable ones (display name only)">🔤 Fix book names</button>
     <div class="space-y-2 mt-2">${loose.map(f => bookRow(f, cached)).join('') || '<div class="text-xs text-slate-500">Nothing here.</div>'}</div>
@@ -8954,6 +9029,8 @@ async function library() {
 
   const vlRedraw = async () => { const bx = document.getElementById('vlibBox'); if (!bx) return; bx.innerHTML = await vidLibHTML(); bindVidLib(bx.firstElementChild, vlRedraw); };
   bindVidLib(document.getElementById('vlib'), vlRedraw);
+  bindMockLib(document.getElementById('mockLibBox'));
+  if (libFocus === 'mocks') setTimeout(() => document.getElementById('mockLibBox')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
   const msg = () => { const e = document.getElementById('upMsg'); return { set textContent(v) { if (e) e.textContent = v; __upUI.set(v); }, set innerHTML(v) { if (e) e.innerHTML = v; __upUI.set(String(v).replace(/<[^>]*>/g, ''), true); } }; };
   const addBook = (f, kind, mid) => __withBusy(() => addBook0(f, kind, mid));
   async function addBook0(f, kind, mid) {
@@ -9749,7 +9826,7 @@ const routes = [
   [/^#\/plan$/, planView],
   [/^#\/search(?:\?(.*))?$/, searchView],
   [/^#\/cards$/, cardsAll],
-  [/^#\/library$/, library],
+  [/^#\/library(?:\?(\w+))?$/, library],
   [/^#\/read\/([^/?]+)(?:\?p=(\d+))?$/, readStandalone],
   [/^#\/summary(?:\/(\w+))?$/, fullSummary],
   [/^#\/formulas(?:\/(\w+))?$/, formulasView],
@@ -9757,7 +9834,11 @@ const routes = [
 ];
 async function route() {
   cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
-  await loadPacks(); await applySubjOrder(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
+  if (_prepEp !== DATA_EP) {             // only when something was saved / synced since the last page
+    const t0 = performance.now();
+    await loadPacks(); await applySubjOrder(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
+    _prepEp = DATA_EP; window.__diag && __diag.log('route-prep', Math.round(performance.now() - t0) + ' ms');
+  } else { TRACK = await kv.get('modTrack', {}); }
   const h = location.hash || '#/';
   document.body.classList.toggle('reading', /\/(schweser|curriculum|aipdf)$|#\/read\//.test(h));
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', h.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '#/' || (h === '#/' && a.getAttribute('href') === '#/')));
@@ -9771,9 +9852,9 @@ const isReadHash = h => /\/(schweser|curriculum|aipdf)$|#\/read\//.test(h || '')
 window.addEventListener('hashchange', e => {
   const nu = new URL(e.newURL).hash, old = new URL(e.oldURL).hash;
   if (isReadHash(nu) && !isReadHash(old) && old) sessionStorage.setItem('rdFrom', old);
+  if (user && !recovering) route();
 });
 function backHref(def) { return sessionStorage.getItem('rdFrom') || def; }
-window.addEventListener('hashchange', () => { if (user && !recovering) route(); });
 
 document.addEventListener('click', e => { if (e.target.closest('[data-back]')) setTimeout(() => sessionStorage.removeItem('rdFrom'), 0); });
 // ---------------- helpers ----------------
