@@ -5325,6 +5325,51 @@ const QV_CFG = {
   curr: { head: /^(\d{1,2})\.\s/, headInline: true, opt: /^\(?[A-C][.)]/, expl: null, curr: true, mono: 'next' },
   oth: { head: /^(?:Q(?:uestion)?\s*[#.]?\s*)?(\d{1,4})(?:[.)]|\s*[-–:]|\s+of\s+\d+)/i, headInline: true, opt: /^\(?[A-D][.)]/, expl: /^(Explanation|Rationale|Solution)\b|^(?:the\s+)?correct\s+answer/i, mono: 'gt' },
 };
+// ---------- Mocks v2 · read a mock / checkpoint PDF by layout (text, options, explanation) ----------
+// AnalystPrep mock answer files print "The correct answer is X." only for some questions, and their text layer lists the
+// options after the explanation. So the questions are read from the page layout (lines sorted top-down), not from the raw text:
+// stem = lines between "Q.n" and option A · options = A/B/C lines (+ indented continuation lines) · explanation = everything after.
+QV_CFG.apm = { head: /^Q\.\s*(\d+)\b/, headInline: true, opt: /^\(?[A-D][.)]/, expl: /^The\s+correct\s+answer\s+is\b/i, end: /^(?:CFA\s+)?Leve?l\s+(?:1|I)\b/i, explFallback: true, explKeep: true, refTail: true, noCase: true };
+QV_CFG.kcp = { head: /^Question\s+(\d+)$/i, opt: /^\(?[A-D][.)]/, expl: /^Explanation$/i, end: /\(Module[^)]*\)\s*[,.;]?$/, noCase: true };
+// last line that still belongs to the options (used when a question has no answer / explanation heading)
+function qvOptEnd(L, b, stop) {
+  let j = b.optA, last = b.optA, want = 1, optLeft = L[b.optA].left;
+  for (j = b.optA + 1; j < stop; j++) {
+    const l = L[j], p = L[j - 1];
+    if (/^\(?([A-D])[.)]/.test(l.t) && l.t.replace(/^\(?([A-D]).*$/, '$1') === 'ABCD'[want] && Math.abs(l.left - optLeft) < 12) { last = j; want++; continue; }
+    if (want < 3) { last = j; continue; }                       // still inside A or B: anything up to the next option belongs to them
+    const lh = Math.max(6, p.bottom - p.top), gap = l.p === p.p ? l.top - p.bottom : 1e9;
+    if (gap <= lh * 0.6 && l.left > optLeft + 4) { last = j; continue; }   // wrapped line of the last option
+    break;
+  }
+  return last;
+}
+function mockJoin(lines) {
+  let s = '';
+  for (const t of lines) { if (!t) continue; s += !s ? t : /^(?:[IVX]{1,4}\.|Statement\s+[IVX\d]|Conclusion\s+\d|Step\s+\d|[•▪\-–]\s)/.test(t) ? '\n' + t : ' ' + t; }
+  return s.split('\n').map(pqClean).join('\n').trim();
+}
+// pages → [{qno, stem, options:{A,B,C,D?}, answer, explanation, bad?}]
+function mockReadBlocks(L, cfg) {
+  const out = [];
+  for (const b of qvBlocks(L, cfg)) {
+    if (b.optA < 0) { out.push({ qno: b.n, bad: 'options not found' }); continue; }
+    const xf = !!b.xf, optEnd = cfg.explFallback ? qvOptEnd(L, b, b.expl >= 0 && !xf ? b.expl : b.stop) + 1 : b.expl >= 0 ? b.expl : b.stop;
+    const stemL = L.slice(b.i, b.optA).map(l => l.t); stemL[0] = stemL[0].replace(cfg.head, '').trim();
+    const options = {}; let cur = null, answer = null, want = 0;
+    for (let j = b.optA; j < optEnd; j++) {
+      const t = L[j].t, m = /^\(?([A-D])[.)]\s*(.*)$/.exec(t);
+      if (m && m[1] === 'ABCD'[want]) { cur = m[1]; want++; options[cur] = m[2]; }
+      else if (cur) options[cur] += ' ' + t;
+    }
+    for (const k of Object.keys(options)) { if (/[✓✔]/.test(options[k])) answer = k; options[k] = pqClean(options[k].replace(/[✓✔]/g, '')); }
+    let xFrom = optEnd, xTo = b.stop;
+    if (!xf && b.expl >= 0) { const am = /The\s+correct\s+answer\s+is\s+\**\s*([A-D])\s*\./.exec(L[b.expl].t); if (am && !answer) answer = am[1]; if (!cfg.explKeep) xFrom = Math.max(xFrom, b.expl + 1); }
+    if (b.end >= 0 && !cfg.refTail) xTo = b.end + 1;
+    out.push({ qno: b.n, stem: mockJoin(stemL), options, answer, explanation: b.expl >= 0 ? mockJoin(L.slice(xFrom, xTo).map(l => l.t)) : '' });
+  }
+  return out;
+}
 function qvBlocks(L, cfg) {
   const marks = []; let last = 0, off = 0, prev = 0, secN = 0, seen = false, solMode = false;
   L.forEach((l, i) => {
@@ -5350,9 +5395,10 @@ function qvBlocks(L, cfg) {
       if (b.optA >= 0 && b.expl < 0 && cfg.expl && cfg.expl.test(t)) { b.expl = j; continue; }
       if (b.expl >= 0 && b.end < 0 && cfg.end && cfg.end.test(t)) { b.end = j; break; }
     }
+    if (cfg.explFallback && b.optA >= 0 && b.expl < 0) { b.expl = qvOptEnd(L, b, stop); b.xf = true; if (cfg.end) for (let j = b.expl + 1; j < stop; j++) if (cfg.end.test(L[j].t)) { b.end = j; break; } }   // no answer heading: the explanation starts after the last option
     if (cfg.curr && mk.sol) { b.solution = true; b.expl = mk.i; b.optA = -1; }
     if (pm && pm.type === 'sec') b.caseFrom = pm.i;
-    else if (blocks.length && blocks[blocks.length - 1].end >= 0 && !cfg.curr) b.caseFrom = blocks[blocks.length - 1].end;
+    else if (blocks.length && blocks[blocks.length - 1].end >= 0 && !cfg.curr && !cfg.noCase) b.caseFrom = blocks[blocks.length - 1].end;
     blocks.push(b);
   });
   return blocks;
@@ -5467,11 +5513,11 @@ async function qvExtract(doc, srcKey, want, mode, onProgress) {
     }
     // answer marks drawn as small pictures (some answer keys use a picture instead of a ✓ character)
     if (b.optA >= 0) {
-      const optLines = []; for (let j = b.optA; j < (b.expl >= 0 ? b.expl : b.stop); j++) if (QV_OPTRE.test(L[j].t)) optLines.push(j);
+      const optLines = []; for (let j = b.optA; j < (b.expl >= 0 ? b.expl + (b.xf ? 1 : 0) : b.stop); j++) if (QV_OPTRE.test(L[j].t)) optLines.push(j);
       const pg = pages[L[b.optA].p - 1];
       optLines.slice(0, 4).forEach((j, k) => { const l = L[j]; if (pg && pg.gfx.some(g => g.k === 'img' && g.x1 - g.x0 <= 40 && g.y1 - g.y0 <= 40 && g.x1 - g.x0 >= 6 && (g.y0 + g.y1) / 2 >= l.top - 4 && (g.y0 + g.y1) / 2 <= l.bottom + 4)) out.marks[b.n] = k; });
       // options that contain formulas or tables → picture of each option (never includes the answer mark)
-      const segs = optLines.slice(0, 4).map((j, k) => ({ j, k, to: k + 1 < optLines.length && k < 3 ? optLines[k + 1] : (b.expl >= 0 ? b.expl : Math.min(b.stop, j + 3)) }));
+      const segs = optLines.slice(0, 4).map((j, k) => ({ j, k, to: k + 1 < optLines.length && k < 3 ? optLines[k + 1] : (b.expl >= 0 ? b.expl + (b.xf ? 1 : 0) : Math.min(b.stop, j + 3)) }));
       const optVis = segs.some(s => L.slice(s.j, s.to).some(l => l.math || l.gap));
       if (optVis && segs.length >= 2) {
         let ok = true; const regs = [];
@@ -8262,34 +8308,83 @@ document.addEventListener('click', async e => {
 });
 
 // ---------- Mocks (isolated questions, linked to topic / module / LOS) ----------
+// Two kinds of mock file are accepted:
+//  1) the original full-text file (each question carries its text, options and answer);
+//  2) a linking file ("format": "cfa-mock-link") that carries only the answer key, the 2027 module / LOS links and notes.
+//     The text, options, explanation and pictures are then read from the mock's own answer PDF(s), one per session, with the
+//     same layout reader and picture capture as the question banks — nothing of the question text is kept in the JSON.
+const mockqAll = async id => (await mockqRaw(id)) || [];
+const mockFileKey = s => String(s || '').toLowerCase().replace(/\.pdf$/i, '').replace(/[^a-z0-9]+/g, '');
+const mockParts = x => x.link ? Math.max(1, (x.sessions || []).length) : 2;
+const mockModId = r => r.module_id ? String(r.module_id).replace(/^([A-Za-z]+)-LM0*(\d+)$/, (_, s, n) => (SUBJ_CODE[s.toUpperCase()] || s.toLowerCase()) + '-' + n) : (r.m || '');
+function mockScore(x, r) {
+  const ps = [...Array(mockParts(x))].map((_, i) => r && r['p' + (i + 1)]);
+  return ps.every(Boolean) ? { done: true, sc: pct(ps.reduce((t, p) => t + p.c, 0), ps.reduce((t, p) => t + p.n, 0)), ps } : { done: false, ps };
+}
 async function mocksView() {
   const ms = await kv.get('mocks', []), res = await kv.get('mockRes', {});
+  const QS = {}; for (const x of ms) QS[x.id] = await mockqAll(x.id);
+  const sessRow = (x, z) => {
+    const qs = QS[x.id].filter(q => q.part === z.session), pics = qs.filter(q => q.pk).length, ok = qs.length && qs.length >= (z.questions || 0);
+    return `<div class="flex flex-wrap items-center gap-2 text-xs mt-1"><span class="chip">S${z.session}</span>
+      <span class="${ok ? 'text-emerald-600' : 'text-amber-700'}">${qs.length ? `${qs.length}/${z.questions || qs.length} questions read${pics ? ' · \uD83D\uDDBC ' + pics : ''}` : 'PDF needed'}</span>
+      <span class="text-slate-500 truncate max-w-[260px]" title="${esc(z.file || '')}">${esc(z.file || '')}</span>
+      <label class="link cursor-pointer">${qs.length ? '\u21BB Replace PDF' : '\u2B06 Add PDF'}<input type="file" accept=".pdf,application/pdf" class="hidden" data-mpdf="${esc(x.id)}" data-sess="${z.session}"></label></div>`;
+  };
   view.innerHTML = crumbs([['Home', '#/'], ['Qbank', '#/qbank'], ['Mocks']]) + `
-  <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">📝 Mocks</h1><a class="btn-ghost text-xs" href="#/qbank/stats">📊 Performance</a></div>
-  <div class="card mb-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Full mock exams: 2 sessions of 90 questions, 135 minutes each, with an optional break. Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery, LOS rating and readiness.
-    <label class="upload mt-3" style="padding:1rem"><input type="file" accept=".json,application/json" id="mockUp" class="hidden" multiple><div class="font-semibold text-sm">⬆️ Add mock file (.json)</div><div class="text-xs text-slate-500">Prepared in the chat from your mock PDF — each question linked to topic, module and LOS</div></label><div id="mockMsg" class="text-sm mt-2"></div></div>
-  <div class="space-y-2">${ms.map(x => { const r = res[x.id] || {}, p1 = r.p1, p2 = r.p2, both = p1 && p2, sc = both ? pct(p1.c + p2.c, p1.n + p2.n) : null;
-    return `<div class="card flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="font-semibold">${esc(x.name)}</div><div class="text-xs text-slate-500">${x.n} questions${both ? ` · score <b class="${sc >= 70 ? 'text-emerald-600' : 'text-rose-600'}">${sc}%</b> · ${new Date(r.at).toLocaleDateString('en-GB')}` : p1 ? ` · session 1: ${pct(p1.c, p1.n)}% — session 2 not done` : ' · not started'}</div></div>
-      ${p1 && !p2 ? `<button class="btn-primary text-xs" data-mk="${x.id}" data-part="2">▶ Start session 2</button>` : ''}<button class="${p1 && !p2 ? 'btn-ghost' : 'btn-primary'} text-xs" data-mk="${x.id}" data-part="1">${p1 ? 'Retake' : 'Start'}</button>
-      <button class="link text-rose-600 text-xs" data-mdel="${x.id}">Remove</button></div>`; }).join('') || '<div class="card text-sm text-slate-500">No mocks yet. They will be added after all topics are loaded.</div>'}</div>
-  ${Object.keys(res).length > 1 ? `<div class="card mt-4"><h3 class="sec">Score trend</h3>${ms.filter(x => res[x.id]?.p2).map(x => { const r = res[x.id], s = pct(r.p1.c + r.p2.c, r.p1.n + r.p2.n); return `<div class="flex items-center gap-2 text-sm py-1"><span class="w-40 truncate">${esc(x.name)}</span><div class="flex-1">${bar(s, s >= 70 ? 'bg-emerald-500' : s >= 60 ? 'bg-amber-500' : 'bg-rose-500')}</div><span class="w-10 text-right">${s}%</span></div>`; }).join('')}</div>` : ''}`;
+  <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Performance</a></div>
+  <div class="card mb-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Full mock exams (2 sessions of 90 questions, 135 minutes each, with an optional break) and checkpoint exams (one session, 90 seconds per question). Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery, LOS rating and readiness.
+    <label class="upload mt-3" style="padding:1rem"><input type="file" accept=".json,.pdf,application/json,application/pdf" id="mockUp" class="hidden" multiple><div class="font-semibold text-sm">⬆️ Add mock files (.json + the answer PDFs)</div><div class="text-xs text-slate-500">Select the linking files and their PDFs together — each PDF is matched to its mock and session by file name. The PDF supplies the text, options, explanation and pictures; the .json supplies the answer key and the topic / module / LOS links.</div></label><div id="mockMsg" class="text-sm mt-2" aria-live="polite"></div></div>
+  <div class="space-y-2">${ms.map(x => {
+    const r = res[x.id] || {}, np = mockParts(x), S = mockScore(x, r), qs = QS[x.id];
+    const has = p => x.link ? qs.some(q => q.part === p) : qs.length > 0, last = S.ps.findIndex(p => !p);
+    const status = S.done ? ` · score <b class="${S.sc >= 70 ? 'text-emerald-600' : 'text-rose-600'}">${S.sc}%</b> · ${new Date(r.at).toLocaleDateString('en-GB')}` : S.ps[0] ? ` · ${S.ps.map((p, i) => p ? `session ${i + 1}: ${pct(p.c, p.n)}%` : `session ${i + 1} not done`).join(' · ')}` : ' · not started';
+    const resume = S.ps[0] && !S.done && last > 0 && has(last + 1) ? `<button class="btn-primary text-xs" data-mk="${x.id}" data-part="${last + 1}">▶ Start session ${last + 1}</button>` : '';
+    return `<div class="card"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="font-semibold">${esc(x.name)}${x.kind === 'checkpoint' ? ' <span class="chip">Checkpoint</span>' : ''}</div><div class="text-xs text-slate-500">${x.n} questions${np > 1 ? ` · ${np} sessions` : ''}${status}</div></div>
+      ${resume}<button class="${resume ? 'btn-ghost' : 'btn-primary'} text-xs" data-mk="${x.id}" data-part="1" ${has(1) ? '' : 'disabled title="Add the session 1 PDF first"'}>${S.ps[0] ? 'Retake' : 'Start'}</button>
+      <button class="link text-rose-600 text-xs" data-mdel="${x.id}">Remove</button></div>
+      ${x.link ? (x.sessions || []).map(z => sessRow(x, z)).join('') : ''}</div>`; }).join('') || '<div class="card text-sm text-slate-500">No mocks yet. They will be added after all topics are loaded.</div>'}</div>
+  ${ms.filter(x => mockScore(x, res[x.id]).done).length > 1 ? `<div class="card mt-4"><h3 class="sec">Score trend</h3>${ms.filter(x => mockScore(x, res[x.id]).done).map(x => { const s = mockScore(x, res[x.id]).sc; return `<div class="flex items-center gap-2 text-sm py-1"><span class="w-40 truncate">${esc(x.name)}</span><div class="flex-1">${bar(s, s >= 70 ? 'bg-emerald-500' : s >= 60 ? 'bg-amber-500' : 'bg-rose-500')}</div><span class="w-10 text-right">${s}%</span></div>`; }).join('')}</div>` : ''}`;
+  const say = t => { const el = document.getElementById('mockMsg'); if (el) el.textContent = t; };
   view.onchange = async e => {
-    if (e.target.id !== 'mockUp') return; const out = [];
-    for (const f of e.target.files) { try { const D = JSON.parse(await f.text()); out.push('✅ ' + esc(await installMock(D))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); } }
+    const t = e.target, out = [];
+    if (t.dataset.mpdf) {
+      const f = t.files[0]; if (!f) return;
+      try { out.push('✅ ' + esc(await mockPdfImport(t.dataset.mpdf, +t.dataset.sess, f, say))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
+    } else if (t.id === 'mockUp') {
+      const files = [...t.files], js = files.filter(f => /\.json$/i.test(f.name) || f.type === 'application/json'), pdfs = files.filter(f => /\.pdf$/i.test(f.name));
+      for (const f of js) { try { const D = JSON.parse(await f.text()); out.push('✅ ' + esc(await installMock(D))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); } }
+      const all = await kv.get('mocks', []);
+      for (const f of pdfs) {
+        const k = mockFileKey(f.name), hit = all.flatMap(x => (x.sessions || []).map(z => ({ x, z }))).find(h => mockFileKey(h.z.file) === k);
+        if (!hit) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: no mock lists this file name. Add its .json first, or use “Add PDF” on the mock's session.</span>`); continue; }
+        try { out.push('✅ ' + esc(await mockPdfImport(hit.x.id, hit.z.session, f, say))); } catch (err) { out.push(`<span class="text-rose-600">❌ ${esc(f.name)}: ${esc(err.message)}</span>`); }
+      }
+    } else return;
     await mocksView(); document.getElementById('mockMsg').innerHTML = out.join('<br>');
   };
   view.onclick = async e => {
-    const t = e.target;
-    if (t.dataset.mdel && confirm('Remove this mock and its questions? Your answers stay in your history.')) { const sid = await undoSnap('Removed mock exam', ['mocks', 'mockq:' + t.dataset.mdel]); await kv.set('mocks', ms.filter(x => x.id !== t.dataset.mdel)); await kv.set('mockq:' + t.dataset.mdel, null); await mocksView(); undoToast('Mock removed', sid); return; }
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.mdel && confirm('Remove this mock and its questions? Your answers stay in your history.')) {
+      const id = t.dataset.mdel, sid = await undoSnap('Removed mock exam', ['mocks', 'mockq:' + id, 'mocklink:' + id]);
+      await kv.set('mocks', ms.filter(x => x.id !== id)); await kv.set('mockq:' + id, null); await kv.set('mocklink:' + id, null);
+      await mocksView(); undoToast('Mock removed', sid); return;
+    }
     if (t.dataset.mk) {
-      const x = ms.find(z => z.id === t.dataset.mk), qs = await mockqLive(x.id), half = Math.ceil(qs.length / 2), part = +t.dataset.part;
-      const sel = part === 1 ? qs.slice(0, half) : qs.slice(half);
-      await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: `${x.name} · Session ${part} of 2`, keepOrder: true, reasons: true, mockId: x.id, part, next: part === 1 ? qs.slice(half).map(q => q.id) : null });
+      const x = ms.find(z => z.id === t.dataset.mk), part = +t.dataset.part, qs = await mockqLive(x.id), np = mockParts(x);
+      let sel, next = null;
+      if (x.link) {
+        const of = p => qs.filter(q => q.part === p).sort((a, b) => a.qno - b.qno);
+        sel = of(part); if (part === 1 && np === 2 && of(2).length) next = of(2).map(q => q.id);
+      } else { const half = Math.ceil(qs.length / 2); sel = part === 1 ? qs.slice(0, half) : qs.slice(half); if (part === 1) next = qs.slice(half).map(q => q.id); }
+      if (!sel.length) { toast(`Add the session ${part} PDF first`); return; }
+      await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: np > 1 ? `${x.name} · Session ${part} of ${np}` : x.name, keepOrder: true, reasons: true, mockId: x.id, part, next });
     }
   };
   return () => { view.onclick = view.onchange = null; };
 }
 async function installMock(D) {
+  if (D && (D.format === 'cfa-mock-link' || (Array.isArray(D.questions) && D.questions.length && !D.questions.some(q => q.q || q.stem)))) return installMockLink(D);
   const meta = D.mock || {}, raw = D.questions || []; if (!raw.length) throw new Error('No questions in the file');
   const id = String(meta.id || meta.name || 'mock-' + Date.now()).toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const qs = raw.map((q, i) => {
@@ -8301,6 +8396,91 @@ async function installMock(D) {
   const ms = (await kv.get('mocks', [])).filter(x => x.id !== id); ms.push({ id, name: meta.name || id, n: qs.length, added: Date.now() });
   await kv.set('mocks', ms); await kv.set('mockq:' + id, qs); await flush();
   return `${meta.name || id}: ${qs.length} questions`;
+}
+// linking file → stored as `mocklink:<id>`; the questions appear when the session PDFs are read
+async function installMockLink(D) {
+  const meta = D.mock || {}, rows = D.questions || []; if (!rows.length) throw new Error('No questions in the file');
+  const id = String(meta.id || meta.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); if (!id) throw new Error('The file has no mock id');
+  const sessions = (meta.sessions && meta.sessions.length ? meta.sessions : [...new Set(rows.map(r => +r.session || 1))].map(s => ({ session: s }))).map(z => ({ session: +z.session || 1, file: z.file || '', questions: +z.questions || rows.filter(r => (+r.session || 1) === (+z.session || 1)).length, minutes: +z.minutes || null }));
+  const errs = [], seen = new Set();
+  rows.forEach((r, i) => {
+    const tag = `Question ${i + 1} (S${r.session || 1} #${r.q_no})`;
+    if (!sessions.some(z => z.session === (+r.session || 1))) errs.push(`${tag}: session ${r.session} is not listed`);
+    if (!(+r.q_no > 0)) errs.push(`${tag}: q_no missing`);
+    if (!/^[A-D]$/.test(String(r.answer || ''))) errs.push(`${tag}: answer must be A–D`);
+    const k = (+r.session || 1) + ':' + r.q_no; if (seen.has(k)) errs.push(`${tag}: listed twice`); seen.add(k);
+    if (r.module_id && !moduleList().some(m => m.id === mockModId(r))) errs.push(`${tag}: unknown module ${r.module_id}`);
+  });
+  if (errs.length) throw new Error(errs.slice(0, 5).join(' · ') + (errs.length > 5 ? ` · …${errs.length - 5} more` : ''));
+  const ms = await kv.get('mocks', []), old = ms.find(x => x.id === id);
+  const entry = { id, name: meta.name || id, n: rows.length, added: old?.added || Date.now(), link: true, kind: meta.kind || 'mock', provider: meta.provider || '', layout: meta.layout || '', version: D.version || meta.version || '', sessions };
+  await kv.set('mocks', [...ms.filter(x => x.id !== id), entry]); await kv.set('mocklink:' + id, rows);
+  // the questions already read from the PDFs pick up the new answer key / links straight away
+  const qs = await mockqAll(id);
+  if (qs.length) {
+    const byK = new Map(rows.map(r => [(+r.session || 1) + ':' + (+r.q_no), r]));
+    const upd = qs.filter(q => byK.has(q.part + ':' + q.qno)).map(q => { const r = byK.get(q.part + ':' + q.qno), m = mockModId(r), notes = notesOf(r), a = 'ABCD'.indexOf(r.answer);
+      return { ...q, a: a >= 0 && a < q.o.length ? a : q.a, m, los: r.los_code || '', lh: r.los_hint || '', lt: r.los_text || '', scope: r.scope || (m ? 'In module' : 'General question'), x: (notes ? notes + '\n\n' : '') + (q.xr || ''), xh: notes ? notes.length + 2 : 0 }; });
+    await kv.set('mockq:' + id, upd);
+  }
+  await flush();
+  const missing = sessions.filter(z => !qs.some(q => q.part === z.session));
+  return `${entry.name}: ${rows.length} questions linked${missing.length ? ` — now add the PDF of session ${missing.map(z => z.session).join(' and ')}` : ''}`;
+}
+// read one session PDF of a linked mock → questions with text, options, explanation and pictures
+async function mockPdfImport(id, s, f, say = () => { }) {
+  const x = (await kv.get('mocks', [])).find(z => z.id === id); if (!x || !x.link) throw new Error('Add the mock .json first');
+  const rows = (await kv.get('mocklink:' + id, [])).filter(r => (+r.session || 1) === s); if (!rows.length) throw new Error(`The mock file has no questions for session ${s}`);
+  await ensurePdf();
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+  const items = [], notFound = [], diff = [], bad = []; let vis = null, layout;
+  try {
+    const pages = await qvReadPages(doc, p => say(`Reading ${f.name}… ${Math.round(p * 100)}%`)), L = pages.flatMap(p => p.lines);
+    if (L.length < 20) throw new Error('This PDF has no text layer (it looks scanned), so the questions cannot be read.');
+    layout = QV_CFG[x.layout] ? x.layout : L.some(l => /^Q\.\s*\d+/.test(l.t)) ? 'apm' : 'kcp';
+    const byNo = new Map(mockReadBlocks(L, QV_CFG[layout]).filter(p => !p.bad).map(p => [p.qno, p]));
+    for (const r of rows) {
+      const p = byNo.get(+r.q_no), o = p ? ['A', 'B', 'C', 'D'].map(k => p.options[k]).filter(v => v != null && v !== '') : null;
+      if (!p || !o || o.length < 3) { notFound.push(r.q_no); continue; }
+      const a = 'ABCD'.indexOf(r.answer); if (a < 0 || a >= o.length) { bad.push(r.q_no); continue; }
+      if (p.answer && p.answer !== r.answer) diff.push(r.q_no);
+      const m = mockModId(r), notes = notesOf(r);
+      items.push({ id: r.question_ref || `MOCK-${id}-S${s}-${r.q_no}`, mock: id, part: s, qno: +r.q_no, vk: +r.q_no, m, los: r.los_code || '', lh: r.los_hint || '', lt: r.los_text || '', scope: r.scope || (m ? 'In module' : 'General question'),
+        src: 'mock', srcName: x.sessions.length > 1 ? `${x.name} · S${s}` : x.name, q: p.stem, o, a, x: (notes ? notes + '\n\n' : '') + (p.explanation || ''), xr: p.explanation || '', xh: notes ? notes.length + 2 : 0 });
+    }
+    if (!items.length) throw new Error('None of the questions of this session were found in the PDF. Check that it is the right file.');
+    const mode = await kv.get('qvmode', 'auto');
+    if (mode !== 'off') { try { vis = await qvExtract(doc, layout, new Set(items.map(i => i.vk)), mode, p => say(`Capturing tables, graphs and formulas… ${Math.round(p * 100)}%`)); } catch (e) { console.warn('visuals', e); vis = { imgs: {}, stats: {}, error: String(e?.message || e) }; } }
+  } finally { try { await doc.destroy(); } catch { } }
+  qvAttach(items, vis);
+  const pmod = 'MOCK-' + id, psrc = 'S' + s; let pk = null;
+  if (vis && Object.keys(vis.imgs).length) { try { const meta = await qvSavePack(pmod, 'mock', psrc, vis.imgs); pk = meta && meta.id; } catch (err) { console.warn('visuals save', err); } }
+  else { try { await qvDropFor(pmod, 'mock', psrc); } catch { } }
+  items.forEach(it => { if (it.pk === '__PENDING__') { if (pk) it.pk = pk; else { delete it.pk; delete it.vi; } } });
+  const keep = (await mockqAll(id)).filter(q => q.part !== s);
+  await kv.set('mockq:' + id, [...keep, ...items].sort((a, b) => (a.part - b.part) || (a.qno - b.qno))); await flush(); say('');
+  const pics = items.filter(i => i.pk).length;
+  return `${x.name} · session ${s}: ${items.length}/${rows.length} questions read${pics ? ` · \uD83D\uDDBC ${pics} with pictures` : ''}${notFound.length ? ` · not found in the PDF: #${notFound.slice(0, 20).join(', #')}` : ''}${bad.length ? ` · answer letter not among the options: #${bad.join(', #')}` : ''}${diff.length ? ` · the PDF prints a different answer for #${diff.join(', #')} (the .json key is used)` : ''}${vis && vis.error ? ' · pictures could not be captured' : ''}`;
+}
+// LOS of a mock question: the code in the file is checked against the module file's LOS list when that module is loaded
+// (AnalystPrep tags some questions with pre-2027 LOS letters); otherwise the LOS whose wording matches best is used.
+const MOCK_STOP = new Set(['and', 'the', 'for', 'its', 'their', 'with', 'from', 'that', 'this', 'are', 'how', 'between', 'including', 'into', 'describe', 'explain', 'calculate', 'interpret', 'compare', 'evaluate', 'contrast', 'identify', 'determine', 'discuss', 'define']);
+const mockWords = s => new Set(String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2 && !MOCK_STOP.has(w)));
+function mockLosSim(a, b) { const A = mockWords(a), B = mockWords(b); if (!A.size || !B.size) return 0; let n = 0; for (const w of A) if (B.has(w)) n++; return n / Math.min(A.size, B.size); }
+const _MLF = new Map();
+function mockLosFix(q) {
+  if (!q || q.src !== 'mock' || !q.m || !(q.lt || q.lh)) return q;
+  const D = PACKS[q.m], L = D && Array.isArray(D.los) ? D.los : null;
+  if (!L || !L.length) return q.los || !q.lh ? q : { ...q, los: q.lh };
+  const key = q.id + '|' + q.m + '|' + L.length + '|' + (D.module?.version || ''), hit = _MLF.get(key); if (hit !== undefined) return hit === q.los ? q : { ...q, los: hit };
+  const has = c => c && L.some(l => l.los_code === c);
+  let los = '';
+  if (has(q.los) && (!q.lt || mockLosSim(q.lt, L.find(l => l.los_code === q.los).los_text) >= 0.3)) los = q.los;
+  else {
+    let best = null, bs = 0; if (q.lt) for (const l of L) { const s = mockLosSim(q.lt, l.los_text); if (s > bs) { bs = s; best = l; } }
+    los = best && bs >= 0.4 ? best.los_code : has(q.lh) ? q.lh : has(q.los) ? q.los : '';
+  }
+  _MLF.set(key, los); return los === q.los ? q : { ...q, los };
 }
 
 // ---------- end-of-session hooks & topic breakdown ----------
@@ -9273,7 +9453,7 @@ async function cleanOps(sc, G) {
     let nq = 0; for (const k of [...qk, ...tk.filter(k => k.startsWith('tqbank:'))]) { const l = await kv.get(k, []); nq += Array.isArray(l) ? l.length : 0; }
     add('C', 'Uploaded questions (module banks and Topic Qbank)', nq || [...qk, ...tk].length, async () => { for (const k of [...qk, ...tk]) await delKey(k); });
     if (sc.type === 'all') {
-      const mk = allKeys.filter(k => k === 'mocks' || k.startsWith('mockq:')); let nm = 0; for (const k of mk.filter(k => k.startsWith('mockq:'))) { const l = await kv.get(k, []); nm += Array.isArray(l) ? l.length : 0; }
+      const mk = allKeys.filter(k => k === 'mocks' || k.startsWith('mockq:') || k.startsWith('mocklink:')); let nm = 0; for (const k of mk.filter(k => k.startsWith('mockq:'))) { const l = await kv.get(k, []); nm += Array.isArray(l) ? l.length : 0; }
       add('C', 'Mock exam files and their questions', nm || mk.length, async () => { for (const k of mk) await delKey(k); });
     }
     const metas = await kv.get('qpacks', {}), pids = Object.values(metas).filter(m => m.mod.startsWith('TQ:') ? (sc.type === 'all' || (sc.type === 'subj' && m.mod.slice(3) === sc.id)) : csMod(sc, m.mod)).map(m => m.id);
@@ -9300,7 +9480,7 @@ async function cleanSweep(sc, G) {
     if (error) throw error; ids.push(...data.map(r => String(r.id))); if (data.length < 1000) break;
   }
   const tqIn = k => sc.type === 'all' || (sc.type === 'subj' && k.split(':')[1] === sc.id), hit = k =>
-    (G.C1 && ((k.startsWith('qbank:') && csMod(sc, k.slice(6))) || ((k.startsWith('tqbank:') || k.startsWith('tqsrc:')) && tqIn(k)) || (sc.type === 'all' && (k === 'mocks' || k.startsWith('mockq:')))))
+    (G.C1 && ((k.startsWith('qbank:') && csMod(sc, k.slice(6))) || ((k.startsWith('tqbank:') || k.startsWith('tqsrc:')) && tqIn(k)) || (sc.type === 'all' && (k === 'mocks' || k.startsWith('mockq:') || k.startsWith('mocklink:')))))
     || (G.A && sc.type === 'all' && (k === 'qstats' || k.startsWith('qstats:') || k === 'qnotes' || k === 'qedits'));
   const left = ids.filter(hit); let removed = 0;
   for (let i = 0; i < left.length; i += 100) { const { error } = await cloud.from('items').delete().eq('store', 'kv').in('id', left.slice(i, i + 100)); if (error) throw error; removed += Math.min(100, left.length - i); }
@@ -10347,7 +10527,7 @@ async function crAct(a, qid, hooks = {}) {
 const crList = async () => (await allQsAll()).filter(q => q.cr);
 const qLive = list => (list || []).filter(q => !qOff(q)).map(qApply);
 const mockqRaw = async id => kv.get('mockq:' + id, []);
-const mockqLive = async id => qLive(await mockqRaw(id));
+const mockqLive = async id => qLive(((await mockqRaw(id)) || []).map(mockLosFix));
 async function loadQE() {
   QE = await kv.get('qedits', {});
   await qeNormalize();
