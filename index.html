@@ -5843,8 +5843,9 @@ ${hs('Title', 'Title', 40, '1E1B4B')}${hs('Heading1', 'heading 1', 30, '3730A3')
   ]);
 }
 function downloadBlob(name, blob) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);   // large files / iPad need the link alive longer
 }
 // notes -> Word blocks
 function notesToBlocks(notes, level = 2, moduleId) {
@@ -7959,7 +7960,7 @@ async function settings() {
       await kv.set('pack:' + del, null); await kv.set('packIds', (await kv.get('packIds', [])).filter(z => z !== del)); await loadPacks(); OPEN_SUBJ.add(del.split('-')[0]); await settings(); undoToast('Module file removed · ' + tShortOf(del), sid);
     }
   };
-  document.getElementById('exp').onclick = async () => { await downloadBackupNow(); toast('Backup downloaded'); };
+  document.getElementById('exp').onclick = async () => { try { await downloadBackupNow(); toast('Backup downloaded'); } catch { } };
   document.getElementById('imp').onchange = async e => {
     const f = e.target.files[0]; if (!f) return; const msg = document.getElementById('impMsg');
     try {
@@ -9461,7 +9462,55 @@ async function backupData() {
   for (const id of Object.keys(metas)) { try { qv[id] = await (await getBlob(metas[id])).text(); } catch (e) { console.warn('backup: question pictures', id, e); } }
   return { app: 'cfa-l1', v: 3, at: new Date().toISOString(), kv: kvs, notes: await db.all('notes'), highlights: await db.all('highlights'), files: await db.all('files'), qv };
 }
-async function downloadBackupNow() { download(`CFA-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await backupData()), 'application/json'); await kv.set('lastBackup', Date.now()); }
+// v21 fix · the backup is written piece by piece into a Blob (no single giant string → no "Invalid string length"),
+// question-picture packs that are only in the cloud are fetched with a time limit, progress is shown, and any error is reported.
+const _bkTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+const _bkJ = v => { try { const t = JSON.stringify(v); return t === undefined ? 'null' : t; } catch (e) { console.warn('backup: item skipped', e); return 'null'; } };
+let _bkBusy = false;
+async function backupBlob(onStep) {
+  const step = t => { try { onStep && onStep(t); } catch { } };
+  const parts = [], sep = () => ',';
+  parts.push('{"app":"cfa-l1","v":3,"at":' + JSON.stringify(new Date().toISOString()));
+  step('Reading progress & settings…');
+  parts.push(',"kv":{'); let first = true, metas = {};
+  for (const { k, v } of await local.entries('kv')) {
+    if (['qsession', '__owner', 'syncIdx'].includes(k) || String(k).startsWith('qsbase:')) continue;
+    if (k === 'qpacks') metas = v || {};
+    parts.push((first ? '' : sep()) + JSON.stringify(String(k)) + ':' + _bkJ(v)); first = false;
+  }
+  parts.push('}');
+  for (const s of ['notes', 'highlights', 'files']) {
+    step('Reading ' + s + '…'); const rows = await db.all(s);
+    parts.push(',"' + s + '":['); rows.forEach((r, i) => parts.push((i ? ',' : '') + _bkJ(r))); parts.push(']');
+  }
+  parts.push(',"qv":{'); first = true; const ids = Object.keys(metas); let i = 0;
+  for (const id of ids) {
+    i++; step(`Question pictures ${i}/${ids.length}…`);
+    try {
+      const b = await _bkTimeout(getBlob(metas[id]), 90000);
+      const txt = await b.text();
+      parts.push((first ? '' : ',') + JSON.stringify(String(id)) + ':' + JSON.stringify(txt)); first = false;
+    } catch (e) { console.warn('backup: question pictures skipped', id, e); }
+  }
+  parts.push('}}');
+  return new Blob(parts, { type: 'application/json' });
+}
+async function downloadBackupNow() {
+  if (_bkBusy) { toast('Backup is already being prepared…'); throw new Error('busy'); }
+  _bkBusy = true;
+  const btns = [...document.querySelectorAll('#exp,[data-bk="now"],[data-g="bak"]')]; btns.forEach(b => { b.disabled = true; });
+  try {
+    toast('Preparing backup…');
+    const blob = await backupBlob(t => { const m = document.getElementById('impMsg'); if (m) m.textContent = '⏳ ' + t; });
+    downloadBlob(`CFA-backup-${new Date().toISOString().slice(0, 10)}.json`, blob);
+    await kv.set('lastBackup', Date.now());
+    const m = document.getElementById('impMsg'); if (m) m.textContent = `✅ Backup ready · ${(blob.size / 1048576).toFixed(1)} MB`;
+  } catch (err) {
+    console.error('backup failed', err);
+    const m = document.getElementById('impMsg'); if (m) m.textContent = '❌ Backup failed: ' + (err.message || err);
+    toast('Could not create the backup: ' + (err.message || err)); throw err;
+  } finally { _bkBusy = false; btns.forEach(b => { b.disabled = false; }); }
+}
 async function restoreQvPacks(qv) {
   if (!qv || !Object.keys(qv).length) return;
   const metas = { ...(await kv.get('qpacks', {})) }; let ch = false;
@@ -9730,7 +9779,7 @@ async function showNotices() {
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest && e.target.closest('[data-bk]'); if (!b) return;
-  if (b.dataset.bk === 'now') { try { await downloadBackupNow(); toast('Backup downloaded'); } catch (err) { toast('Could not create the backup: ' + (err.message || err)); } }
+  if (b.dataset.bk === 'now') { try { await downloadBackupNow(); toast('Backup downloaded'); } catch { } }
   else { try { localStorage.setItem('backupSnoozeUntil', String(Date.now() + DAYMS)); } catch { } }
   document.getElementById('notices')?.remove();
 });
@@ -10044,10 +10093,7 @@ const DAY = 864e5, BOX = [1, 3, 7, 14, 30];
 
 
 // ---------------- SETTINGS / BACKUP ----------------
-function download(name, text, type) {
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-}
+function download(name, text, type) { downloadBlob(name, new Blob([text], { type })); }
 
 // ================= v16 · mistake patterns · Sure-but-wrong · open source · safe undo · command palette · sync panel · Copy-for-AI templates =================
 const shortTxt = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trim() + '…' : s; };
@@ -10421,7 +10467,7 @@ async function signOutGuard() {
       document.body.append(bg);
       bg.onclick = async e => {
         const a = e.target.closest('[data-g]')?.dataset.g; if (!a) return;
-        if (a === 'bak') { await downloadBackupNow(); toast('Backup downloaded'); return; }
+        if (a === 'bak') { try { await downloadBackupNow(); toast('Backup downloaded'); } catch { } return; }
         bg.remove(); res(a);
       };
     });
@@ -10451,7 +10497,7 @@ function cmdItems() {
   add('Text size (Aa)', 'Action', () => document.getElementById('fsBtn')?.click(), 'font');
   add('Sync now', 'Action', async () => { await flush(); await refreshSyncLabel(); toast('Sync checked'); });
   add('Sync status', 'Action', () => syncPanel());
-  add('Download backup', 'Action', async () => { await downloadBackupNow(); toast('Backup downloaded'); });
+  add('Download backup', 'Action', async () => { try { await downloadBackupNow(); toast('Backup downloaded'); } catch { } });
   return I;
 }
 function closeCmdk() { document.getElementById('cmdkBg')?.remove(); cmdOpen = false; }
