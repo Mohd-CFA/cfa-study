@@ -7,11 +7,13 @@
  *    Only when it really changed is the new copy stored, and the open page shows "A new version is ready · Reload".
  *    First visit, or nothing saved yet: network first.
  *  - The Supabase library (CDN) is cached on first use and then served from the cache.
+ *  - The PDF engine (vendor/pdf.js and vendor/pdf.worker.js, about 1.5 MB) is NOT part of the page any more: it is fetched the first time a PDF is opened,
+ *    cached here, and then served from the cache — also offline.
  *  - Everything else — above all the Supabase API (auth + sync + uploads) — is NOT touched.
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v6';
+const VERSION = 'v12';
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
 const META = new URL('__sw-meta', self.registration.scope).href;
@@ -89,7 +91,8 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (req.mode === 'navigate' && url.origin === self.location.origin) { event.respondWith(pageFirst(event)); return; }
-  if (url.pathname.includes(LIB_MARK)) event.respondWith(libFirst(req));
+  if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req)); return; }
+  if (url.origin === self.location.origin && /\/(vendor\/[^/]+|pdf(\.worker)?)\.js$/.test(url.pathname)) event.respondWith(libFirst(req));
 });
 
 // the page asks us to pre-cache the library right after registration, so the very first offline visit already works
