@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CFA L1 · Study</title>
 <meta name="theme-color" content="#1e1b4b">
@@ -3096,6 +3096,23 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
   body.calc-dock .bacalc:not([hidden]){left:auto!important;right:12px!important;top:76px!important;bottom:auto!important;width:340px;max-height:calc(100vh - 92px);overflow:auto}
   body.calc-dock:has(.bacalc:not([hidden])) #view{margin-right:360px}
 }
+/* v28 · readiness info button + examples table + 12px minimum */
+.rd-i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1px solid currentColor;font:700 11px/1 ui-serif,Georgia,serif;opacity:.75;vertical-align:middle;margin-left:2px;position:relative;z-index:11;cursor:pointer;background:none;color:inherit}
+.rd-i::after{content:"";position:absolute;inset:-13px}
+.rd-i:hover,.rd-i:focus-visible{opacity:1;outline:2px solid #6366f1;outline-offset:1px}
+.text-\[9px\],.text-\[10px\],.text-\[11px\],.mod-rings .text-\[11px\],.badge,.chip,.mx,.qdot,.fs-pop .fs-note,.bc-disp small,.bc-note,.bc-cfrow span{font-size:max(12px,calc(12px * var(--fs,1)))}
+.text-\[12px\]{font-size:calc(12px * var(--fs,1))}.bc-disp small{height:auto}.dsvg .dt{font-size:12px}.st-mi>span{white-space:nowrap}
+.kp-ex{width:100%;font-size:13px;border-collapse:collapse}.kp-ex td{padding:.3rem .4rem;border-top:1px solid rgba(148,163,184,.25)}.kp-ex td:nth-child(2){font-family:ui-monospace,monospace;font-size:12px;white-space:nowrap}.kp-ex td:last-child{text-align:right;font-weight:600}
+/* v29 · More sessions · Performance ⋯ menu */
+.sess-more{margin-top:.75rem}.sess-more>summary{cursor:pointer;font-size:14px;font-weight:600;opacity:.85;list-style:none;display:inline-flex;align-items:center;gap:.35rem;min-height:44px}
+.sess-more>summary::-webkit-details-marker{display:none}.sess-more>summary::after{content:"▾";font-size:12px}.sess-more[open]>summary::after{content:"▴"}
+.sess-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:.5rem;margin-top:.25rem}
+.sess-it{display:flex;align-items:center;gap:.7rem;text-align:left;padding:.6rem .75rem;min-height:56px;border-radius:.8rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.08);color:inherit;cursor:pointer}
+.sess-it:hover{background:rgba(99,102,241,.12);border-color:#6366f1}.sess-it:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+.sess-ic{flex:0 0 36px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:.6rem;background:rgba(255,255,255,.75)}.dark .sess-ic{background:rgba(255,255,255,.08)}
+.sess-tx{display:flex;flex-direction:column;min-width:0}.sess-tx b{font-size:14px}.sess-tx small{font-size:12px;opacity:.75}
+.dsh-acts{display:contents}.dsh-more{display:none;min-width:44px;min-height:44px;font-size:20px;line-height:1}
+@media (max-width:639px){.dsh-more{display:inline-flex;align-items:center;justify-content:center}.dsh-acts{display:none;position:absolute;right:0;top:100%;z-index:40;flex-direction:column;align-items:stretch;gap:.4rem;padding:.6rem;border-radius:.9rem;background:#fff;border:1px solid rgba(148,163,184,.4);box-shadow:0 10px 30px rgba(15,23,42,.2);min-width:14rem}.dark .dsh-acts{background:#1e293b}.dsh-acts.open{display:flex}.dsh-acts>*{min-height:44px;justify-content:flex-start}}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -3994,143 +4011,7 @@ const ECON_MODULES = [
 // Schema: { id, m (module), q, o:[A,B,C], a (index), x (explanation) }
 const Q = (id, m, q, o, a, x) => ({ id, m, q, o, a, x });
 
-const QBANK_ECON = [
-// ---------- 12 Firms and Market Structures ----------
-Q('e12-01',12,'A market with many firms, differentiated products and low barriers to entry is best described as:',['Perfect competition','Monopolistic competition','Oligopoly'],1,'Product differentiation with many firms and easy entry defines monopolistic competition. Perfect competition has identical products; oligopoly has few firms and high barriers.'),
-Q('e12-02',12,'In the short run, a perfectly competitive firm should continue operating when the market price is:',['Above AVC but below ATC','Below AVC','Below average fixed cost only'],0,'If price covers average variable cost, each unit sold contributes to fixed costs, so the loss is smaller than shutting down. Below AVC the firm should shut down.'),
-Q('e12-03',12,'In long-run equilibrium, a firm in perfect competition earns:',['Positive economic profit','Zero economic profit','Negative accounting profit'],1,'Free entry and exit drive price to minimum ATC, so economic profit is zero. Accounting profit is still positive because it ignores opportunity costs.'),
-Q('e12-04',12,'For a firm in any market structure, profit is maximized at the output level where:',['MR = MC','P = minimum ATC','P = minimum AVC'],0,'MR = MC is the universal profit-maximization rule. P = min ATC only holds in long-run perfect competition.'),
-Q('e12-05',12,'Four firms hold market shares of 40%, 30%, 20% and 10%. The Herfindahl–Hirschman Index is closest to:',['0.30','0.25','1.00'],0,'HHI = 0.40² + 0.30² + 0.20² + 0.10² = 0.16 + 0.09 + 0.04 + 0.01 = 0.30. The 4-firm concentration ratio would be 1.00.'),
-Q('e12-06',12,'A key weakness of the N-firm concentration ratio is that it:',['Is unaffected by a merger between two of the largest N firms','Overweights the smallest firms in the market','Requires estimates of demand elasticity'],0,'The combined share of the top N firms does not change if two of them merge, even though market power rises. HHI captures this because shares are squared.'),
-Q('e12-07',12,'In the kinked demand curve model of oligopoly, competitors are assumed to:',['Match price increases but not price decreases','Match price decreases but not price increases','Match all price changes'],1,'Rivals follow price cuts (to protect share) but ignore increases. Demand is more elastic above the kink, creating a gap in MR and sticky prices.'),
-Q('e12-08',12,'The Stackelberg model differs from the Cournot model mainly because:',['Firms choose quantities simultaneously','One firm chooses its output first','Firms compete on price, not quantity'],1,'Stackelberg is a sequential (leader–follower) model; the leader gains a larger share. Cournot assumes simultaneous quantity decisions.'),
-Q('e12-09',12,'A profit-maximizing monopolist will produce on the portion of the demand curve that is:',['Elastic','Inelastic','Unit elastic'],0,'Since MC > 0 and the monopolist sets MR = MC, MR must be positive, which only occurs where demand is elastic.'),
-Q('e12-10',12,'A firm sells its product at a price of 50 and faces a price elasticity of demand of −2. Marginal revenue is closest to:',['25','75','100'],0,'MR = P × (1 − 1/|E|) = 50 × (1 − 1/2) = 25.'),
-Q('e12-11',12,'Minimum efficient scale is the output level at which:',['Long-run average total cost is minimized','Short-run ATC equals marginal revenue','Marginal cost is minimized'],0,'MES is the lowest point on the LRATC curve — where economies of scale end.'),
-Q('e12-12',12,'In long-run equilibrium under monopolistic competition, firms most likely:',['Earn zero economic profit with price above marginal cost','Earn positive economic profit','Produce where price equals marginal cost'],0,'Entry eliminates economic profit, but the downward-sloping demand curve means P > MC and firms operate with excess capacity.'),
-Q('e12-13',12,'A perfectly competitive firm faces a price of 10, average total cost of 12 and average variable cost of 8. In the short run it should:',['Shut down','Continue operating','Raise its price above the market price'],1,'P (10) > AVC (8), so operating covers variable costs and part of fixed costs. A price-taker cannot raise its price.'),
-Q('e12-14',12,'In the dominant firm model of oligopoly:',['The dominant firm sets the price and smaller firms act as price takers','The dominant firm matches the price of the smaller firms','All firms produce where price equals marginal cost'],0,'The dominant firm (large share, cost advantage) sets the market price; the competitive fringe takes it as given.'),
-Q('e12-15',12,'A Nash equilibrium exists when:',['No firm can improve its outcome by changing its strategy unilaterally','Joint industry profits are maximized','All firms earn zero economic profit'],0,'Nash equilibrium is about best responses given rivals’ choices; it need not maximize joint profits (e.g., prisoner’s dilemma).'),
-
-// ---------- 13 Business Cycles ----------
-Q('e13-01',13,'Which of the following is a leading economic indicator?',['Index of industrial production','Average weekly hours, manufacturing','Average duration of unemployment'],1,'Firms adjust hours before hiring or firing, so weekly hours lead the cycle. Industrial production is coincident; unemployment duration is lagging.'),
-Q('e13-02',13,'Which of the following is most likely a lagging indicator?',['Building permits','Change in CPI for services','Stock prices'],1,'Service inflation responds late to the cycle. Building permits and stock prices are leading indicators.'),
-Q('e13-03',13,'In the early recovery phase of a business cycle, the unemployment rate typically:',['Remains high and may still be rising','Is at its cyclical low','Falls sharply immediately'],0,'Unemployment is lagging; firms first increase hours of existing staff before hiring.'),
-Q('e13-04',13,'At the onset of a contraction, the inventory-to-sales ratio most likely:',['Rises','Falls','Remains unchanged'],0,'Sales fall unexpectedly faster than production is cut, so inventory builds relative to sales. Firms then cut output to correct it.'),
-Q('e13-05',13,'Early in an expansion, firms most likely first respond to rising demand by:',['Increasing hours of existing employees','Hiring many permanent workers','Building major new plants'],0,'Firms are uncertain the recovery will last, so they use overtime and temporary staff before permanent hiring or major capital spending.'),
-Q('e13-06',13,'When an economy enters a contraction, the component of capital spending typically cut first is:',['New orders','Projects already under construction','Routine maintenance already completed'],0,'Firms immediately cancel or delay new orders; projects in progress are usually completed.'),
-Q('e13-07',13,'Compared with business cycles, credit cycles are typically:',['Shorter and shallower','Longer and deeper','Identical in length and amplitude'],1,'Credit cycles tend to be longer and deeper and they amplify business cycles, especially through property markets.'),
-Q('e13-08',13,'Housing activity is most sensitive to changes in:',['Mortgage interest rates','Exchange rates','Foreign demand for exports'],0,'Mortgage rates directly drive affordability and housing demand.'),
-Q('e13-09',13,'Which category of consumer spending is the most cyclical?',['Services','Nondurable goods','Durable goods'],2,'Purchases of durables (cars, appliances) can be postponed in downturns, making them highly cyclical.'),
-Q('e13-10',13,'A diffusion index of economic indicators measures:',['The proportion of index components that are rising','The weighted average level of the components','The long-term trend growth rate'],0,'A diffusion index reflects how broadly a movement is spread across components.'),
-Q('e13-11',13,'Nowcasting is best described as:',['Estimating the current state of the economy using real-time data','Producing long-term forecasts of potential GDP','Backtesting historical recessions'],0,'Because official data are released with a lag, nowcasting uses high-frequency data to estimate current conditions.'),
-Q('e13-12',13,'Near the peak of a business cycle, the economy most likely shows:',['Slowing growth with elevated inflation pressure','The highest unemployment rate of the cycle','Inventory-to-sales ratio at its lowest and rising hiring'],0,'At the peak growth slows while inflation pressures and interest rates are typically elevated.'),
-Q('e13-13',13,'A strong domestic expansion most likely causes imports to:',['Increase','Decrease','Remain unaffected'],0,'Higher domestic income raises demand for all goods, including imports.'),
-Q('e13-14',13,'Which of the following is a coincident indicator?',['Index of industrial production','Initial claims for unemployment insurance','Average prime lending rate'],0,'Industrial production moves with the cycle. Initial claims lead; the prime rate lags.'),
-Q('e13-15',13,'During a credit boom, the most likely observation is:',['Loosening lending standards and rising property prices','Tightening lending standards','Peaking default rates'],0,'Easy credit fuels asset prices, particularly real estate; defaults rise later in the bust.'),
-
-// ---------- 14 Fiscal Policy ----------
-Q('e14-01',14,'With a marginal propensity to consume of 0.80 and a tax rate of 25%, the fiscal multiplier is closest to:',['2.5','5.0','1.25'],0,'Multiplier = 1 / [1 − 0.80 × (1 − 0.25)] = 1 / (1 − 0.60) = 2.5. 5.0 ignores taxes.'),
-Q('e14-02',14,'If a government increases spending and taxes by the same amount, aggregate output will most likely:',['Increase','Decrease','Remain unchanged'],0,'The balanced budget multiplier is positive: the full spending increase enters demand, while only part of the tax increase reduces consumption (the rest would have been saved).'),
-Q('e14-03',14,'Which of the following is an automatic stabilizer?',['Progressive income tax system','A new infrastructure program','A legislated temporary tax cut'],0,'Progressive taxes automatically take a smaller share of income in downturns without new legislation. The others are discretionary.'),
-Q('e14-04',14,'Under Ricardian equivalence, a debt-financed tax cut will most likely:',['Increase consumption significantly','Be offset by a rise in private saving','Reduce private saving'],1,'Households anticipate higher future taxes and save the tax cut, leaving demand unchanged.'),
-Q('e14-05',14,'Crowding out refers to:',['Government borrowing raising interest rates and reducing private investment','Imports replacing domestic production','Taxes reducing the labor supply'],0,'Higher government borrowing competes for savings, pushing rates up and reducing private investment.'),
-Q('e14-06',14,'The time between implementing a fiscal policy action and its effect on the economy is the:',['Recognition lag','Action lag','Impact lag'],2,'Recognition lag = identifying the problem; action lag = enacting policy; impact lag = time for policy to affect the economy.'),
-Q('e14-07',14,'Which of the following is an indirect tax?',['Personal income tax','Value-added tax','Wealth tax'],1,'Indirect taxes are levied on goods and services (VAT, excise). Income and wealth taxes are direct.'),
-Q('e14-08',14,'The best measure of a government’s discretionary fiscal stance is the:',['Actual budget deficit','Structural (cyclically adjusted) budget deficit','Debt-to-GDP ratio'],1,'The actual deficit moves with the cycle through automatic stabilizers; the structural deficit removes that effect.'),
-Q('e14-09',14,'Which is an argument AGAINST being concerned about a large national debt?',['The debt may be owed primarily to domestic citizens','High debt implies higher future taxes','Government borrowing may crowd out private investment'],0,'Domestically held debt is a transfer within the economy. The other two are arguments for concern.'),
-Q('e14-10',14,'A tax that minimally distorts economic decisions best satisfies which desirable attribute of tax policy?',['Efficiency','Fairness','Revenue sufficiency'],0,'Efficiency means minimal interference with market-based decisions.'),
-Q('e14-11',14,'With an MPC of 0.75 and no income taxes, an increase in government spending of 50 will increase GDP by:',['200','150','50'],0,'Multiplier = 1 / (1 − 0.75) = 4, so ΔGDP = 4 × 50 = 200.'),
-Q('e14-12',14,'Transfer payments differ from government purchases because transfer payments:',['Redistribute income and are not directly counted in GDP','Represent capital spending','Can only be financed by taxes'],0,'Transfers (e.g., pensions, unemployment benefits) do not purchase goods or services; they redistribute income.'),
-Q('e14-13',14,'A reduction in marginal income tax rates most likely affects the economy through:',['Higher aggregate supply via work and investment incentives','An increase in the money supply','A change in the exchange rate regime'],0,'Lower marginal rates raise after-tax returns to work and investment, a supply-side effect, in addition to demand effects.'),
-Q('e14-14',14,'If high unemployment is mainly structural, expansionary fiscal policy will most likely:',['Raise inflation without reducing structural unemployment much','Eliminate structural unemployment','Have no effect on prices'],0,'Structural unemployment reflects skill/location mismatches that demand stimulus does not fix; extra demand mainly raises prices.'),
-Q('e14-15',14,'Compared with monetary policy, fiscal policy changes typically have a:',['Longer action lag','Shorter action lag','Zero recognition lag'],0,'Fiscal changes require legislation and budget approval, so they take longer to enact.'),
-
-// ---------- 15 Monetary Policy ----------
-Q('e15-01',15,'A bank receives new reserves of 1,000. With a reserve requirement of 10%, the maximum total increase in deposits in the banking system is:',['1,000','9,000','10,000'],2,'Money multiplier = 1 / 0.10 = 10, so total deposits can increase by 10 × 1,000 = 10,000.'),
-Q('e15-02',15,'Real trend growth is 2%, the inflation target is 2%, and the policy rate is 5%. Monetary policy is most likely:',['Contractionary','Expansionary','Neutral'],0,'Neutral rate = 2% + 2% = 4%. A policy rate of 5% is above neutral, so policy is contractionary.'),
-Q('e15-03',15,'A central bank purchase of government bonds in open market operations most likely:',['Increases bank reserves and lowers interest rates','Decreases bank reserves','Raises short-term interest rates'],0,'Paying for the bonds adds reserves to the banking system, increasing liquidity and lowering rates.'),
-Q('e15-04',15,'A central bank with operational independence but not target independence:',['Decides how to achieve an inflation target set by the government','Sets both the inflation target and the policy rate','Has no authority over the policy rate'],0,'Operational independence = freedom over policy tools; target independence = also defining the target.'),
-Q('e15-05',15,'In a liquidity trap:',['Conventional interest-rate cuts become ineffective','The central bank cannot increase the money supply','Inflation is typically very high'],0,'Demand for money becomes perfectly elastic near zero rates; additional liquidity is hoarded, so rate cuts lose power.'),
-Q('e15-06',15,'According to the quantity theory of money, if velocity and real output are constant, a 5% increase in the money supply leads to:',['A 5% increase in the price level','A 5% increase in real output','A 5% decrease in velocity'],0,'MV = PY; with V and Y fixed, P rises proportionally with M.'),
-Q('e15-07',15,'If the real interest rate is 2% and expected inflation is 3%, the nominal interest rate is approximately:',['5%','1%','6%'],0,'Fisher effect: nominal ≈ real + expected inflation = 2% + 3% = 5%.'),
-Q('e15-08',15,'A cut in the official policy rate will most likely cause the domestic currency to:',['Depreciate','Appreciate','Remain unchanged'],0,'Lower domestic rates reduce the return on domestic assets, reducing demand for the currency.'),
-Q('e15-09',15,'Under an inflation-targeting framework, the central bank most likely:',['Announces an explicit inflation target and adjusts the policy rate to meet it','Fixes the exchange rate against a major currency','Targets a fixed growth rate of the money supply'],0,'Inflation targeting relies on an explicit target, credibility and transparency, with the policy rate as the main tool.'),
-Q('e15-10',15,'Quantitative easing involves:',['Large-scale purchases of assets to increase reserves and lower longer-term rates','Raising reserve requirements','Selling government bonds to drain liquidity'],0,'QE is an unconventional expansionary tool used when policy rates are near zero.'),
-Q('e15-11',15,'Expansionary fiscal policy combined with restrictive monetary policy most likely results in:',['Higher interest rates and a larger public sector share of GDP','Lower interest rates and a larger private sector share of GDP','Lower interest rates and a smaller public sector share'],0,'Fiscal expansion raises government’s share; tight money keeps rates high, crowding out private spending.'),
-Q('e15-12',15,'Unexpected inflation is generally more costly than expected inflation because it:',['Redistributes wealth between borrowers and lenders and raises risk premia','Causes only menu costs','Has no impact on interest rates'],0,'Unexpected inflation cannot be built into contracts, so it transfers wealth arbitrarily and increases uncertainty.'),
-Q('e15-13',15,'Quoting all prices in a single currency reflects money’s function as a:',['Unit of account','Store of value','Medium of exchange'],0,'A unit of account provides a common measure of value.'),
-Q('e15-14',15,'A central bank that targets its exchange rate faces depreciation pressure. To defend the target it will most likely:',['Sell foreign currency reserves and/or raise interest rates','Buy foreign currency and lower interest rates','Increase the money supply'],0,'Selling FX reserves buys back domestic currency, and higher rates attract capital; both support the currency.'),
-Q('e15-15',15,'An increase in the reserve requirement will most likely:',['Reduce the money multiplier and the money supply','Increase the money multiplier','Have no effect on bank lending'],0,'Higher required reserves leave less to lend; multiplier = 1/RR falls.'),
-
-// ---------- 16 Geopolitics ----------
-Q('e16-01',16,'Which of the following is a non-state actor?',['A multinational corporation','A national government','A national armed force'],0,'Non-state actors operate outside government control: NGOs, multinationals, charities, influential individuals.'),
-Q('e16-02',16,'A country that pursues cooperation and globalization is best described by which archetype?',['Multilateralism','Hegemony','Autarky'],0,'Multilateralism = cooperation + globalization (many countries following common rules).'),
-Q('e16-03',16,'A country that is non-cooperative and nationalist, seeking self-sufficiency, best fits:',['Autarky','Bilateralism','Hegemony'],0,'Autarky aims at self-sufficiency with minimal external trade and cooperation.'),
-Q('e16-04',16,'A country that cooperates with others on a country-by-country basis while maintaining a nationalist orientation best fits:',['Bilateralism','Multilateralism','Hegemony'],0,'Bilateralism = cooperation (with specific partners) + nationalism.'),
-Q('e16-05',16,'A dominant country that is globally integrated but sets the rules for others without broad cooperation best fits:',['Hegemony','Multilateralism','Autarky'],0,'Hegemony = globalization + non-cooperation; the hegemon exerts influence over others.'),
-Q('e16-06',16,'A national election scheduled for next year is best classified as:',['Event risk','Exogenous risk','Thematic risk'],0,'Event risks are known in advance with a set date (elections, legislation).'),
-Q('e16-07',16,'The growing threat of cyberattacks that evolves and expands over time is best classified as:',['Thematic risk','Event risk','Exogenous risk'],0,'Thematic risks are known, persistent risks that evolve over time (climate, cyber, migration).'),
-Q('e16-08',16,'An unanticipated military invasion is best classified as:',['Exogenous risk','Event risk','Thematic risk'],0,'Exogenous risks are sudden and unanticipated.'),
-Q('e16-09',16,'A sudden coup that immediately disrupts local financial markets is best described as a risk with:',['High velocity','Low velocity','Low impact by definition'],0,'Velocity is the speed at which a risk affects markets; immediate disruption = high velocity.'),
-Q('e16-10',16,'Which of the following is a financial tool of geopolitics?',['Economic sanctions and currency restrictions','Armed conflict','A free trade agreement'],0,'Sanctions and FX/investment restrictions are financial tools. Armed conflict is a national-security tool; FTAs are economic tools.'),
-Q('e16-11',16,'Which is a cooperative economic tool of geopolitics?',['Forming a customs union','Nationalizing foreign-owned assets','Imposing domestic content requirements'],0,'Customs unions reduce trade barriers among members. Nationalization and domestic content rules are non-cooperative.'),
-Q('e16-12',16,'Soft power is best described as:',['Influencing others through culture, education, media and diplomacy','Using military force','Imposing sanctions'],0,'Soft power influences behavior without coercion.'),
-Q('e16-13',16,'For investors, a global shift toward nationalism and autarky most likely leads to:',['Higher costs and reduced diversification opportunities','Lower supply chain costs','Greater access to foreign markets'],0,'Localized supply chains and barriers raise costs and reduce cross-border investment opportunities.'),
-Q('e16-14',16,'When assessing geopolitical risk, an analyst considers likelihood, velocity and:',['Size of impact','Dividend yield','Credit rating only'],0,'The framework evaluates how likely a risk is, how quickly it hits, and how large its impact is.'),
-Q('e16-15',16,'Nationalization of foreign-owned assets is best classified as a:',['Non-cooperative economic tool','Cooperative financial tool','National security tool'],0,'It restricts foreign participation in the economy — a non-cooperative economic tool.'),
-
-// ---------- 17 International Trade ----------
-Q('e17-01',17,'In one hour, Country A can produce 4 units of wheat or 2 units of cloth; Country B can produce 1 unit of wheat or 1 unit of cloth. Which statement is correct?',['A has an absolute advantage in both goods; B has a comparative advantage in cloth','B has an absolute advantage in cloth','A has a comparative advantage in both goods'],0,'A produces more of both (absolute advantage). Opportunity cost of 1 cloth: A = 2 wheat, B = 1 wheat → B has the comparative advantage in cloth; A in wheat.'),
-Q('e17-02',17,'A tariff imposed by a small importing country will most likely:',['Reduce national welfare','Increase national welfare','Leave consumer surplus unchanged'],0,'Consumer surplus falls by more than the gains to producers and government revenue, creating deadweight loss.'),
-Q('e17-03',17,'The key difference between an import quota and an equivalent tariff (small country) is that under a quota:',['Quota rents may go to foreign exporters rather than to the government','There is no deadweight loss','The domestic price does not rise'],0,'Price effects can be identical, but quota rents go to whoever holds the licenses unless the government auctions them.'),
-Q('e17-04',17,'A voluntary export restraint is most likely to:',['Transfer quota rents to foreign producers','Generate tariff revenue for the importing country','Lower domestic prices in the importing country'],0,'The exporting country restricts supply, so foreign firms capture the rents — a larger welfare loss for the importer.'),
-Q('e17-05',17,'For a large exporting country, an export subsidy will most likely:',['Lower the world price and worsen its terms of trade','Raise the world price','Improve its terms of trade'],0,'Increased exports push down the world price, so the country receives less for its exports.'),
-Q('e17-06',17,'A trading bloc that removes barriers among members AND adopts a common external trade policy is a:',['Customs union','Free trade area','Common market'],0,'FTA = no barriers among members; customs union adds common external policy; common market adds free movement of factors.'),
-Q('e17-07',17,'Compared with a customs union, a common market additionally allows:',['Free movement of labor and capital among members','A common currency','Common external tariffs'],0,'Free movement of factors of production is the extra step of a common market.'),
-Q('e17-08',17,'A group of countries with a common market, common economic institutions and a single currency is a:',['Monetary union','Free trade area','Customs union'],0,'Monetary union is the deepest form of integration (e.g., the eurozone).'),
-Q('e17-09',17,'Trade diversion occurs when:',['Lower-cost imports from non-members are replaced by higher-cost imports from members','Higher-cost domestic production is replaced by lower-cost imports from members','Exports increase to non-member countries'],0,'Trade diversion reduces efficiency; the second option describes trade creation.'),
-Q('e17-10',17,'Which group is most likely to lose from free trade?',['Workers in import-competing industries','Exporting firms','Consumers'],0,'Import competition can reduce output and jobs in protected industries.'),
-Q('e17-11',17,'Which institution’s primary role is to promote international monetary stability and lend to countries with balance-of-payments problems?',['IMF','World Bank','WTO'],0,'The IMF oversees the international monetary system and provides BoP financing.'),
-Q('e17-12',17,'Which institution focuses on long-term development financing and poverty reduction?',['World Bank','IMF','WTO'],0,'The World Bank funds development projects and reforms.'),
-Q('e17-13',17,'Which institution provides the legal framework for international trade and resolves trade disputes?',['WTO','IMF','World Bank'],0,'The WTO administers trade rules and dispute settlement.'),
-Q('e17-14',17,'The terms of trade are defined as the ratio of:',['Export price index to import price index','Exports to imports in volume','Exports minus imports to GDP'],0,'An increase means a country can buy more imports per unit of exports.'),
-Q('e17-15',17,'A country can benefit from international trade even if it has no absolute advantage in any good because:',['Trade is driven by comparative advantage','Tariffs protect its producers','Exchange rates always adjust to equalize costs'],0,'Every country has a comparative advantage in something — the good with the lowest opportunity cost.'),
-
-// ---------- 18 Capital Flows and the FX Market ----------
-Q('e18-01',18,'The nominal USD/EUR rate is 1.10. The US price level index is 110 and the eurozone price level index is 105. For a US investor (USD = domestic), the real USD/EUR exchange rate is closest to:',['1.050','1.152','1.100'],0,'Real (d/f) = S(d/f) × (P_f / P_d) = 1.10 × (105 / 110) = 1.05.'),
-Q('e18-02',18,'An increase in the real exchange rate (domestic/foreign) most likely indicates that:',['Domestic goods have become more competitive internationally','The domestic currency has appreciated in real terms','Domestic inflation exceeds foreign inflation with no change in the nominal rate'],0,'A higher d/f real rate = real depreciation of the domestic currency, making domestic goods relatively cheaper.'),
-Q('e18-03',18,'A regime in which a country is legally committed to exchange its currency at a fixed rate, fully backed by foreign reserves, is a:',['Currency board','Crawling peg','Managed float'],0,'Hong Kong is the classic currency-board example.'),
-Q('e18-04',18,'A country that adopts another country’s currency as legal tender:',['Gives up independent monetary policy','Retains full control over interest rates','Operates a crawling band'],0,'Under dollarization, monetary policy is effectively set by the issuer of the adopted currency.'),
-Q('e18-05',18,'Under a conventional fixed peg arrangement, the currency is allowed to fluctuate within a band of at most:',['±1% around parity','±10% around parity','No band — it floats freely'],0,'A fixed parity allows a narrow ±1% margin; a target zone allows a wider band.'),
-Q('e18-06',18,'A regime in which the exchange rate is adjusted periodically, often to reflect inflation differentials, is a:',['Crawling peg','Currency board','Monetary union'],0,'A crawling peg adjusts the parity in small, frequent steps.'),
-Q('e18-07',18,'According to the Marshall–Lerner condition, a currency depreciation improves the trade balance when:',['Export and import demand are sufficiently price elastic','Export and import demand are inelastic','Imports exceed exports by a wide margin'],0,'Volumes must respond enough to offset the price effect of depreciation.'),
-Q('e18-08',18,'The J-curve effect describes a trade balance that, after a depreciation:',['Worsens initially and then improves','Improves immediately and permanently','Worsens permanently'],0,'Contracts are fixed in the short run, so import costs rise before volumes adjust.'),
-Q('e18-09',18,'Under the absorption approach, a depreciation improves the trade balance only if:',['National income rises relative to domestic expenditure','Domestic expenditure rises faster than income','Capital inflows increase'],0,'Trade balance = income − absorption (expenditure); it improves only if income rises relative to spending.'),
-Q('e18-10',18,'A large pension fund participating in the FX market is best classified as a:',['Real money account','Leveraged account','Sell-side participant'],0,'Real money accounts (pension and mutual funds) have restricted leverage; hedge funds are leveraged accounts.'),
-Q('e18-11',18,'Which of the following is a sell-side participant in the FX market?',['A large bank’s FX dealing desk','A hedge fund','A sovereign wealth fund'],0,'Sell side = dealers who make markets; the others are buy-side clients.'),
-Q('e18-12',18,'Which is LEAST likely an objective of capital restrictions?',['Increasing foreign competition in strategic industries','Reducing volatility in domestic asset prices','Maintaining a fixed exchange rate with an independent monetary policy'],0,'Capital restrictions aim to PROTECT strategic industries from foreign ownership, not increase foreign competition.'),
-Q('e18-13',18,'According to the impossible trinity, a country cannot simultaneously have:',['Free capital flows, a fixed exchange rate and independent monetary policy','A floating rate and free capital flows','A fixed rate and capital controls'],0,'Only two of the three can be achieved at the same time.'),
-Q('e18-14',18,'An exporter expecting to receive foreign currency in three months can hedge by:',['Selling the foreign currency forward','Buying the foreign currency forward','Buying the foreign currency spot today'],0,'Selling forward locks in the domestic value of the future receipt.'),
-Q('e18-15',18,'Leveraged accounts in the FX market most likely include:',['Hedge funds and proprietary trading firms','Pension funds','Central banks'],0,'Leveraged accounts use borrowed funds and derivatives; pension funds are real money accounts.'),
-
-// ---------- 19 Exchange Rate Calculations ----------
-Q('e19-01',19,'A quote of USD/EUR = 1.0850 means:',['1 EUR costs 1.0850 USD','1 USD costs 1.0850 EUR','1 EUR costs 0.9217 USD'],0,'In A/B notation, B (EUR) is the base currency: units of USD per 1 EUR.'),
-Q('e19-02',19,'Given USD/EUR = 1.10 and JPY/USD = 150, the JPY/EUR cross rate is closest to:',['165.00','136.36','0.0073'],0,'JPY/EUR = JPY/USD × USD/EUR = 150 × 1.10 = 165. USD cancels.'),
-Q('e19-03',19,'Given CHF/USD = 0.90 and USD/GBP = 1.25, the CHF/GBP cross rate is closest to:',['1.1250','1.3889','0.7200'],0,'CHF/GBP = CHF/USD × USD/GBP = 0.90 × 1.25 = 1.125.'),
-Q('e19-04',19,'USD/EUR moves from 1.10 to 1.21. The percentage change in the value of the USD relative to the EUR is closest to:',['−9.09%','−10.00%','+10.00%'],0,'Invert to EUR/USD: 1/1.21 ÷ 1/1.10 − 1 = 1.10/1.21 − 1 = −9.09%. The EUR appreciated 10%.'),
-Q('e19-05',19,'Spot USD/EUR = 1.1000. The 1-year USD rate is 4% and the EUR rate is 2%. The 1-year forward USD/EUR rate is closest to:',['1.1216','1.0788','1.1000'],0,'F = 1.10 × (1.04 / 1.02) = 1.1216. USD (price currency) on top, EUR (base) below.'),
-Q('e19-06',19,'Spot USD/EUR = 1.1000 and the forward rate is 1.1216. Forward points are closest to:',['+216','−216','+21.6'],0,'(1.1216 − 1.1000) × 10,000 = +216 points.'),
-Q('e19-07',19,'Spot JPY/USD = 150.00. The 90-day JPY rate is 0.5% and the USD rate is 5.0% (360-day basis). The 90-day forward JPY/USD rate is closest to:',['148.33','151.69','143.57'],0,'F = 150 × (1 + 0.005×90/360) / (1 + 0.05×90/360) = 150 × 1.00125 / 1.0125 = 148.33.'),
-Q('e19-08',19,'For the USD/EUR quote, if USD interest rates exceed EUR interest rates, the EUR will most likely trade at a forward:',['Premium','Discount','Par, with zero forward points'],0,'The lower-yielding base currency (EUR) trades at a forward premium so that covered returns are equal.'),
-Q('e19-09',19,'Under covered interest rate parity, the forward premium or discount approximately equals the:',['Interest rate differential between the two currencies','Expected inflation differential exactly','Realized change in the spot rate'],0,'CIP is an arbitrage relation: F/S ≈ (1 + i_price) / (1 + i_base).'),
-Q('e19-10',19,'If USD/GBP = 1.2500, the GBP/USD quote is:',['0.8000','1.2500','0.7500'],0,'GBP/USD = 1 / 1.25 = 0.80.'),
-Q('e19-11',19,'Spot CAD/USD = 1.3550 and the 3-month forward points are −45. The 3-month outright forward rate is:',['1.3505','1.3595','1.3100'],0,'1.3550 − 0.0045 = 1.3505.'),
-Q('e19-12',19,'Spot CAD/USD = 1.3550 and the forward is 1.3505. The USD is trading at a forward:',['Discount','Premium','Par'],0,'The forward price of the base currency (USD) is below spot, so USD is at a forward discount (≈ −0.33%).'),
-Q('e19-13',19,'MXN/USD moves from 17.00 to 18.70. The percentage change in the value of the MXN relative to the USD is closest to:',['−9.09%','−10.00%','+10.00%'],0,'USD appreciated 10%. MXN: 17.00/18.70 − 1 = −9.09%.'),
-Q('e19-14',19,'Given USD/EUR = 1.08 and USD/GBP = 1.27, the EUR/GBP cross rate is closest to:',['1.1759','0.8504','1.3716'],0,'EUR/GBP = EUR/USD × USD/GBP = (1/1.08) × 1.27 = 1.1759.'),
-Q('e19-15',19,'USD/EUR = 1.10 and JPY/USD = 150. A dealer quotes JPY/EUR = 160. An arbitrage would involve:',['Buying EUR from the dealer at 160 JPY','Selling EUR to the dealer at 160 JPY','No arbitrage exists'],0,'The implied cross is 165, so EUR is cheap at the dealer: buy EUR for 160 JPY, convert EUR→USD→JPY for 165 JPY, profit 5 JPY per EUR.'),
-];
+const QBANK_ECON = [];      // v29 · built-in Economics questions removed — Economics questions come only from your uploaded files (no duplicates)
 
 // Mohd Summary & Diff notes — stored locally, ordered cards per module.
 
@@ -6204,13 +6085,13 @@ document.addEventListener('click', async e => {
 // ---------- Study: subjects with progress ----------
 // ---------- Home: performance overview ----------
 // ---------- Study plan ----------
-const KIND = { read: { icon: '📖', name: 'Read', min: 120 }, sum: { icon: '✍', name: 'Summarise', min: 60 }, q: { icon: '🎯', name: 'Practice questions', min: 75 }, review: { icon: '🔁', name: 'Review', min: 45 }, custom: { icon: '📌', name: 'Task', min: 60 } };
+const KIND = { lec: { icon: '\uD83C\uDFAC', name: 'Watch lecture', min: 60 }, xtra: { icon: '\u2795', name: 'Extra curriculum', min: 30 }, read: { icon: '📖', name: 'Read', min: 120 }, sum: { icon: '✍', name: 'Summarise', min: 60 }, q: { icon: '🎯', name: 'Practice questions', min: 75 }, review: { icon: '🔁', name: 'Review', min: 45 }, custom: { icon: '📌', name: 'Task', min: 60 } };
 const isoDay = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 function planTasks(plan, c) {
   const mods = moduleList();
   return plan.tasks.map(t => {
     let auto = false; const m = mods.find(z => z.id === t.mod);
-    if (m && c) { const p = modProgress(m, c); auto = t.kind === 'read' ? p.reading >= 100 : t.kind === 'sum' ? p.sumDone : t.kind === 'q' ? p.qTot > 0 && p.questions >= 100 : false; }
+    if (m && c) { const p = modProgress(m, c); auto = t.kind === 'lec' ? p.lecture >= 100 : t.kind === 'xtra' ? p.extras >= 100 : t.kind === 'read' ? p.reading >= 100 : t.kind === 'sum' ? p.sumDone : t.kind === 'q' ? p.qTot > 0 && p.questions >= 100 : false; }
     return { ...t, auto, isDone: !!t.done || auto, m };
   }).sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
 }
@@ -6247,7 +6128,10 @@ function buildPlan(cfg, keep = []) {
   };
   for (const id of order) {
     const m = modInfo(id); if (!m) continue;
+    const mn = { lec: 60, xtra: 30, ...cfg.mins };      // v28 · the plan follows the same 5 steps as the module tracker
+    if (mn.lec > 0) push('lec', id, `${m.short} · Watch lecture`, mn.lec);
     push('read', id, `${m.short} · Read ${m.title}`, cfg.mins.read);
+    if (mn.xtra > 0) push('xtra', id, `${m.short} · Extra curriculum reading`, mn.xtra);
     push('sum', id, `${m.short} · Write Mohd Summary`, cfg.mins.sum);
     push('q', id, `${m.short} · Practice all module questions`, cfg.mins.q);
   }
@@ -6257,7 +6141,7 @@ function buildPlan(cfg, keep = []) {
 async function planView() {
   const c = await progressCtx(); let plan = await kv.get('plan', null);
   const mods = moduleList(), today = isoDay(new Date());
-  const cfg = plan?.cfg || { start: today, minPerDay: 120, days: [0, 1, 2, 3, 4, 6], mods: mods.map(m => m.id), mins: { read: 150, sum: 60, q: 90 }, review: true };
+  const cfg = plan?.cfg || { start: today, minPerDay: 120, days: [0, 1, 2, 3, 4, 6], mods: mods.map(m => m.id), mins: { lec: 60, read: 150, xtra: 30, sum: 60, q: 90 }, review: true };
   const dn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const s = plan ? planSummary(plan, c) : null;
   const ts = s ? s.ts : [];
@@ -6283,7 +6167,7 @@ async function planView() {
       <div class="card"><h3 class="sec">Schedule</h3><div class="space-y-4">${Object.keys(groups).filter(d => d >= today || groups[d].some(t => !t.isDone) === false).map(d => `
         <div><div class="text-xs font-semibold ${d === today ? 'text-indigo-600' : 'text-slate-500'} mb-1">${d === today ? 'TODAY · ' : ''}${fmt(d)} · ${groups[d].reduce((a, t) => a + t.min, 0)} min</div>
         <div class="space-y-1.5">${groups[d].map(taskRow).join('')}</div></div>`).join('')}</div></div>`
-      : `<div class="card text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Set your start date, daily study time and study days, then press <b>Generate plan</b>. Each module gets three tasks — <b>Read</b>, <b>Summarise</b>, <b>Practice questions</b> — sized in minutes and spread across your study days. Tasks tick themselves off automatically when your module tracker reaches 100%.</div>`}
+      : `<div class="card text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Set your start date, daily study time and study days, then press <b>Generate plan</b>. Each module gets the same five steps as the module tracker — <b>Lecture</b>, <b>Read</b>, <b>Extras</b>, <b>Summarise</b>, <b>Practice questions</b> — sized in minutes and spread across your study days. Tasks tick themselves off automatically when your module tracker reaches 100%.</div>`}
     </div>
     <div class="space-y-4">
       <div class="card space-y-2">
@@ -6291,8 +6175,9 @@ async function planView() {
         <label class="lbl">Start date</label><input type="date" id="pStart" class="inp" value="${cfg.start}">
         <label class="lbl">Study time per day (minutes)</label><input type="number" id="pMin" min="30" step="15" class="inp" value="${cfg.minPerDay}">
         <label class="lbl">Study days</label><div class="flex flex-wrap gap-1">${dn.map((n, i) => `<label class="chip cursor-pointer"><input type="checkbox" class="accent-indigo-600" data-day="${i}" ${cfg.days.includes(i) ? 'checked' : ''}> ${n}</label>`).join('')}</div>
-        <label class="lbl">Minutes per module: Read / Summary / Questions</label>
-        <div class="grid grid-cols-3 gap-1"><input type="number" id="pR" class="inp" value="${cfg.mins.read}"><input type="number" id="pS" class="inp" value="${cfg.mins.sum}"><input type="number" id="pQ" class="inp" value="${cfg.mins.q}"></div>
+        <label class="lbl">Minutes per module — the 5 tracker steps (0 = skip a step)</label>
+        <div class="grid grid-cols-5 gap-1 text-[12px] text-slate-500 text-center"><span>Lecture</span><span>Read</span><span>Extras</span><span>Summary</span><span>Qs</span></div>
+        <div class="grid grid-cols-5 gap-1"><input type="number" min="0" id="pL" class="inp" aria-label="Lecture minutes" value="${cfg.mins.lec ?? 60}"><input type="number" min="0" id="pR" class="inp" aria-label="Reading minutes" value="${cfg.mins.read}"><input type="number" min="0" id="pX" class="inp" aria-label="Extras minutes" value="${cfg.mins.xtra ?? 30}"><input type="number" min="0" id="pS" class="inp" aria-label="Summary minutes" value="${cfg.mins.sum}"><input type="number" min="0" id="pQ" class="inp" aria-label="Questions minutes" value="${cfg.mins.q}"></div>
         <label class="lbl">Modules (in study order)</label>
         <div class="max-h-48 overflow-auto space-y-0.5">${mods.map(m => `<label class="flex items-center gap-2 text-xs"><input type="checkbox" class="accent-indigo-600" data-pm="${m.id}" ${cfg.mods.includes(m.id) ? 'checked' : ''}> ${m.short} · ${esc(m.title)}</label>`).join('')}</div>
         <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="pRev" class="accent-indigo-600" ${cfg.review ? 'checked' : ''}> Add a review round at the end</label>
@@ -6313,7 +6198,7 @@ async function planView() {
     if (t.id === 'pGen') {
       const nc = { start: document.getElementById('pStart').value || today, minPerDay: Math.max(30, +document.getElementById('pMin').value || 120),
         days: [...view.querySelectorAll('[data-day]:checked')].map(x => +x.dataset.day), mods: [...view.querySelectorAll('[data-pm]:checked')].map(x => x.dataset.pm),
-        mins: { read: +document.getElementById('pR').value || 150, sum: +document.getElementById('pS').value || 60, q: +document.getElementById('pQ').value || 90 }, review: document.getElementById('pRev').checked };
+        mins: { lec: Math.max(0, +document.getElementById('pL').value || 0), xtra: Math.max(0, +document.getElementById('pX').value || 0), read: +document.getElementById('pR').value || 150, sum: +document.getElementById('pS').value || 60, q: +document.getElementById('pQ').value || 90 }, review: document.getElementById('pRev').checked };
       if (!nc.days.length) return toast('Choose at least one study day');
       if (!nc.mods.length) return toast('Choose at least one module');
       const keep = plan ? plan.tasks.filter(z => z.kind === 'custom') : [];
@@ -6516,7 +6401,7 @@ document.addEventListener('click', e => { const b = e.target.closest && e.target
 async function startQSession(qs, mode, count, back, opts = {}) {
   qs = opts.keepOrder ? qs : shuffle(qs); if (count !== 'all') qs = qs.slice(0, +count);
   if (!qs.length) return false;
-  await kv.set('qsession', { id: uid(), mode, i: 0, start: Date.now(), limit: mode === 'exam' ? qs.length * 90 : 0, back: back || '#/qbank', reasons: !!opts.reasons, title: opts.title || '', next: opts.next || null, miniKey: opts.miniKey || null, mockId: opts.mockId || null, part: opts.part || null, gt: !!opts.gauntlet, pausedTotal: 0,
+  await kv.set('qsession', { id: uid(), mode, i: 0, start: Date.now(), limit: mode === 'exam' ? qs.length * 90 : 0, back: back || '#/qbank', reasons: !!opts.reasons, title: opts.title || '', next: opts.next || null, miniKey: opts.miniKey || null, mockId: opts.mockId || null, part: opts.part || null, gt: !!opts.gauntlet, strict: !!opts.strict, pausedTotal: 0,
     items: qs.map(q => ({ id: q.id, order: q.src ? q.o.map((_, k) => k) : shuffle(q.o.map((_, k) => k)), pick: null, sel: null, x: [], t: 0, conf: null, tw: (opts.twins && opts.twins[q.id]) || null })), done: false });
   if (location.hash === '#/qbank/run') route(); else location.hash = '#/qbank/run'; return true;
 }
@@ -6575,7 +6460,7 @@ async function qbankRun() {
   const stopQ = () => { if (qStart !== null) { cur().t = (cur().t || 0) + (now() - qStart); qStart = null; } };
   const qSecs = it => ((it.t || 0) + (qStart !== null && it === cur() ? now() - qStart : 0)) / 1000;
   const examLeft = () => S.limit - Math.floor((now() - S.start - S.pausedTotal - (S.paused ? now() - S.pauseAt : 0)) / 1000);
-  async function pause() { if (S.paused || S.done) return; stopQ(); S.paused = true; S.pauseAt = now(); await save(); draw(); }
+  async function pause() { if (S.paused || S.done) return; if (S.strict) return toast('Exam conditions: the clock cannot be paused — like the real exam.'); stopQ(); S.paused = true; S.pauseAt = now(); await save(); draw(); }
   async function resume() { if (!S.paused) return; S.pausedTotal += now() - S.pauseAt; S.paused = false; S.pauseAt = null; await save(); draw(); }
   let qfs = await kv.get('qfs', 0);
   async function qFont(d) { qfs = Math.max(-2, Math.min(5, qfs + d)); await kv.set('qfs', qfs); const c = document.getElementById('qcard'); if (c) c.style.setProperty('--qfs', (1 + qfs * 0.1).toFixed(2)); }
@@ -6618,7 +6503,7 @@ async function qbankRun() {
           <span id="qclock" class="font-mono text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700" data-tip="Time on this question (target ≈ 90 s · amber after 90 s · red after 3 min)">⏱ ${fmtSec(qSecs(it))}</span>
           ${S.mode === 'exam' ? `<span id="pace" class="font-mono text-xs px-2 py-1" data-tip="Pace vs 90 s per answered question: ▲ ahead · ▼ behind"></span>` : ''}
           ${S.mode === 'exam' ? `<span id="clock" class="font-mono text-xs px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40" data-tip="Exam time left"></span>` : ''}
-          <button id="pz" class="ib" data-tip="${S.paused ? 'Resume (R or P)' : 'Pause the timer (P)'}">${S.paused ? '▶' : '⏸'}</button>
+          <button id="pz" class="ib${S.strict ? ' hidden' : ''}" data-tip="${S.paused ? 'Resume (R or P)' : 'Pause the timer (P)'}">${S.paused ? '▶' : '⏸'}</button>
           <button class="ib" data-tip="${esc(qHistTip(q, st[q.id]))}" aria-label="Question history">ⓘ</button>
           <button id="flag" class="ib ${flagged ? 'text-amber-500' : ''}" data-tip="${flagged ? 'Flagged — click to remove' : 'Flag to come back later (stays until you remove it)'}">⚑</button>
           <button class="ib" data-qmg="${esc(q.id)}" aria-label="Edit or disable this question" data-tip="Edit this question, or disable it (old lesson / wrong / duplicate)">⋯</button>
@@ -6739,7 +6624,7 @@ async function qbankRun() {
     const rb = e.target.closest('[data-reason]');
     if (rb) { await setReason(rb.dataset.qid, +rb.dataset.at || null, rb.dataset.reason); const box = rb.closest('[data-rbox]'); box.querySelectorAll('[data-reason]').forEach(b => b.classList.toggle('chip-on', b === rb && !b.classList.contains('chip-on'))); toast('Reason saved'); return; }
     if (e.target.id === 'missGo') { const miss = S.items.filter(it => it.pick === null || it.order[it.pick] !== Q(it.id)?.a).map(it => Q(it.id)).filter(Boolean); await startQSession(miss, 'practice', 'all', S.back, { title: `Missed · ${S.title || 'session'}`, reasons: true, mockId: S.mockId }); return; }
-    if (e.target.id === 'nextPart') { await startQSession(S.next.map(id => Q(id)).filter(Boolean), 'exam', 'all', S.back, { title: (S.title || 'Exam day').replace(/Session 1 of 2/, 'Session 2 of 2'), keepOrder: true, reasons: S.reasons, mockId: S.mockId, part: 2 }); return; }
+    if (e.target.id === 'nextPart') { await startQSession(S.next.map(id => Q(id)).filter(Boolean), 'exam', 'all', S.back, { title: (S.title || 'Exam day').replace(/Session 1 of 2/, 'Session 2 of 2'), keepOrder: true, strict: !!S.strict, reasons: S.reasons, mockId: S.mockId, part: 2 }); return; }
     if (S.done) return;
     const opt = e.target.closest('[data-k]'), gq = e.target.closest('[data-go]'), cf = e.target.closest('[data-conf]');
     const it = cur();
@@ -6801,7 +6686,7 @@ async function qbankRun() {
     }
     if (e.key === 'ArrowRight') (document.getElementById('next') || document.getElementById('finish'))?.click();
   };
-  const onVis = () => { if (document.hidden) pause(); };
+  const onVis = () => { if (document.hidden && !S.strict) pause(); };   // exam conditions: the clock keeps running
   document.addEventListener('keydown', onKey); document.addEventListener('visibilitychange', onVis); showKeys('quiz');
   draw();
   return () => { stopQ(); if (!S.done) save(); clearInterval(ticker); document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis); view.onclick = null; };
@@ -7261,8 +7146,12 @@ async function getDecks(mod) { return kv.get('decks:' + mod, []); }
 const isMast = c => c.mastered ?? ((c.box || 0) >= 2);
 async function cardQueue(mods, onlyDue, losF, filt) {
   const t = Date.now(), q = [];
-  const keep = (c, due) => filt === 'flag' ? !!c.flag : filt === 'nm' ? !isMast(c) : (!onlyDue || (due || 0) <= t);
-  for (const mod of mods) {
+  // v28 · across several modules, NEW cards (never reviewed) become due only after the module's lecture or reading is finished
+  let studied = null;
+  if (onlyDue && !filt && mods.length > 1) { try { const cx = await progressCtx(); studied = new Set(mods.filter(id => { const m = modInfo(id); if (!m || !m.x) return false; const p = modProgress(m, cx); return p.reading >= 100 || p.lecture >= 100; })); } catch { studied = null; } }
+  const keep0 = (c, due) => filt === 'flag' ? !!c.flag : filt === 'nm' ? !isMast(c) : (!onlyDue || (due || 0) <= t);
+  let curMod = null; const keep = (c, due) => keep0(c, due) && (!studied || studied.has(curMod) || !!due);
+  for (const mod of mods) { curMod = mod;
     for (const c of await getCards(mod)) if ((!losF || c.los === losF) && keep(c, c.due)) q.push({ kind: 'txt', mod, c });
     const ds = await kv.get('deckst:' + mod, {});
     for (const d of await getDecks(mod)) for (let p = 1; p <= d.pages; p++) { const s = ds[`${d.fileId}:${p}`] || {}; if (!losF && keep(s, s.due)) q.push({ kind: 'pdf', mod, d, p, s }); }
@@ -7428,7 +7317,15 @@ const mCol = s => s == null ? 'mx-grey' : s < 60 ? 'mx-red' : s < 80 ? 'mx-amber
 // a retry the same day counts very little (you remember the answer, not the idea). Old evidence fades (half-life 60 days).
 // The result is pulled towards a cautious starting point (40 % — a little above chance on 3 options) until there is enough evidence,
 // so 3/3 correct never shows 100 %. Answering "Sure" and being wrong counts against you. A guess that was right counts half.
-const RM = { HL: 60, PN: 6, PRIOR: 0.40, FLOOR: 0.25, DAY: 864e5 };
+const RM = { HL: 60, PN: 6, PRIOR: 0.40, FLOOR: 0.25, DAY: 864e5, MIN: 5 };
+// v28 · readiness is shown only after enough evidence (MIN ≈ 5 fully-weighted answers); before that the screen shows "—"
+const rdOk = e => !!e && e.W >= RM.MIN;
+const rdNeed = e => Math.max(1, Math.ceil(RM.MIN - ((e && e.W) || 0)));
+const rdSe = (p, W) => Math.round(100 * Math.sqrt(Math.max(0.0001, p * (1 - p)) / (W + RM.PN)));
+const rdCol = (r, ok) => !ok ? '#94a3b8' : r >= 70 ? '#10b981' : r >= 50 ? '#f59e0b' : '#f43f5e';
+const rdRing = (r, ok, size, stroke) => ring(ok ? r : 0, size, stroke, rdCol(r, ok), ok ? r + '%' : '—');
+const rdI = () => `<button type="button" class="rd-i" data-kpi="rdy" aria-label="How readiness works">i</button>`;
+const rdSub = (r, W, ok) => ok ? `± ${rdSe(r / 100, W)}` : `${rdNeed({ W })} more`;
 function qEvidence(s, now) {
   const h = s && s.hist || []; let W = 0, V = 0, prev = null;
   for (const x of h) {
@@ -7458,11 +7355,11 @@ function modEstimate(m, c) {
 function modReadiness(m, p, c) { return Math.round(100 * modEstimate(m, c).p); }
 async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
-  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
+  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[10px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
     
-    <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Starts at 40 % until there is enough evidence. Reading and summaries are shown as progress, not as readiness.">${ring(rd, 52, 6, rd >= 70 ? '#10b981' : rd >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[11px] text-slate-500 mt-0.5">readiness</div></div></div>
+    <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="One score per LOS — the same number as the LOS rating. Green ≥ 80 (Excellent) · amber 60–79 (Good to improve) · red < 60 (Must improve) · grey = not enough answers yet.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${prereqHTML(m, c)}${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
 
@@ -7732,7 +7629,7 @@ function studyStats(c, lastBy, lastGlobal) {
     const weakList = rated.filter(r => r.z.rate !== 'exc').sort((a, b) => a.z.acc - b.z.acc || b.z.n - a.z.n);
     const gs = miniGroups(sj.id), avgR = ms.length ? Math.round(ms.reduce((a, m) => a + rdy.get(m.id), 0) / ms.length) : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
-    out[sj.id] = { sj, steps: { lecture: part('lecture'), reading: part('reading'), extras: part('extras'), summary: part('summary'), questions: part('questions') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
+    out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: part('reading'), extras: part('extras'), summary: part('summary'), questions: part('questions') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
       n: qs.length, a: ans.length, cor: cor.length, cov: pct(ans.length, qs.length), acc: ans.length ? pct(cor.length, ans.length) : null,
       avgT: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null, spark: days.map(d => act[d] || 0), sure: ans.filter(q => isSureWrong(q, st)).length,
       due: ans.filter(q => st[q.id].due <= now).length, flag: qs.filter(q => st[q.id]?.flag).length, top: top ? { name: reasonName(top[0]), p: pct(top[1], tally.tagged) } : null,
@@ -7749,7 +7646,7 @@ function studyCardHTML(z) {
     <div class="flex items-start gap-3"><span class="sj-tile sj-${sj.id}" aria-hidden="true">${sj.icon}</span>
       <div class="flex-1 min-w-0"><h2 id="${id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2><div class="text-xs text-slate-500 mt-0.5">Exam weight ${W_RANGE[sj.id]}</div></div></div>
     <div class="grid grid-cols-3 gap-3 items-start">
-      <div class="text-center" data-tip="The share of exam questions on this topic you would most likely get right today, from your answers (recent, spaced attempts count most) with mini-exam scores mixed in. Modules without answers start at 40 % (close to chance). It is not a pass probability."><div class="flex justify-center gap-2"><div data-tip="Completeness: every step done and every question solved correctly">${ring(z.complete, 52, 6, z.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold mt-1">Complete</div></div><div>${ring(z.readiness, 52, 6, rc)}<div class="text-[11px] font-semibold mt-1">Readiness</div></div></div><div class="mt-1">${diagChip(z.readiness, z.complete)}</div></div>
+      <div class="text-center" data-tip="The share of exam questions on this topic you would most likely get right today, from your answers (recent, spaced attempts count most) with mini-exam scores mixed in. Shown after about 5 answers — tap i for how it works. It is not a pass probability."><div class="flex justify-center gap-2"><div data-tip="Completeness: every step done and every question solved correctly">${ring(z.complete, 52, 6, z.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold mt-1">Complete</div></div><div>${rdRing(z.readiness, z.rdW >= RM.MIN, 52, 6)}<div class="text-[12px] font-semibold mt-1">Readiness ${rdI()}</div></div></div><div class="mt-1">${diagChip(z.readiness, z.complete)}</div></div>
       <div class="min-w-0" data-tip="Share of this topic's questions that you have answered at least once."><div class="text-2xl font-bold leading-none">${z.cov}%</div><div class="text-xs font-semibold mt-1">Coverage</div>${bar(z.cov, 'bg-indigo-500')}<div class="text-[11px] text-slate-500 mt-1">${z.n ? `${z.a} of ${z.n} answered` : 'no questions yet'}</div></div>
       <div class="min-w-0" data-tip="Accuracy on the questions you have answered, using your latest answer on each."><div class="text-2xl font-bold leading-none">${z.acc === null ? '0%' : z.acc + '%'}</div><div class="text-xs font-semibold mt-1">Accuracy</div>${bar(z.acc || 0, accCls)}<div class="text-[11px] text-slate-500 mt-1">${z.a ? `${z.cor} of ${z.a} correct` : '—'}</div></div></div>
     <div class="step-grid">${stepBar('Lecture', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Extras', z.steps.extras)}${stepBar('Summary', z.steps.summary)}${stepBar('Practice', z.steps.questions)}</div>
@@ -7782,13 +7679,14 @@ async function subjectHome(subj) {
   const part = k => ps.length ? Math.round(ps.reduce((a, p) => a + p[k], 0) / ps.length) : 0;
   const loaded = ms.filter(m => m.x).length;
   const gs = miniGroups(subj), Qs = await allQs(), taken = gs.filter(g => MINIRES[g.key]), mAvg = taken.length ? Math.round(taken.reduce((a, g) => a + MINIRES[g.key].score, 0) / taken.length) : null;
+  const faS = Qs.filter(q => inStat(q) && modInfo(modKey(q))?.subject === subj).reduce((a, q) => { const f = firstAtt(c.st[q.id]); if (f) { a.n++; if (f.ok) a.c++; } return a; }, { n: 0, c: 0 }), faSP = faS.n ? Math.round(100 * faS.c / faS.n) : 0;
   const tiles = [['\uD83C\uDFAC Lecture', part('lecture') + '%', '', 'Share of lecture videos watched'], ['\uD83D\uDCD6 Reading', part('reading') + '%', '', 'LOS read (ticked in the Study Map)'], ['➕ Extras', part('extras') + '%', '', 'LOS whose extras you reviewed (ticked in the Extras tab)'], ['✍ Summary', part('summary') + '%', '', 'Mohd Summary progress'], ['\uD83C\uDFAF Practice', part('questions') + '%', '', 'Module questions answered'],
     ['\uD83D\uDCDD Mini-exams', mAvg == null ? '—' : mAvg + '%', `${taken.length}/${gs.length} taken`, 'Average score of the mini-exams you have taken. They also count in readiness.']];
   const endOf = new Map(gs.map(g => [g.mods[g.mods.length - 1].id, g]));
   const cells = ms.map((m, i) => (m.x ? moduleCard(m, ps[i], c) : notLoadedCard(m)) + (endOf.has(m.id) ? miniRowHTML(endOf.get(m.id), Qs, c) : '')).join('');
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name]]) + `
   <div class="card flex flex-wrap items-center gap-5 mb-4">
-    <div class="flex gap-3 text-center"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${ring(rdyS, 72, 7, (evS) < 5 ? '#94a3b8' : rdyS >= 70 ? '#10b981' : rdyS >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Readiness</div></div></div>
+    <div class="flex gap-3 text-center"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div></div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
     <div class="flex-1 min-w-[260px]"><h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2"><span class="sj-tile sj-sm sj-${sj.id}" aria-hidden="true">${sj.icon}</span>${sj.name}</h1><p class="text-sm text-slate-500">Exam weight ${W_RANGE[subj]} · ${loaded}/${ms.length} modules loaded · ${ps.filter(p => p.overall >= 100).length} complete</p>
       <div class="g6 mt-3 text-center text-xs">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div></div>
     <div class="flex flex-wrap gap-2 w-full"><a href="#/qbank/stats/${subj}" class="btn-primary text-xs">\uD83D\uDCCA Qbank stats</a><button class="btn-ghost text-xs text-rose-600" data-weak="${subj}">\uD83C\uDFAF Weakest LOS</button><a href="#/formulas/${subj}" class="btn-ghost text-xs">∑ Formulas</a><button class="btn-ghost text-xs" data-pack="${subj}">\uD83D\uDCE6 Final review pack</button><a href="#/summary/${subj}" class="btn-ghost text-xs">\uD83D\uDCC4 Full Mohd Summary</a><a href="#/library" class="btn-ghost text-xs">\uD83D\uDCC1 Books</a></div>
@@ -8024,7 +7922,7 @@ async function qbankSetup() {
   const subjQ = SUBJECTS.map(sj => ({ sj, qs: Q.filter(q => inScope(q, false) && subjOf(q) === sj.id) })).filter(z => z.qs.length);
   view.innerHTML = crumbs([['Today', '#/'], ['Practice']]) + `
   <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h1 class="h1 mb-0">\uD83C\uDFAF Practice</h1><div class="flex flex-wrap gap-2"><a href="#/cards" class="btn-ghost">\uD83C\uDCCF Flashcards</a></div></div>
-  <div class="qbtabs" role="tablist"><button type="button" role="tab" data-qbt="p">\uD83C\uDFAF Practice</button><button type="button" role="tab" data-qbt="ex">\uD83D\uDCDD Exams &amp; mocks</button><a href="#/errors" role="tab">\uD83D\uDCD2 Error log</a></div>
+  <div class="qbtabs" role="tablist"><button type="button" role="tab" data-qbt="p">\uD83C\uDFAF Sessions</button><button type="button" role="tab" data-qbt="ex">\uD83D\uDCDD Exams &amp; mocks</button><a href="#/errors" role="tab">\uD83D\uDCD2 Error log</a></div>
   <div class="space-y-4" id="qbgrid">
       <div data-qt="p">${smartCardHTML()}</div>
       <div data-qt="ex">${await qbExamsHTML()}</div>
@@ -8034,7 +7932,7 @@ async function qbankSetup() {
           <div class="flex flex-wrap items-end gap-2 mt-3"><label class="text-xs">Questions<select id="mockN" class="inp mt-1 w-auto">${[30, 60, 90, 180].map(n => `<option value="${n}">${n}</option>`).join('')}</select></label>
             <label class="text-xs">Pool<select id="mockPool" class="inp mt-1 w-auto"><option value="all">All questions</option><option value="new">Unanswered first</option></select></label>
             <button class="btn-primary" id="mockGo" ${subjQ.length ? '' : 'disabled'}>Start practice mock</button>
-            <button class="btn-ghost" id="dayGo" ${subjQ.length ? '' : 'disabled'} data-tip="Real exam format: 180 questions in two sessions of 90 (135 minutes each) with an optional break between them, plus pace checkpoints every 30 questions">\uD83C\uDFDB Practice exam day</button>
+            <button class="btn-ghost" id="dayGo" ${subjQ.length ? '' : 'disabled'} data-tip="Real 2027 format: session 1 = Ethics, Quant, Economics, FSA, Corporate · session 2 = Equity, Fixed Income, Derivatives, Alternatives, Portfolio Mgmt · 90 questions and 135 minutes each, optional break, no pausing">\uD83C\uDFDB Practice exam day</button>
             <button class="btn-ghost" id="speedGo" ${subjQ.length ? '' : 'disabled'} data-tip="20 questions in 30 minutes (90 seconds each), chosen across topics by exam weight, with a pace message every 5 questions">⏱ Speed round · 20 Q / 30 min</button></div>
           <div class="text-xs text-slate-500 mt-2" id="mockInfo"></div>
           <details class="mt-1"><summary class="text-[11px] text-slate-500 cursor-pointer">How the mix is worked out</summary><p class="text-[11px] text-slate-500 mt-1">Weights (midpoints of the 2027 ranges, rescaled over the topics you have loaded): ${subjQ.map(z => `${z.sj.icon} ${z.sj.name} ${CFA_W[z.sj.id]}%`).join(' · ') || 'no questions yet'}. If a topic has fewer questions than its share, the rest are filled from the other topics — so until all topics are loaded, the mix is not the real exam mix.</p></details></div></div>
@@ -8080,10 +7978,16 @@ async function qbankSetup() {
     if (e.target.closest('[data-startproxy]')) return document.getElementById('start').click();
     if (e.target.id === 'weakGo') return startWeakLos(null, '#/qbank');
     if (e.target.id === 'dayGo') {
-      const alloc = mockAlloc(180), picked = shuffle(alloc.flatMap(z => shuffle(z.qs).slice(0, z.n)));
-      if (picked.length < 20) return toast('Not enough questions yet for an exam day');
-      const half = Math.ceil(picked.length / 2);
-      return startQSession(picked.slice(0, half), 'exam', 'all', '#/qbank', { title: 'Practice exam day · Session 1 of 2', keepOrder: true, reasons: document.getElementById('askWhy').checked, next: picked.slice(half).map(q => q.id) });
+      // v28 · real 2027 split: session 1 = Ethics, Quant, Economics, FSA, Corporate · session 2 = Equity, Fixed Income, Derivatives, Alternatives, PM.
+      // 90 questions per session by topic weight. A topic with too few questions is NOT topped up from other topics (that would distort the weights).
+      const S1 = ['ethics', 'quant', 'econ', 'fsa', 'corp'], S2 = ['equity', 'fi', 'deriv', 'alt', 'pm'];
+      const part = ids => { const W = ids.reduce((a, id) => a + CFA_W[id], 0); return ids.map(id => { const z = subjQ.find(x => x.sj.id === id), want = Math.round(90 * CFA_W[id] / W), have = z ? z.qs.length : 0; return { id, name: SUBJECTS.find(x => x.id === id)?.name || id, want, n: Math.min(want, have), qs: z ? z.qs : [] }; }); };
+      const A1 = part(S1), A2 = part(S2), short = [...A1, ...A2].filter(z => z.n < z.want);
+      const p1 = shuffle(A1.flatMap(z => shuffle(z.qs).slice(0, z.n))), p2 = shuffle(A2.flatMap(z => shuffle(z.qs).slice(0, z.n)));
+      if (p1.length + p2.length < 20) return toast('Not enough questions yet for an exam day');
+      if (short.length && !confirm(`Not enough questions for the real topic weights:\n\n${short.map(z => `• ${z.name}: ${z.n} of ${z.want}`).join('\n')}\n\nThe missing questions are NOT replaced by other topics, so your score keeps the true weights but the day has ${p1.length + p2.length} of 180 questions. Continue?`)) return;
+      const first = p1.length ? p1 : p2, second = p1.length ? p2 : [];
+      return startQSession(first, 'exam', 'all', '#/qbank', { title: `Practice exam day · Session 1 of 2`, keepOrder: true, strict: true, reasons: document.getElementById('askWhy').checked, next: second.length ? second.map(q => q.id) : null });
     }
     if (e.target.id === 'speedGo') {
       const alloc = mockAlloc(20), pool = document.getElementById('mockPool').value;
@@ -8095,7 +7999,7 @@ async function qbankSetup() {
       const alloc = mockAlloc(+document.getElementById('mockN').value), pool = document.getElementById('mockPool').value;
       const picked = alloc.flatMap(z => { let qs = shuffle(z.qs); if (pool === 'new') qs = [...qs.filter(q => !st[q.id]?.n), ...qs.filter(q => st[q.id]?.n)]; return qs.slice(0, z.n); });
       if (!picked.length) return toast('No questions available yet');
-      await startQSession(shuffle(picked), 'exam', 'all', '#/qbank', { reasons: document.getElementById('askWhy').checked, title: 'Practice mock', keepOrder: true });
+      await startQSession(shuffle(picked), 'exam', 'all', '#/qbank', { reasons: document.getElementById('askWhy').checked, title: 'Practice mock', keepOrder: true, strict: true });
     }
   };
   document.getElementById('start').onclick = async () => {
@@ -8127,14 +8031,14 @@ async function qbankStats(subj) {
   const rMax = Math.max(1, ...rc.map(z => z.n));
   const times = lasts.map(z => z.h.s).filter(Boolean), avgT = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
   const readi0 = allMods.length ? Math.round(allMods.reduce((a, m) => a + modReadiness(m, null, c), 0) / allMods.length) : 0;
-  const readi = sj ? mixMini(sj.id, readi0) : readi0;
+  const readi = sj ? mixMini(sj.id, readi0) : readi0, readiW = allMods.reduce((a, m) => a + modEstimate(m, c).W, 0), readiK = readiW >= RM.MIN;
   const prog = allMods.map(m => modProgress(m, c)), part = k => prog.length ? Math.round(prog.reduce((a, p) => a + p[k], 0) / prog.length) : 0;
   view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ...(sj ? [['Qbank stats', '#/qbank/stats'], [sj.name]] : [['Qbank stats']])]) + `
   <div class="flex flex-wrap gap-1 mb-3"><a class="chip ${!sj ? 'chip-on' : ''}" href="#/qbank/stats">All topics</a>${SUBJECTS.map(s => `<a class="chip ${sj?.id === s.id ? 'chip-on' : ''}" href="#/qbank/stats/${s.id}">${s.icon} ${s.name}</a>`).join('')}</div>
   <h1 class="h1">${sj ? `${sj.icon} ${sj.name} — Performance` : '📊 Performance'}</h1>
   ${sj ? `<div class="card flex flex-wrap items-center gap-5 mb-4">
-    <div class="text-center">${ring(readi, 84, 8, readi >= 70 ? '#10b981' : readi >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[11px] text-slate-500 mt-1">readiness</div></div>
-    <div class="flex-1 min-w-[220px]"><p class="text-sm text-slate-500">Exam weight ${W_RANGE[sj.id]} · ${mods.length}/${allMods.length} modules loaded (unloaded: 0 % progress, 40 % readiness)</p>
+    <div class="text-center">${rdRing(readi, readiK, 84, 8)}<div class="text-[12px] text-slate-500 mt-1">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(readi, readiW, readiK)}</div></div>
+    <div class="flex-1 min-w-[220px]"><p class="text-sm text-slate-500">Exam weight ${W_RANGE[sj.id]} · ${mods.length}/${allMods.length} modules loaded (modules without answers count as “unknown” — tap i next to readiness)</p>
       <div class="grid grid-cols-3 gap-2 mt-2 text-center text-xs">${['reading', 'summary', 'questions'].map((k, i) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${part(k)}%</div>${['📖 Reading', '✍ Summary', '🎯 Questions'][i]}</div>`).join('')}</div></div>
     <div class="flex flex-col gap-2"><a class="btn-primary text-xs" href="#/study/${sj.id}">📚 Modules</a><button class="btn-ghost text-xs" id="pracSubj" ${mods.length ? '' : 'disabled'}>🎯 Practise ${esc(sj.name)}</button><button class="btn-ghost text-xs text-rose-600" data-mustsubj="${sj.id}" data-tip="All LOS rated Must improve in this topic">🔴 Practice Must improve</button></div></div>` : ''}
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -8703,7 +8607,7 @@ async function mocksView() {
   view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Mocks']]) + `
   <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/library?mocks">\uD83D\uDCC1 Manage mock files</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Qbank stats</a></div>
   ${upNext ? `<div class="card mb-4 mk-hero flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="text-xs uppercase tracking-wide opacity-80">Next step</div><div class="font-bold text-lg">${esc(upNext.name)}</div><div class="text-xs opacity-90">${ST[upNext.id].started ? `Continue with session ${ST[upNext.id].next}` : `${upNext.n} questions · ${mockIsCp(upNext) ? 'checkpoint' : 'full mock'}`}</div></div><button class="btn-primary" data-mk="${upNext.id}" data-part="${ST[upNext.id].next || 1}">▶ ${ST[upNext.id].started ? 'Continue' : 'Start'}</button></div>` : ''}
-  <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery and readiness.</p>
+  <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Exam conditions: the clock cannot be paused and keeps running if you leave the tab. Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery and readiness.</p>
   ${ms.length ? `${cps.length ? `<h3 class="sec">Checkpoints · ${cps.filter(x => ST[x.id].S.done).length}/${cps.length} done</h3><div class="space-y-2 mb-5">${cps.map(card).join('')}</div>` : ''}
   ${full.length ? `<h3 class="sec">Mock exams · ${full.filter(x => ST[x.id].S.done).length}/${full.length} done</h3><div class="space-y-2">${full.map(card).join('')}</div>` : ''}`
   : '<div class="card text-sm text-slate-500">No mocks yet. Add the mock files in <a class="link" href="#/library?mocks">Library → Mocks &amp; Checkpoints</a>.</div>'}
@@ -8720,7 +8624,7 @@ async function mocksView() {
       else { const half = Math.ceil(qs.length / 2); sel = part === 1 ? qs.slice(0, half) : qs.slice(half); if (part === 1) next = qs.slice(half).map(q => q.id); }
       if (!sel.length) { toast(`Add the session ${part} PDF in Library first`); return; }
       if (!(await mockBrief(x, part, sel.length, np))) return;
-      await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: np > 1 ? `${x.name} · Session ${part} of ${np}` : x.name, keepOrder: true, reasons: true, mockId: x.id, part, next });
+      await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: np > 1 ? `${x.name} · Session ${part} of ${np}` : x.name, keepOrder: true, strict: true, reasons: true, mockId: x.id, part, next });
     }
   };
   return () => { view.onclick = null; };
@@ -8972,13 +8876,13 @@ document.addEventListener('click', async e => {
 }, true);
 let TRACK = {};
 function moduleCard(m, p, c) {
-  const e = c ? modEstimate(m, c) : { p: 0.4, W: 0 }, rv = Math.round(e.p * 100), ev = e.W;
+  const e = c ? modEstimate(m, c) : { p: 0.4, W: 0 }, rv = Math.round(e.p * 100), ev = e.W, evK = rdOk(e);
   return `<div class="card hover:border-indigo-400 relative">
     <a href="${m.href}" class="absolute inset-0" aria-label="${esc(m.title)}"></a>
     <div class="flex items-start gap-3">
-      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${ring(rv, 46, 5, (ev) < 5 ? '#94a3b8' : rv >= 70 ? '#10b981' : rv >= 50 ? '#f59e0b' : '#f43f5e')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Readiness</div></div></div></div>
+      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div></div></div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
+        <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1 min-w-0" style="overflow-wrap:anywhere">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
         <div class="mt-2 relative z-10">${trackRows(p, m.id, true)}</div>
       </div>
@@ -10346,7 +10250,7 @@ const diagChip = (r, cmp) => { const d = DIAG[diagOf(r, cmp)]; return `<span cla
 async function perfExtra(D) {
   const st = D.c.st, now = Date.now(), DAYMS = 864e5, K = {};
   K.margin = D.pred == null ? null : D.pred - D.band - MPS;
-  const big = D.subj.filter(z => z.w >= 10).sort((a, b) => a.r - b.r); K.floor = big.length ? { r: big[0].r, name: big[0].sj.name, id: big[0].sj.id } : null;
+  const big = D.subj.filter(z => z.w >= 10 && z.ev >= RM.MIN).sort((a, b) => a.r - b.r); K.floor = big.length ? { r: big[0].r, name: big[0].sj.name, id: big[0].sj.id } : null;
   K.gap = D.mockAvg != null && D.faAcc != null ? D.faAcc - D.mockAvg : null;
   const lastM = D.doneFull.slice(-3).map(z => D.adjOf(z)); K.trend = lastM.length >= 3 ? Math.round((lastM[2] - lastM[0]) / 2 * 10) / 10 : null;
   // retention, twins, time-sink, careless, calibration
@@ -10398,9 +10302,17 @@ async function perfExtra(D) {
 
 // every KPI: what it is for, how it is measured, how to read it, minimum data, limits
 const KPI_INFO = {
+  rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'Your chance of answering a NEW exam question on this module or topic correctly today. It measures how well you know what you studied — not how much you finished (that is Completeness).',
+    plain: 'Think of a restaurant you have never tried. Asked “out of 10?”, you would not say 10 or 0 — you would guess about 4. After one good meal you might say 5 (once can be luck). After ten good meals you can say 8 with confidence. Readiness works the same way: before you answer anything the site assumes 40 % — a little above blind guessing on three options (33 %). Each real answer pulls the number towards your true level, and the starting guess matters less and less.',
+    how: 'The site behaves as if you had already answered 6 imaginary questions at 40 %, then adds your real answers. First attempts and retries after 5+ days count fully, a next-day retry counts half, a same-day retry hardly counts (you remember the answer, not the idea). Old answers fade (half weight after 60 days). A right guess counts half; a wrong answer marked Sure counts against you.',
+    f: 'Readiness = (weighted correct answers + 6 × 0.40) ÷ (weighted answers + 6)',
+    ex: [['Nothing answered', '(0 + 2.4) ÷ 6', '40 % → shown as “—”'], ['1 right', '(1 + 2.4) ÷ 7', '49 % → still “—”'], ['10 of 10 right', '(10 + 2.4) ÷ 16', '78 %'], ['35 of 50 right', '(35 + 2.4) ÷ 56', '67 %'], ['30 of 30 right', '(30 + 2.4) ÷ 36', '90 %']],
+    read: [['≥ 70 %', 'g', 'ready'], ['50–69 %', 'a', 'getting there'], ['< 50 %', 'r', 'needs work'], ['—', '', 'not enough answers yet (about 5 needed)']],
+    min: 'About 5 fully-weighted answers. Until then the 40 % is used only in the background and the screen shows “—”. The ± number is the uncertainty — it shrinks as you answer more.',
+    lim: 'Why not “first-time correct ÷ all questions in the bank”? That number falls whenever you add a new bank, and it cannot tell “not studied yet” from “studied but weak”. Completeness answers “how much is done”; Readiness answers “how well do I know what I studied”.' },
   pred: { t: 'Projected score', goal: 'Your most likely score if the exam were today.', how: 'Readiness of each topic weighted by the 2027 topic weights, blended with your first-attempt full mocks (each mock adds 20 % weight, up to 60 %).', f: 'Projected = w·Mock + (1 − w)·Σ(weight × topic readiness),   w = min(60 %, 20 % × mocks)', read: [['≥ 70 %', 'g', 'on track'], ['50–69 %', 'a', 'gap to close'], ['< 50 %', 'r', 'far from target']], min: '15 answered questions or one full mock.', lim: 'Not calibrated against real CFA results. Read the range, not the single number.' },
   margin: { t: 'Safety margin', goal: 'Shows whether you pass even on a bad day.', how: 'The LOW end of the projected range minus the 70 % target.', f: 'Margin = (Projected − range) − 70', read: [['≥ 0', 'g', 'safe'], ['0 to −5', 'a', 'on the edge'], ['< −5', 'r', 'at risk']], min: 'Same as Projected score.', lim: 'The 70 % target is a working assumption — CFA Institute does not publish the pass mark.' },
-  floor: { t: 'Topic floor', goal: 'Finds the big topic that drags your score down most.', how: 'Lowest readiness among the topics weighing 10 % or more (Ethics, Quant, FSA, Equity, Fixed Income, Portfolio Mgmt).', f: 'Floor = min(readiness of topics with weight ≥ 10 %)', read: [['≥ 60 %', 'g', 'fine'], ['50–59 %', 'a', 'watch'], ['< 50 %', 'r', 'start with this topic']], min: 'None — topics without answers show 40 %.', lim: 'A topic you have not started shows 40 % — it means “unknown”, not “bad”.' },
+  floor: { t: 'Topic floor', goal: 'Finds the big topic that drags your score down most.', how: 'Lowest readiness among the topics weighing 10 % or more (Ethics, Quant, FSA, Equity, Fixed Income, Portfolio Mgmt).', f: 'Floor = min(readiness of topics with weight ≥ 10 %)', read: [['≥ 60 %', 'g', 'fine'], ['50–59 %', 'a', 'watch'], ['< 50 %', 'r', 'start with this topic']], min: 'About 5 answers in at least one big topic.', lim: 'Topics without enough answers are left out, so the floor can move when you start a new topic.' },
   mock: { t: 'Mock average', goal: 'Your score under exam conditions.', how: 'Average of your last 3 full mocks, first attempts only, adjusted by your provider offsets if you entered any.', f: 'Mock avg = mean(last 3 first-attempt full mocks)', read: [['≥ 70 %', 'g', 'exam-ready'], ['60–69 %', 'a', 'close'], ['< 60 %', 'r', 'more work needed']], min: 'One full mock.', lim: 'Providers differ in difficulty; retakes never count.' },
   trend: { t: 'Mock trend', goal: 'Tells you whether your mocks are improving.', how: 'Average change per mock across your last three full mocks.', f: 'Trend = (Mock n − Mock n−2) ÷ 2', read: [['≥ +2', 'g', 'improving'], ['0 to +2', 'a', 'flat'], ['< 0', 'r', 'going down — check fatigue and method']], min: 'Three full mocks (same provider if possible).', lim: 'Different providers can fake a trend; compare like with like.' },
   gap: { t: 'Mock–Qbank gap', goal: 'Detects scores inflated by familiar questions.', how: 'First-attempt Qbank accuracy (topic-weighted) minus your mock average.', f: 'Gap = First-attempt Qbank − Mock average', read: [['≤ 5', 'g', 'honest'], ['5–10', 'a', 'some familiarity'], ['> 10', 'r', 'Qbank flatters you — more new questions and mocks']], min: 'One full mock and 10+ first attempts in a topic.', lim: 'Provider difficulty also creates a gap — use the offsets in Mock calibration.' },
@@ -10410,6 +10322,7 @@ const KPI_INFO = {
   plan: { t: 'Plan adherence', goal: 'Checks whether your plan is realistic.', how: 'Minutes of plan tasks done ÷ minutes planned, last 14 days.', f: 'Adherence = minutes done ÷ minutes planned', read: [['≥ 85 %', 'g', 'realistic plan'], ['65–84 %', 'a', 'slipping'], ['< 65 %', 'r', 'plan too heavy — lower the daily minutes']], min: 'A study plan with tasks in the last 14 days.', lim: 'Work done outside the plan does not count here.' },
   week: { t: 'This week', goal: 'Keeps a steady weekly rhythm.', how: 'Questions answered since Monday vs your weekly goal.', f: 'Questions this week ÷ weekly goal', read: [['≥ goal', 'g', 'on track'], ['below goal', '', 'keep going']], min: 'None.', lim: 'Volume, not quality — read it with the accuracy cards.' },
   rq: { t: 'Retry queue health', goal: 'Shows whether you fix mistakes faster than you make them.', how: 'Share of missed questions that graduated from the retry queue (four correct spaced retries), plus the overdue backlog above 30.', f: 'Health = graduated ÷ (graduated + in queue)', read: [['≥ 50 % and no backlog', 'g', 'healthy'], ['backlog 1–30', 'a', 'catch up'], ['backlog > 30', 'r', 'pause new questions for two days']], min: 'Some missed questions.', lim: '' },
+  apply: { t: 'Apply accuracy', goal: 'How well you USE what you know — calculations and case questions. Most Level I questions are like this.', how: 'First-attempt accuracy on questions marked Apply only. The card also shows your Recall accuracy, so you can see whether you know facts but cannot use them yet.', f: 'Apply accuracy = Apply questions right the first time ÷ Apply questions met', read: [['≥ 70 %', 'g', 'you can use it'], ['60–69 %', 'a', 'practise more calculations / cases'], ['< 60 %', 'r', 'redo worked examples before more questions']], min: '10 Apply first attempts.', lim: 'The level is guessed from the wording (numbers, “calculate”, “closest to”, long cases) unless the file or you set it — change it in Edit question.' },
   fa: { t: 'First-attempt accuracy', goal: 'The accuracy that best predicts the exam.', how: 'Share correct the FIRST time you met each question. Retries never count.', f: 'First-attempt = first answers correct ÷ first answers', read: [['≥ 70 %', 'g', ''], ['60–69 %', 'a', ''], ['< 60 %', 'r', '']], min: '10 first attempts.', lim: 'Easy banks inflate it — compare with mocks.' },
   ret: { t: 'Retention', goal: 'Measures long-term memory — the truest test of learning.', how: 'Accuracy on answers given 7+ days after you last saw the same question.', f: 'Retention = correct ÷ attempts with a gap ≥ 7 days', read: [['≥ 80 %', 'g', 'it sticks'], ['65–79 %', 'a', 'fading a bit'], ['< 65 %', 'r', 'forgetting fast — more retries and blurts']], min: '30 spaced attempts.', lim: '' },
   twin: { t: 'Twin transfer', goal: 'Tells understanding from memorising answers.', how: 'Accuracy on twin questions — a different question on the same LOS, given after you missed the original.', f: 'Transfer = twins correct ÷ twins answered', read: [['≥ 70 %', 'g', 'real understanding'], ['50–69 %', 'a', 'partial'], ['< 50 %', 'r', 'memorising answers — go back to the concept']], min: '15 twins (recorded from now on).', lim: 'Needs several questions per LOS in your bank.' },
@@ -10425,9 +10338,11 @@ function kpiPopup(key) {
   const I = KPI_INFO[key]; if (!I) return;
   const col = { g: 'kp-g', a: 'kp-a', r: 'kp-r', '': 'kp-n' };
   const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.setAttribute('role', 'dialog'); bg.setAttribute('aria-modal', 'true'); bg.setAttribute('aria-label', I.t);
-  bg.innerHTML = `<div class="card modal-box kp-box space-y-3" style="max-width:34rem;width:100%"><div class="flex items-center gap-2"><h3 class="font-bold text-lg">${esc(I.t)}</h3><button type="button" class="ib ml-auto" data-x="1" aria-label="Close">✕</button></div>
+  bg.innerHTML = `<div class="card modal-box kp-box space-y-3" style="max-width:34rem;width:100%;max-height:88vh;overflow-y:auto"><div class="flex items-center gap-2"><h3 class="font-bold text-lg">${esc(I.t)}</h3><button type="button" class="ib ml-auto" data-x="1" aria-label="Close">✕</button></div>
     <div><div class="kp-l">Purpose</div><p class="text-sm">${esc(I.goal)}</p></div>
+    ${I.plain ? `<div><div class="kp-l">In plain words</div><p class="text-sm">${esc(I.plain)}</p></div>` : ''}
     <div><div class="kp-l">How it is measured</div><p class="text-sm">${esc(I.how)}</p><div class="kp-f">${esc(I.f)}</div></div>
+    ${I.ex ? `<div><div class="kp-l">Examples</div><table class="kp-ex"><tbody>${I.ex.map(r => `<tr>${r.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
     <div><div class="kp-l">How to read it</div><div class="space-y-1">${I.read.map(([v, c, t]) => `<div class="flex items-center gap-2 text-sm"><span class="kp-dot ${col[c]}"></span><b class="tabular-nums">${esc(v)}</b>${t ? `<span class="text-slate-500">· ${esc(t)}</span>` : ''}</div>`).join('')}</div></div>
     <div class="grid sm:grid-cols-2 gap-3"><div><div class="kp-l">Minimum data</div><p class="text-xs text-slate-600 dark:text-slate-300">${esc(I.min)}</p></div>${I.lim ? `<div><div class="kp-l">Limits</div><p class="text-xs text-slate-600 dark:text-slate-300">${esc(I.lim)}</p></div>` : ''}</div></div>`;
   document.body.appendChild(bg);
@@ -10449,6 +10364,11 @@ document.addEventListener('click', async e => {
   else if (b.dataset.kreset) { if (!confirm('Show all metrics in their default groups and clear your favourites?')) return; P.fav = []; P.hidden = []; }
   await kv.set('kpiPrefs', P); window.__keepScroll = true; route();
 }, true);
+document.addEventListener('click', e => {      // v29 · Performance ⋯ menu (phones)
+  const m = e.target.closest && e.target.closest('[data-dshmore]'), box = document.getElementById('dshActs');
+  if (m && box) { const on = box.classList.toggle('open'); m.setAttribute('aria-expanded', String(on)); return; }
+  if (box && box.classList.contains('open') && !e.target.closest('#dshActs')) { box.classList.remove('open'); document.querySelector('[data-dshmore]')?.setAttribute('aria-expanded', 'false'); }
+});
 document.addEventListener('click', e => { const k = e.target.closest && e.target.closest('[data-kpi]'); if (k && !e.target.closest('a,button:not([data-kpi])')) { e.preventDefault(); kpiPopup(k.dataset.kpi); } });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-kpi]')) { e.preventDefault(); kpiPopup(e.target.dataset.kpi); } });
 
@@ -10472,15 +10392,16 @@ function perfKpisHTML(D, delta, wkDelta) {
     card('rq', K.rq.g == null ? '—' : `${K.rq.g}%`, `${K.rq.grad} graduated · ${K.rq.inq} in queue${K.rq.backlog ? ` · <b>${K.rq.backlog} overdue</b>` : ''}`, K.rq.g == null ? '' : K.rq.backlog > 30 ? 'r' : K.rq.backlog > 0 ? 'a' : K.rq.g >= 50 ? 'g' : 'a'),
   ]) +
   grp('🎯 Result', 'will I pass?', [
-    card('pred', D.pred == null ? '—' : `${D.pred}%`, D.pred == null ? nd() : `range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% ${delta(D.pred, D.rdWeekAgo, ' pts')}`, dshCol(D.pred)),
+    card('pred', D.pred == null ? '—' : `${D.pred}%`, D.pred == null ? nd() : `range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% ${delta(D.pred, D.rdWeekAgo, ' pts')}<br><span class="text-[12px]">based on ${D.covN}/10 topics (${D.covW}% of the exam) · the rest count as 40 % “unknown”</span>`, dshCol(D.pred)),
     card('margin', K.margin == null ? '—' : sgn(K.margin), K.margin == null ? nd() : 'low end of the range vs 70 %', K.margin == null ? '' : K.margin >= 0 ? 'g' : K.margin >= -5 ? 'a' : 'r'),
-    card('floor', K.floor ? `${K.floor.r}%` : '—', K.floor ? esc(K.floor.name) : '', c3(K.floor && K.floor.r, 60, 50)),
+    card('floor', K.floor ? `${K.floor.r}%` : '—', K.floor ? esc(K.floor.name) : 'no big topic practised yet', c3(K.floor && K.floor.r, 60, 50)),
     card('mock', D.mockAvg == null ? '—' : `${D.mockAvg}%`, D.mockAvg == null ? 'no full mock yet' : `last ${Math.min(3, D.doneFull.length)} · first attempts${D.calOn ? ' · adjusted' : ''}`, dshCol(D.mockAvg)),
     card('trend', K.trend == null ? '—' : sgn(K.trend), K.trend == null ? nd(D.doneFull.length) : 'points per mock', K.trend == null ? '' : K.trend >= 2 ? 'g' : K.trend >= 0 ? 'a' : 'r'),
     card('gap', K.gap == null ? '—' : sgn(K.gap), K.gap == null ? 'needs a full mock' : 'first-attempt Qbank − mocks', c3(K.gap, 5, 10, false)),
   ]) +
   grp('🧠 Learning quality', 'is it sticking?', [
     card('fa', faP == null ? '—' : `${faP}%`, D.faAll.n ? `${D.faAll.n} first attempts${D.recAcc != null ? ` · 30 days ${D.recAcc}%` : ''}` : nd(0), c3(faP, 70, 60)),
+    card('apply', D.lvA.apply.n >= 10 ? `${pct(D.lvA.apply.c, D.lvA.apply.n)}%` : '—', D.lvA.apply.n >= 10 ? `${D.lvA.apply.n} Apply first attempts · Recall ${D.lvA.recall.n ? pct(D.lvA.recall.c, D.lvA.recall.n) + '%' : '—'}` : nd(D.lvA.apply.n), c3(D.lvA.apply.n >= 10 ? pct(D.lvA.apply.c, D.lvA.apply.n) : null, 70, 60)),
     card('ret', K.ret.v == null ? '—' : `${K.ret.v}%`, K.ret.v == null ? nd(K.ret.n) : `${K.ret.n} spaced attempts`, c3(K.ret.v, 80, 65)),
     card('twin', K.twin.v == null ? '—' : `${K.twin.v}%`, K.twin.v == null ? nd(K.twin.n) : `${K.twin.n} twins`, c3(K.twin.v, 70, 50)),
     card('cal', K.cal.v == null ? '—' : K.cal.v, K.cal.sure != null ? `“Sure” right ${K.cal.sure}% · goal ≥ 90 %` : nd(K.cal.n), c3(K.cal.v, 10, 20, false)),
@@ -10541,9 +10462,11 @@ async function dshData() {
   const faSub = subj.filter(z => z.fa.n >= 10), faW = faSub.reduce((a, z) => a + z.w, 0);
   const faAcc = faSub.length ? Math.round(faSub.reduce((a, z) => a + z.w * z.fa.c / z.fa.n * 100, 0) / faW) : null;      // first-attempt accuracy weighted by the exam topic weights
   const recAcc = faAll.r30 >= 30 ? pct(faAll.r30c, faAll.r30) : null;
+  const lvA = { apply: { n: 0, c: 0 }, recall: { n: 0, c: 0 } }; for (const q of Q) { const f = firstAtt(c.st[q.id]); if (!f) continue; const z = lvA[qLevel(q)]; z.n++; if (f.ok) z.c++; }      // v29
   // predicted score = first-attempt mocks (60%) + first-attempt Qbank accuracy by topic weight (40%). Retakes and repeated questions never raise it. NOT calibrated against real results.
   // P2 · projected score = the readiness model (all topics, by 2027 weight) blended with first-attempt full mocks: each mock adds 20 % weight, up to 60 %.
   const evW = mods.reduce((a, m) => a + modEstimate(m, c).W, 0), wM = mockAvg == null ? 0 : Math.min(0.6, 0.2 * last3.length);
+  const covN = subj.filter(z => z.ev >= RM.MIN).length, covW = Math.round(subj.filter(z => z.ev >= RM.MIN).reduce((a, z) => a + z.w, 0));
   const pred = (evW >= 15 || mockAvg != null) ? Math.round(wM * mockAvg + (1 - wM) * examR) : null;
   const band = pred == null ? null : Math.round(Math.min(15, Math.max(4, (1 - wM) * 28 / Math.sqrt(1 + evW / 40) + (wM ? 6 / Math.sqrt(last3.length) : 0))));
   const rdHist = await kv.get('rdHist2', {}); const today = dshDay(now);
@@ -10558,7 +10481,7 @@ async function dshData() {
   // P2 · pace: median seconds per question — Exam-mode answers when there are 20+, otherwise all timed answers
   const tEx = ev.filter(e => e.s > 0 && e.md === 'exam'), tAll = ev.filter(e => e.s > 0 && e.s < 1200), tUse = tEx.length >= 20 ? tEx : tAll.length >= 20 ? tAll : null;
   const pace2 = tUse ? (() => { const a = tUse.slice(-400).map(e => e.s).sort((x, y) => x - y); return { med: a[a.length >> 1], slow: Math.round(a.filter(x => x > 90).length / a.length * 100), src: tUse === tEx ? 'exam mode' : 'all modes' }; })() : null;
-  const D0 = { complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime };
+  const D0 = { lvA, covN, covW, complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime };
   D0.K = await perfExtra(D0); return D0;
 }
 // actions that move the score most this week (prescriptive, not just descriptive)
@@ -10665,10 +10588,11 @@ async function dashboardView() {
   };
   const defs = [{ id: 'verdict', label: 'Plan status', full: true }, { id: 'final', label: 'Final review banner', full: true }, { id: 'kpis', label: 'Key numbers', full: true }, { id: 'topics', label: 'Topics' }, { id: 'actions', label: 'Do this week & confidence' }, { id: 'weekly', label: 'Weekly first-attempt accuracy' }, { id: 'mocks', label: 'Mock scores' }, { id: 'activity', label: 'Activity' }, { id: 'traps', label: 'Top traps' }, { id: 'sources', label: 'Sources & mock calibration', full: true }, { id: 'learnpath', label: 'How you learn best' }, { id: 'finalplan', label: 'Final weeks plan', full: true }];
   view.innerHTML = crumbs([['Today', '#/'], ['Performance']]) + `
-  <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">📊 Performance</h1>
+  <div class="flex flex-wrap items-center gap-2 mb-4 relative"><h1 class="h1 mb-0 mr-auto">📊 Performance</h1>
+    <button type="button" class="btn-ghost dsh-more" data-dshmore aria-expanded="false" aria-label="More actions">⋯</button><div class="dsh-acts" id="dshActs">
     <a class="btn-ghost text-xs" href="#/weekly">\uD83D\uDCC5 Weekly report</a><a class="btn-ghost text-xs" href="#/errors">\uD83D\uDCD2 Error log</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Topic &amp; LOS detail</a>
     <button class="btn-ghost text-xs" id="dshGoal" data-tip="Questions you aim to answer each week">\uD83C\uDFAF Weekly goal: ${D.goal}</button>${layBtn('progress', edit)}
-    <button class="btn-primary text-xs" id="dshXlsx">⬇️ Export to Excel</button></div>
+    <button class="btn-primary text-xs" id="dshXlsx">⬇️ Export to Excel</button></div></div>
   ${edit ? layEditBar() : ''}${layHTML('progress', defs, secs, await layGet('progress', defs), edit)}`;
   view.onclick = async e => {
     if (e.target.closest('#dshXlsx')) { const b = e.target.closest('#dshXlsx'); b.disabled = true; b.textContent = 'Building…'; try { await dshExcel(D); } catch (err) { toast('Export failed: ' + err.message); console.error(err); } b.disabled = false; b.textContent = '⬇️ Export to Excel'; return; }
@@ -10943,7 +10867,9 @@ async function smartPick(n = 20) {
   put(weak.map(z => z.q), 'weak', Math.round(n * .25));
   put(shuffle(Q.filter(q => st[q.id]?.n && (st[q.id].due || 0) <= now && !picked.has(q.id))), 'due', Math.round(n * .15));
   const ord = subjOrderByStake(c), rank = new Map(ord.map((z, i) => [z.sj.id, i])), mnum = new Map(moduleList().map(m => [m.id, m]));
-  const fresh = Q.filter(q => !st[q.id]?.n && !picked.has(q.id)).map(q => { const m = mnum.get(modKey(q)); return { q, a: m ? (rank.get(m.subject) ?? 99) : 99, b: m ? m.num : 99, r: Math.random() }; }).sort((x, y) => x.a - y.a || x.b - y.b || x.r - y.r);
+  // v28 · NEW questions only from modules you have studied (lecture or reading finished)
+  const studied = new Set(moduleList().filter(m => m.x && (() => { const p = modProgress(m, c); return p.reading >= 100 || p.lecture >= 100; })()).map(m => m.id));
+  const fresh = Q.filter(q => !st[q.id]?.n && !picked.has(q.id) && studied.has(modKey(q))).map(q => { const m = mnum.get(modKey(q)); return { q, a: m ? (rank.get(m.subject) ?? 99) : 99, b: m ? m.num : 99, r: Math.random() }; }).sort((x, y) => x.a - y.a || x.b - y.b || x.r - y.r);
   put(fresh.map(z => z.q), 'new', n);
   put(D.today.map(z => z.q), 'retry', n); put(weak.map(z => z.q), 'weak', n); put(shuffle(Q.filter(q => st[q.id]?.n)), 'more', n);
   const parts = { retry: 0, weak: 0, due: 0, new: 0, more: 0 }; for (const k of picked.values()) parts[k]++;
@@ -10954,7 +10880,7 @@ const smartText = p => [['retry', 'retry'], ['weak', 'weak LOS'], ['due', 'space
 async function startSmart(n = 20) {
   const r = window.__smart && Date.now() - window.__smart.t < 3e5 && window.__smart.n0 === n ? window.__smart.r : await smartPick(n);
   window.__smart = null;
-  if (!r.qs.length) return toast('No questions available yet — load a module file first');
+  if (!r.qs.length) return toast('Finish a module’s lecture or reading first — or pick any module in Custom practice');
   await startQSession(r.qs, 'practice', 'all', location.hash.startsWith('#/qbank/run') ? '#/' : (location.hash || '#/'), { title: 'Smart session', reasons: true, twins: r.twins || {} });
 }
 async function startRetry() {
@@ -10963,10 +10889,26 @@ async function startRetry() {
   await startQSession(T.qs, 'practice', 'all', location.hash || '#/', { title: `Retry queue · ${D.today.length}${nT ? ` · ${nT} twin${nT > 1 ? 's' : ''}` : ''}`, reasons: true, twins: T.twins });
 }
 // the card shown on Today / Practice: composition is calculated after the page is drawn
+// v29 · session icons (inline SVG, same look in light and dark mode)
+const SESS_ICON = {
+  focused: `<svg viewBox="0 0 32 18" width="30" height="17" aria-hidden="true"><rect x="1" y="2" width="26" height="14" rx="3" fill="none" stroke="#16a34a" stroke-width="2"/><rect x="28" y="6" width="3" height="6" rx="1" fill="#16a34a"/><rect x="4" y="5" width="4.5" height="8" rx="1" fill="#22c55e"/><rect x="9.7" y="5" width="4.5" height="8" rx="1" fill="#22c55e"/><rect x="15.4" y="5" width="4.5" height="8" rx="1" fill="#22c55e"/><rect x="21" y="5" width="3.2" height="8" rx="1" fill="#22c55e"/></svg>`,
+  tired: `<svg viewBox="0 0 32 18" width="30" height="17" aria-hidden="true"><rect x="1" y="2" width="26" height="14" rx="3" fill="none" stroke="#ea580c" stroke-width="2"/><rect x="28" y="6" width="3" height="6" rx="1" fill="#ea580c"/><rect x="4" y="5" width="4.5" height="8" rx="1" fill="#ef4444"/></svg>`,
+  retry: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="#8b5cf6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg>`,
+  mixed: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="#3b82f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>`,
+  gauntlet: `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="#f59e0b"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3" fill="none" stroke="#d97706" stroke-width="1.8"/><rect x="11" y="12.5" width="2" height="4" fill="#d97706"/><rect x="7.5" y="16.5" width="9" height="3" rx="1" fill="#b45309"/></svg>`,
+};
+const sessItem = (k, b2, label, sub, extra = '') => `<button type="button" class="sess-it" data-b2="${b2}"><span class="sess-ic">${SESS_ICON[k]}</span><span class="sess-tx"><b>${label}${extra}</b><small>${sub}</small></span></button>`;
+const moreSessionsHTML = () => `<details class="sess-more"><summary>More sessions</summary><div class="sess-grid">
+  ${sessItem('focused', 'e3', 'Focused · 30', 'Full energy — 30 questions')}
+  ${sessItem('tired', 'e1', 'Tired · 10 min', 'Low energy — 10 flashcards + 5 retries')}
+  ${sessItem('retry', 'retry', 'Retry', 'Questions you missed', ' · <span data-rq-n>…</span>')}
+  ${sessItem('mixed', 'mixed', 'Mixed set', '20 questions across all started topics')}
+  ${sessItem('gauntlet', 'gauntlet', 'Weekly Gauntlet', '30 mixed questions, exam mode — beat your record')}
+</div></details>`;
 function smartCardHTML(id = 'smartCard') {
   return `<div class="card smart-card" id="${id}"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[220px]"><div class="font-bold text-lg">✨ Smart session</div><div class="text-xs smart-sub" data-smart-sub aria-live="polite">Choosing the best questions for you…</div></div>
     <button class="btn-primary" data-b2="smart" disabled>▶ Start</button></div>
-    <div class="flex flex-wrap gap-2 mt-3"><button class="btn-ghost text-xs" data-b2="retry">\uD83D\uDD01 Retry queue · <span data-rq-n>…</span></button><button class="btn-ghost text-xs" data-b2="e3">🔋 Focused · 30</button><button class="btn-ghost text-xs" data-b2="quick">🪫 Tired · 10 min</button><button class="btn-ghost text-xs" data-b2="mixed">🔀 Mixed set</button><button class="btn-ghost text-xs" data-b2="gauntlet">🏆 Weekly Gauntlet</button><a class="btn-ghost text-xs" href="#/errors">\uD83D\uDCD2 Error log</a></div></div>`;
+    ${moreSessionsHTML()}<div class="mt-2"><a class="link text-xs" href="#/errors">\uD83D\uDCD2 Error log</a></div></div>`;
 }
 async function fillSmartCard(id = 'smartCard') {
   const el = document.getElementById(id); if (!el) return;
@@ -10975,7 +10917,7 @@ async function fillSmartCard(id = 'smartCard') {
     const r = await smartPick(20); if (!document.getElementById(id)) return;
     window.__smart = { t: Date.now(), n0: 20, r };
     const sub = el.querySelector('[data-smart-sub]'), go = el.querySelector('[data-b2="smart"]'), rn = el.querySelector('[data-rq-n]');
-    sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — load a module file in the Library';
+    sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — new questions come from modules whose lecture or reading is finished. Mark a module’s reading done, or use Custom practice to choose any module.';
     go.disabled = !r.n; if (!go.hasAttribute('data-keep')) go.textContent = `▶ Start (${r.n})`;
     rn.textContent = r.rq.due.length ? `${r.rq.due.length} due${r.rq.backlog ? ' (' + r.rq.backlog + ' backlog)' : ''}` : '0 due ✓';
   } catch (e) { const sub = el.querySelector('[data-smart-sub]'); if (sub) sub.textContent = 'Could not prepare the session'; console.warn(e); }
@@ -11151,7 +11093,7 @@ const NAV_SVG = {
   more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
 };
 const navIcon = k => `<svg class="bn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_SVG[k]}</svg>`;
-const NAV_PAGES = { today: { label: 'Today', href: '#/' }, study: { label: 'Study', href: '#/study' }, practice: { label: 'Practice', href: '#/qbank' }, progress: { label: 'Performance', short: 'Stats', href: '#/progress' }, plan: { label: 'Plan', href: '#/plan' }, library: { label: 'Library', href: '#/library' }, settings: { label: 'Settings', href: '#/settings' } };
+const NAV_PAGES = { today: { label: 'Today', href: '#/' }, study: { label: 'Study', href: '#/study' }, practice: { label: 'Practice', href: '#/qbank' }, progress: { label: 'Performance', short: 'Perform.', href: '#/progress' }, plan: { label: 'Plan', href: '#/plan' }, library: { label: 'Library', href: '#/library' }, settings: { label: 'Settings', href: '#/settings' } };
 const NAV_MAIN = ['today', 'study', 'practice', 'progress'], NAV_ALL = Object.keys(NAV_PAGES), NAV_MANAGE = ['plan', 'library', 'settings'];
 const NAV_EXTRA = [['Lecture notes', '#/lecnotes'], ['Things to remember', '#/remember'], ['Weekly report', '#/weekly'], ['Error log', '#/errors'], ['Ethics lab', '#/ethics'], ['Calculator drill', '#/calc'], ['Exam-day checklist', '#/examday'], ['Trap library', '#/traps'], ['Explorers', '#/explore'], ['Flashcards', '#/cards'], ['Search', '#/search']];
 const NAV_DEF = { order: NAV_MAIN.slice(), hidden: [], start: 'today', same: false };
@@ -11311,7 +11253,7 @@ function wzMods(w) {
 }
 function wzPlan(w) {
   const per = Math.max(30, Math.round(w.hours * 60 / Math.max(1, w.days.length) / 5) * 5);
-  const cfg = { start: isoDay(new Date()), minPerDay: per, days: w.days.slice().sort((a, b) => a - b), mods: wzMods(w), mins: { read: 150, sum: 60, q: 90 }, review: true };
+  const cfg = { start: isoDay(new Date()), minPerDay: per, days: w.days.slice().sort((a, b) => a - b), mods: wzMods(w), mins: { lec: 60, read: 150, xtra: 30, sum: 60, q: 90 }, review: true };
   const tasks = buildPlan(cfg, []), end = tasks.length ? tasks.map(t => t.date).sort().pop() : null;
   return { cfg, tasks, end, per };
 }
@@ -11373,18 +11315,20 @@ async function home() {
   const disputes = QA.filter(q => q.cr?.state === 'pending' && inScope(q, false)).length;
   const miniReady = SUBJECTS.flatMap(s => miniGroups(s.id).map(g => ({ s, g, st: miniState(g, c), r: MINIRES[g.key] }))).filter(z => z.st.ready && !z.r);
   const noData = !loaded.length, edit = sessionStorage.getItem('layEdit') === 'today';
+  // v29 · a topic you practised before but not in the last 21 days is "fading"
+  const fadeT = (() => { const L = {}; for (const q of Q) { const h = st[q.id]?.hist; if (!h || !h.length) continue; const sj = modInfo(modKey(q))?.subject; if (!sj) continue; let t = 0; for (const x of h) if (x && x.t > t) t = x.t; if (t > (L[sj] || 0)) L[sj] = t; } return SUBJECTS.filter(z => L[z.id] && now - L[z.id] > 21 * 864e5).map(z => ({ s: z, d: Math.floor((now - L[z.id]) / 864e5) })).sort((a, b) => b.d - a.d); })();
   const head = noData ? 'Load your first module' : V.state === 'none' ? 'Ready when you are' : VL.head;
   const sub = noData ? 'Add a module file in the Library to unlock questions, flashcards and your plan.' : V.state === 'none' ? 'Create your plan below in three quick steps — or start a smart session right now.' : VL.sub;
   const cd = days !== null ? (days > 0 ? `Exam in ${days} day${days === 1 ? '' : 's'}` : 'Exam date passed') : '<a href="#/settings">Set your exam date</a>';
   const hero = `<section class="today-hero" id="smartHero"><div class="th-top"><span class="th-k">${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span><span class="th-pill">${cd}</span><span class="ml-auto">${layBtn('today', edit)}</span></div>
     <div class="th-body"><div class="th-txt"><h1 class="th-h">${esc(head)}</h1><p class="th-s">${esc(sub)}</p>${V.state === 'behind' ? '<button type="button" class="th-sec" data-b2="catchup">Catch up the plan</button>' : ''}</div>
-    <div class="th-act">${noData ? '<a class="th-go" href="#/library">⬆ Open the Library</a>' : `<button type="button" class="th-go" data-b2="smart" data-keep disabled>▶ Start today's session</button><div class="th-gs" data-smart-sub aria-live="polite">Choosing the best questions for you…</div><div class="th-links" role="group" aria-label="How much energy do you have today?"><button type="button" data-b2="e3" title="30 questions — when you are fresh">🔋 Focused · 30</button><button type="button" data-b2="e1" title="10 due flashcards + 5 retry questions">🪫 Tired · 10 min</button><button type="button" data-b2="retry">🔁 Retry · <span data-rq-n>…</span></button></div><div class="th-links"><button type="button" data-b2="mixed" title="20 questions mixed across every topic you have started — trains choosing the right tool, like the exam">🔀 Mixed set</button><button type="button" data-b2="gauntlet" title="30 mixed questions, exam mode — beat your record once a week">🏆 Weekly Gauntlet</button></div>`}</div></div></section>`;
+    <div class="th-act">${noData ? '<a class="th-go" href="#/library">⬆ Open the Library</a>' : `<button type="button" class="th-go" data-b2="smart" data-keep disabled>▶ Start today's session</button><div class="th-gs" data-smart-sub aria-live="polite">Choosing the best questions for you…</div>${moreSessionsHTML()}`}</div></div></section>`;
   const row = (icon, label, val, href, attrs = '') => `<a href="${href}" ${attrs} class="rowlink flex items-center gap-2 py-2 text-sm"><span class="w-6 text-center" aria-hidden="true">${icon}</span><span class="flex-1 min-w-0 truncate">${label}</span>${val != null ? `<b class="${val ? '' : 'text-slate-400'}">${val}</b>` : '<span class="text-slate-400">›</span>'}</a>`;
   const secs = {
     setup: !plan && !localStorage.getItem('wizHide') ? `<div class="card" id="wzBox" data-exam="${esc(exam || '')}"></div>` : '',
     plan: plan ? `<div class="card"><div class="flex items-center justify-between"><h3 class="sec mb-0">Today's plan</h3><a href="#/plan" class="link text-xs">Open plan →</a></div>${todays.length ? `<div class="mt-2 space-y-1.5">${todays.slice(0, 6).map(t => taskRow(t)).join('')}</div>${todays.length > 6 ? `<div class="text-xs text-slate-500 mt-1">+${todays.length - 6} more in the plan</div>` : ''}` : '<div class="text-sm text-emerald-600 mt-2">✓ Nothing left in today\'s plan.</div>'}</div>` : '',
     due: noData ? '' : `<div class="card"><h3 class="sec">Due now</h3>
-      ${row('\uD83C\uDCCF', 'Flashcards due', cardsDue, '#/cards')}${row('\uD83E\uDDE0', 'Retry queue — questions you missed', rqN, '#/qbank', 'data-b2="retry"')}${row('\uD83D\uDD01', 'Spaced review — questions due', dueN, '#/qbank', 'data-pool="due"')}
+      ${row('\uD83C\uDCCF', 'Flashcards due', cardsDue, '#/cards')}${row('\uD83E\uDDE0', 'Retry queue — questions you missed', rqN, '#/qbank', 'data-b2="retry"')}${row('\uD83D\uDD01', 'Spaced review — questions due', dueN, '#/qbank', 'data-pool="due"')}${fadeT.map(z => row('⏳', `Fading · ${esc(z.s.name)} — not practised for ${z.d} days`, null, `#/qbank/stats/${z.s.id}`)).join('')}
       ${nextMock ? row('\uD83D\uDCDD', `Next mock · ${esc(nextMock.name)}`, null, '#/qbank/mocks') : ''}${disputes ? row('\uD83E\uDDEA', 'Answer disputes — to decide', disputes, '#/qbank', 'data-pool="crp"') : ''}${miniReady.length ? row('\uD83D\uDCDD', `Mini-exam ready · ${esc(miniReady[0].s.name)} · ${miniReady[0].g.label}`, null, `#/study/${miniReady[0].s.id}`) : ''}</div>`,
     exam: await examTodayHTML(days, exam, MR),
     resume: noData ? '' : `<div class="card"><h3 class="sec">Pick up where you left off</h3><div class="flex flex-wrap gap-2">${lastFile ? `<a class="btn-ghost" href="#/read/${encodeURIComponent(last.fileId)}?p=${last.page || 1}">▶️ Continue reading · ${esc(lastFile.label || lastFile.name)}</a>` : ''}${lastMod ? `<a class="btn-ghost" href="${lastMod.href}">▶ Continue ${esc(lastMod.short)} · ${esc(lastMod.title)}</a>` : ''}<a class="btn-ghost" href="#/lecnotes">\uD83C\uDFAC Lecture notes</a><a class="btn-ghost" href="#/remember">\uD83D\uDCA1 Things to remember</a></div></div>`,
@@ -11421,7 +11365,7 @@ function studyRowHTML(z) {
     <div class="flex-1 min-w-[200px]"><h2 id="st-${sj.id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2>
       <div class="text-xs text-slate-500">Exam weight ${W_RANGE[sj.id]} · ${z.loaded}/${z.total} modules loaded · ${z.done} complete</div>
       <div class="st-m mt-2"><div class="st-mi" data-tip="Completeness — every study step done and every question solved correctly"><span>Complete</span><div role="progressbar" aria-label="${esc(sj.name)} completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.avg}">${bar(z.avg, 'bg-indigo-500')}</div><b>${z.avg}%</b></div>
-        <div class="st-mi" data-tip="Readiness — the share of exam questions on this topic you would most likely get right today (starts at 40 % until you answer questions)"><span>Readiness</span><div role="progressbar" aria-label="${esc(sj.name)} readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.ready}">${bar(z.ready, z.ev < 5 ? 'bg-slate-400' : z.ready >= MPS ? 'bg-emerald-500' : z.ready >= 50 ? 'bg-amber-500' : 'bg-rose-500')}</div><b>${z.ev < 5 ? '—' : z.ready + '%'}</b></div>
+        <div class="st-mi" data-tip="Readiness — the share of exam questions on this topic you would most likely get right today (shown after about 5 answers)"><span>Readiness ${rdI()}</span><div role="progressbar" aria-label="${esc(sj.name)} readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.ev < RM.MIN ? 0 : z.ready}">${bar(z.ev < RM.MIN ? 0 : z.ready, z.ev < 5 ? 'bg-slate-400' : z.ready >= MPS ? 'bg-emerald-500' : z.ready >= 50 ? 'bg-amber-500' : 'bg-rose-500')}</div><b>${z.ev < 5 ? '—' : z.ready + '%'}</b></div>
         <div>${z.ev < 5 && z.avg < 5 ? `<span class="dg dg-new">${DIAG.new.icon} ${DIAG.new.name}</span>` : diagChip(z.ready, z.avg)}</div></div>
       ${t ? `<div class="text-xs text-slate-500 mt-1 truncate">Next: LM${t.num} · ${esc(t.title)}</div>` : ''}</div>
     ${t ? (LEARN_PATH === 'qfirst' && t.x ? `<a class="btn-primary text-sm" href="#/qbank/m/${encodeURIComponent(t.id)}">▶ Questions · LM${t.num}</a>` : `<a class="btn-primary text-sm" href="${t.kind === 'pack' ? t.href + '/map' : t.href}">▶ Continue LM${t.num}</a>`) : `<a class="btn-primary text-sm" href="#/library" data-lib="${sj.id}">⬆ Load modules</a>`}</div></section>`;
@@ -11611,6 +11555,9 @@ async function examTodayHTML(days, exam, M) {
 // ---------- 20 · exam-day checklist ----------
 const CFAI = { calc: 'https://www.cfainstitute.org/about/governance/policies/cfa-calculator-policy', belongings: 'https://www.cfainstitute.org/about/governance/policies/cfa-personal-belongings-policy', guide: 'https://www.cfainstitute.org/programs/cfa-program/candidate-resources/exam-day-preparation-guide', l1: 'https://www.cfainstitute.org/programs/cfa-program/candidate-resources/level-i-exam' };
 const EXD = [
+  { id: 'psm', title: 'Before exam day', items: [
+    ['psm', 'Practical Skills Module (PSM) completed in your CFA Institute account — required to receive your Level I result; confirm the current rule on the Level I page', 'off', 'Level I exam page'],
+  ] },
   { id: 'docs', title: 'Documents', items: [
     ['passport', 'Original, unexpired international travel passport', 'off', 'Exam-day guide'],
     ['name', 'Name on the passport matches your CFA Institute account — check the ID requirements page', 'guide', 'Third-party guides'],
@@ -12145,7 +12092,7 @@ function prereqOf(modId) {
 function prereqHTML(m, c) {
   const ps = prereqOf(m.id); if (!ps.length) return '';
   const me = modReadiness(m, null, c);
-  return `<div class="flex flex-wrap items-center gap-1 mt-2"><span class="text-[11px] text-slate-500 mr-1" data-tip="Modules this one is built on. If a foundation is red, fixing it first is usually faster than drilling this module.">🧱 Built on</span>${ps.map(id => { const p = modInfo(id); if (!p) return ''; const r = modReadiness(p, null, c), weak = r < 50 && me < 70; return `<a class="mx ${p.x ? mCol(r) : 'mx-grey'}" href="${p.href}" data-tip="${esc(p.title)} · readiness ${r}%${weak ? ' — weak foundation: review it first' : ''}">${weak ? '⚠ ' : ''}${esc(p.short || p.id)} · ${r}</a>`; }).join('')}</div>`;
+  return `<div class="flex flex-wrap items-center gap-1 mt-2"><span class="text-[11px] text-slate-500 mr-1" data-tip="Modules this one is built on. If a foundation is red, fixing it first is usually faster than drilling this module.">🧱 Built on</span>${ps.map(id => { const p = modInfo(id); if (!p) return ''; const pk = p.x && rdOk(modEstimate(p, c)), r = modReadiness(p, null, c), weak = pk && r < 50 && me < 70; return `<a class="mx ${pk ? mCol(r) : 'mx-grey'}" href="${p.href}" data-tip="${esc(p.title)} · ${pk ? 'readiness ' + r + '%' : 'not enough answers yet'}${weak ? ' — weak foundation: review it first' : ''}">${weak ? '⚠ ' : ''}${esc(p.short || p.id)} · ${pk ? r : '—'}</a>`; }).join('')}</div>`;
 }
 
 // ---------- explorers: bond price–yield · option payoffs · inventory methods ----------
@@ -12830,6 +12777,29 @@ async function diagHTML() {
     </div></details>`;
 }
 // resolves true = go ahead and sign out
+// v28 · a DIFFERENT account signs in on this browser: show what would be lost before wiping the previous account's local data
+async function switchAccountGuard() {
+  let pend = 0, localOnly = [];
+  try { pend = await pendingCount(); } catch { }
+  try { localOnly = (await local.all('files')).filter(f => f.localOnly); } catch { }
+  if (!pend && !localOnly.length) return true;
+  return await new Promise(res => {
+    const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.setAttribute('role', 'alertdialog'); bg.setAttribute('aria-label', 'Another account used this browser');
+    bg.innerHTML = `<div class="card modal-box space-y-3"><h3 class="font-bold text-rose-600">⚠ Another account used this browser</h3>
+      <p class="text-sm">Signing in with this account removes the previous account's data from this device. These items exist <b>only here</b>:</p>
+      <ul class="text-sm space-y-1 list-disc pl-5">${pend ? `<li><b>${pend}</b> change${pend === 1 ? '' : 's'} not uploaded yet</li>` : ''}${localOnly.length ? `<li><b>${localOnly.length}</b> book${localOnly.length === 1 ? '' : 's'} saved only on this device: ${esc(localOnly.slice(0, 3).map(f => f.label || f.name).join(', '))}${localOnly.length > 3 ? '…' : ''}</li>` : ''}</ul>
+      <p class="text-sm">Safest: <b>Cancel</b>, sign in again with the previous account and let it sync — or download a backup first.</p>
+      <div class="flex flex-wrap gap-2 justify-end"><button type="button" class="btn-primary" data-g="cancel">Cancel</button><button type="button" class="btn-ghost" data-g="bak">⬇️ Download backup</button><button type="button" class="btn-ghost text-rose-600" data-g="go">Delete and continue</button></div></div>`;
+    document.body.append(bg);
+    bg.onclick = async e => {
+      const a = e.target.closest('[data-g]')?.dataset.g; if (!a) return;
+      if (a === 'bak') { try { await downloadBackupNow({ full: true }); } catch { } return; }
+      if (a === 'go' && !confirm('Delete the previous account\'s unsynced data from this device?')) return;
+      bg.remove(); res(a === 'go');
+    };
+    setTimeout(() => bg.querySelector('[data-g="cancel"]')?.focus(), 30);
+  });
+}
 async function signOutGuard() {
   for (;;) {
     try { await flush(); } catch { }
@@ -13078,7 +13048,20 @@ async function qSave(snapLabel, mutate) {
   const snap = await undoSnap(snapLabel, ['qedits']);
   mutate(QE); await kv.set('qedits', QE); await loadQE(); return snap;
 }
-const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off && !e.cr) delete QE[id]; };
+const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off && !e.cr && !e.lvl) delete QE[id]; };
+// v29 · cognitive level: Recall (remember a fact/definition) vs Apply (calculate, use a concept in a case).
+// Your choice in Edit question wins; then a level in the file (lvl/level); otherwise an automatic guess from the wording.
+const LVL_NUM = /(?:\d[\d,]*\.?\d*\s*%|[$€£¥]\s?\d|\b\d+\.\d+\b)/g;
+function qLevelAuto(q) {
+  const t = String(q.q || ''), o = (q.o || []).join(' ');
+  if (/\b(calculat|comput|closest to|estimate|value of|amount of|how much|what is the (?:price|yield|return|value))/i.test(t)) return 'apply';
+  if ((t.match(LVL_NUM) || []).length >= 2) return 'apply';
+  if ((q.o || []).length && (q.o || []).every(x => /^[\s$€£¥(−-]*[\d.,]+\s*%?\)?\s*(?:million|billion|years?|times|x)?\s*$/i.test(String(x)))) return 'apply';
+  if (t.length > 420) return 'apply';              // case / vignette
+  if (/\b(most likely|least likely|most appropriate|best explains|consistent with|violat)/i.test(t) && t.length > 220) return 'apply';
+  return 'recall';
+}
+const qLevel = q => { const e = QE[q.id]?.lvl; if (e === 'apply' || e === 'recall') return e; const f = String(q.lvl || q.level || '').toLowerCase(); if (f.startsWith('app') || f.startsWith('ana')) return 'apply'; if (f.startsWith('rec') || f.startsWith('kno')) return 'recall'; return qLevelAuto(q); };
 async function qRefreshPage() { const y = window.scrollY; await route(); window.scrollTo(0, y); }
 
 // ---------- edit a question ----------
@@ -13116,6 +13099,7 @@ function qEditDialog(q, hooks = {}) {
     ${qMentorOf(q) ? `<div class="text-xs p-2 rounded-lg bg-amber-50 dark:bg-slate-900 whitespace-pre-wrap"><b>From the module file</b> (read-only here — change it in the module file):\n${esc(qMentorOf(q))}</div>` : ''}
     <div><label class="lbl">Explanation</label><textarea id="qeX" class="inp text-sm" rows="5">${esc(qRawX(q))}</textarea></div>
     ${packLos ? `<div><label class="lbl">LOS</label><select id="qeL" class="inp"><option value="" ${!q.los ? 'selected' : ''}>General (no LOS)</option>${packLos.map(l => `<option value="${esc(l.los_code)}" ${q.los === l.los_code ? 'selected' : ''}>LOS ${esc(l.los_code)} · ${esc(shortTxt(l.los_text, 70))}</option>`).join('')}</select></div>` : ''}
+    <div><label class="lbl">Level</label><select id="qeLv" class="inp"><option value="" ${!QE[q.id]?.lvl ? 'selected' : ''}>Automatic (now: ${qLevelAuto(q) === 'apply' ? 'Apply' : 'Recall'})</option><option value="recall" ${QE[q.id]?.lvl === 'recall' ? 'selected' : ''}>Recall — remember a fact or definition</option><option value="apply" ${QE[q.id]?.lvl === 'apply' ? 'selected' : ''}>Apply — calculate or use a concept in a case</option></select></div>
     <label class="flex items-start gap-2 text-sm" id="qeRecW" hidden><input type="checkbox" id="qeRec" checked class="accent-indigo-600 mt-1" style="width:20px;height:20px"><span>Re-mark my earlier attempts with the new correct answer<span class="block text-xs text-slate-500">Fixes your accuracy and mistakes list for this question.</span></span></label>
     <div id="qeErr" class="text-sm text-rose-600"></div>
     <div class="flex flex-wrap gap-2 justify-end">${q.edited ? '<button class="btn-ghost mr-auto" data-r="restore">↩ Restore original</button>' : ''}<button class="btn-ghost" data-r="x">Cancel</button><button class="btn-primary" data-r="go">Save</button></div></div>`;
@@ -13146,7 +13130,8 @@ function qEditDialog(q, hooks = {}) {
     const recalc = !$('#qeRecW').hidden && $('#qeRec').checked && corr !== q.a;
     bg.remove();
     const snap = await undoSnap('Edited a question', ['qedits', 'qstats']);
-    QE[q.id] = { ...(QE[q.id] || {}) }; if (same) delete QE[q.id].edit; else QE[q.id].edit = d; qPrune(q.id);
+    QE[q.id] = { ...(QE[q.id] || {}) }; if (same) delete QE[q.id].edit; else QE[q.id].edit = d;
+    const lv = $('#qeLv').value; if (lv) QE[q.id].lvl = lv; else delete QE[q.id].lvl; qPrune(q.id);
     await kv.set('qedits', QE); await loadQE();
     let msg = same ? 'Back to the original' : 'Question saved';
     if (recalc) { const r = await qRecalc(q.id, d.a); msg += r.changed ? ` · ${r.changed} earlier attempt${r.changed === 1 ? '' : 's'} re-marked` : ''; }
@@ -13322,7 +13307,10 @@ async function startSession(session) {
   if (!session) return loginScreen();
   const newUser = session.user.id;
   const prev = await local.get('kv', '__owner');
-  if (prev && prev !== newUser) await wipeDevice();      // another account used this browser before
+  if (prev && prev !== newUser) {      // another account used this browser before
+    if (!(await switchAccountGuard())) { try { await sb.auth.signOut(); } catch { } clearStoredSession(); return loginScreen('Sign-in cancelled — the data of the previous account is still on this device.'); }
+    await wipeDevice();
+  }
   await local.put('kv', newUser, '__owner');
   user = session.user; setClient(sb, user.id);
   document.body.classList.remove('auth');
