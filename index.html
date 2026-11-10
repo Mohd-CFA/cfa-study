@@ -3113,6 +3113,8 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 .sess-tx{display:flex;flex-direction:column;min-width:0}.sess-tx b{font-size:14px}.sess-tx small{font-size:12px;opacity:.75}
 .dsh-acts{display:contents}.dsh-more{display:none;min-width:44px;min-height:44px;font-size:20px;line-height:1}
 @media (max-width:639px){.dsh-more{display:inline-flex;align-items:center;justify-content:center}.dsh-acts{display:none;position:absolute;right:0;top:100%;z-index:40;flex-direction:column;align-items:stretch;gap:.4rem;padding:.6rem;border-radius:.9rem;background:#fff;border:1px solid rgba(148,163,184,.4);box-shadow:0 10px 30px rgba(15,23,42,.2);min-width:14rem}.dark .dsh-acts{background:#1e293b}.dsh-acts.open{display:flex}.dsh-acts>*{min-height:44px;justify-content:flex-start}}
+.chip-dup{background:rgba(245,158,11,.15);color:#b45309;border:1px solid rgba(245,158,11,.45);display:inline-flex;align-items:center;gap:.3rem}.dark .chip-dup{color:#fbbf24}
+.dup-x{border:0;background:none;color:inherit;cursor:pointer;font-size:12px;opacity:.7;min-width:24px;min-height:24px;position:relative}.dup-x::after{content:"";position:absolute;inset:-10px}.dup-x:hover{opacity:1}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -6295,13 +6297,14 @@ function filterAdv(qs, adv, st) {
     if (adv.res === 'ok' && !(s?.n && s.last)) return false;
     if (adv.res === 'bad' && !(s?.n && !s.last)) return false;
     if (adv.reason && !allReasons(s).some(h => h.r === adv.reason)) return false;
+    if (adv.dup === 'skip' && qDup(q)) return false;
     return true;
   });
 }
 function poolCounts(qs, st) { const o = {}; POOLS.forEach(([k]) => o[k] = filterPool(qs, k, st).length); return o; }
 function readSide() {
   return { pool: view.querySelector('[name=pool]:checked')?.value || 'all', mode: view.querySelector('[name=mode]:checked')?.value || 'practice', count: document.getElementById('qc').value,
-    adv: { conf: document.getElementById('fConf').value, res: document.getElementById('fRes').value, reason: document.getElementById('fReason').value }, reasons: document.getElementById('askWhy').checked };
+    adv: { conf: document.getElementById('fConf').value, res: document.getElementById('fRes').value, reason: document.getElementById('fReason').value, dup: document.getElementById('fDup')?.value || '' }, reasons: document.getElementById('askWhy').checked };
 }
 // ================= P3 · learning engine: exam-aware spacing · twin retries · interleaving · weekly gauntlet · energy · blurting =================
 // spacing that respects the exam date: in the last 6 weeks every interval is halved, and nothing is scheduled after exam day − 3
@@ -6498,7 +6501,7 @@ async function qbankRun() {
       <div class="flex flex-wrap items-center gap-2 text-sm mb-2">
         <a href="${S.back || '#/qbank'}" class="ib" title="Exit">✕</a>
         <span class="font-semibold">${S.title ? esc(S.title) + ' · ' : ''}Question ${S.i + 1} / ${S.items.length}</span>
-        <span class="chip" data-tip="${esc(m.tip)}">${esc(m.chip)}</span>
+        <span class="chip" data-tip="${esc(m.tip)}">${esc(m.chip)}</span>${S.mode === 'exam' ? '' : dupChip(q)}
         <span class="ml-auto flex items-center gap-1">
           <span id="qclock" class="font-mono text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700" data-tip="Time on this question (target ≈ 90 s · amber after 90 s · red after 3 min)">⏱ ${fmtSec(qSecs(it))}</span>
           ${S.mode === 'exam' ? `<span id="pace" class="font-mono text-xs px-2 py-1" data-tip="Pace vs 90 s per answered question: ▲ ahead · ▼ behind"></span>` : ''}
@@ -7785,6 +7788,7 @@ function sideSetup(s) {
       <div class="grid gap-2 mt-2 text-xs">
         <label data-tip="Confidence you chose on your last attempt">Last confidence<select id="fConf" class="inp mt-1"><option value="">Any</option>${Object.entries(CONF).map(([k, v]) => `<option value="${k}" ${a.conf === k ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')}</select></label>
         <label>Last result<select id="fRes" class="inp mt-1"><option value="">Correct or wrong</option><option value="ok" ${a.res === 'ok' ? 'selected' : ''}>✅ Correct</option><option value="bad" ${a.res === 'bad' ? 'selected' : ''}>❌ Wrong</option></select></label>
+        <label data-tip="Duplicates are only flagged; choose whether copies appear in this session">Duplicates<select id="fDup" class="inp mt-1"><option value="">Include duplicate copies</option><option value="skip" ${a.dup === 'skip' ? 'selected' : ''}>📑 Skip duplicate copies</option></select></label>
         <label data-tip="Questions where you recorded this reason on any wrong attempt">Mistake reason<select id="fReason" class="inp mt-1"><option value="">Any</option>${REASONS.map(([k, n, i]) => `<option value="${k}" ${a.reason === k ? 'selected' : ''}>${i} ${n}</option>`).join('')}</select></label>
       </div></details>
     <div><h3 class="sec">Mode</h3><div class="grid grid-cols-2 gap-2">
@@ -9304,6 +9308,7 @@ async function library(libFocus) {
   <label class="flex items-center gap-2 text-sm mb-3" data-tip="The book is kept only in this browser and does not use your cloud space. Other devices will list it but cannot open it until you upload it to the cloud."><input type="checkbox" id="locOnly" class="accent-indigo-600"> Keep new uploads on this device only</label>
   <div id="locWarn" class="hidden text-xs text-amber-600 mb-3" role="note">⚠ Books uploaded while this is ticked are NOT sent to your account — they will not open on your other devices.</div>
   <div id="upMsg" class="text-sm my-2"></div>
+  ${await (async () => { try { const n = (await allQsAll()).length, sig = await kv.get('dupSig', 0); if (n && n !== sig) await dupScan(true); } catch (e) { console.warn('dup scan', e); } return dupToolsHTML(); })()}
   ${await qvBarHTML()}
   <div id="vlibBox">${await vidLibHTML()}</div>
   <div id="mockLibBox" class="mb-3">${await mockLibHTML()}</div>
@@ -13048,7 +13053,65 @@ async function qSave(snapLabel, mutate) {
   const snap = await undoSnap(snapLabel, ['qedits']);
   mutate(QE); await kv.set('qedits', QE); await loadQE(); return snap;
 }
-const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off && !e.cr && !e.lvl) delete QE[id]; };
+const qPrune = id => { const e = QE[id]; if (e && !e.edit && !e.off && !e.cr && !e.lvl && !e.dup) delete QE[id]; };
+// v30 · duplicate FLAGS — the question stays active; it is only marked. qedits[id].dup = { of, ofL, k: 'exact'|'same'|'no', ts }
+//   exact = identical text and options · same = the same question with tiny wording changes · no = you said it is NOT a duplicate (never re-flagged)
+const qDup = q => { const d = q && QE[q.id]?.dup; return d && d.k !== 'no' ? d : null; };
+const DUP_RANK = { mock: 0, tq: 1, curr: 2, schq: 3, smq: 4, uw: 5, ap: 6, oth: 7 };
+const dupRank = q => [q.mock || q.src === 'mock' ? 0 : DUP_RANK[q.src] ?? 8, q.qno || 0, String(q.id)];
+const dupCmp = (a, b) => { const x = dupRank(a), y = dupRank(b); return x[0] - y[0] || x[1] - y[1] || (x[2] < y[2] ? -1 : 1); };
+const dupNorm = t => String(t || '').normalize('NFKC').toLowerCase().replace(/[\u2018\u2019\u201c\u201d]/g, "'").replace(/[\u2013\u2014\u2212]/g, '-').replace(/[^a-z0-9%.$ ]/g, ' ').replace(/\s+/g, ' ').trim();
+const dupKey = q => dupNorm(q.q) + '||' + (q.o || []).map(dupNorm).sort().join('|');
+const dupChip = q => { const d = qDup(q); if (!d) return ''; return `<span class="chip chip-dup" data-tip="${esc((d.k === 'exact' ? 'Exact duplicate' : 'Same question, slightly reworded') + ' of: ' + (d.ofL || d.of) + ' — the question stays active; this is only a marker.')}">📑 ${d.k === 'exact' ? 'Exact duplicate' : 'Duplicate (reworded)'}<button type="button" class="dup-x" data-undup="${esc(q.id)}" aria-label="Not a duplicate — remove the flag" title="Not a duplicate">✕</button></span>`; };
+async function dupScan(silent) {
+  await loadQE();
+  const all = (await allQsAll()).filter(q => q && q.q && Array.isArray(q.o)), by = new Map();
+  for (const q of all) { const k = dupKey(q); if (!by.has(k)) by.set(k, []); by.get(k).push(q); }
+  let n = 0, g = 0; const ts = Date.now();
+  for (const grp of by.values()) {
+    if (grp.length < 2) continue; g++;
+    grp.sort(dupCmp); const keep = grp[0];
+    for (const q of grp.slice(1)) {
+      const old = QE[q.id]?.dup; if (old && (old.k === 'no' || old.of === keep.id)) continue;
+      QE[q.id] = { ...(QE[q.id] || {}), dup: { of: keep.id, ofL: qLabel(keep), k: 'exact', ts } }; n++;
+    }
+  }
+  await kv.set('qedits', QE); await loadQE(); await kv.set('dupSig', all.length);
+  if (!silent) toast(n ? `${n} exact duplicate${n === 1 ? '' : 's'} flagged in ${g} group${g === 1 ? '' : 's'} — nothing was hidden or deleted` : `No new exact duplicates (${g} group${g === 1 ? '' : 's'} already flagged)`);
+  return { n, g };
+}
+async function dupImport(file) {
+  let d; try { d = JSON.parse(await file.text()); } catch { return toast('This is not a valid decisions file'); }
+  if (d?.app !== 'cfa-l1' || d?.kind !== 'question-decisions') return toast('This is not a CFA question-decisions file');
+  await loadQE();
+  const all = await allQsAll(), byId = new Map(all.map(q => [q.id, q]));
+  const flags = (d.flags || []).filter(f => byId.has(f.id) && QE[f.id]?.dup?.k !== 'no'), miss = (d.flags || []).length - flags.length;
+  const fixes = (d.fixAnswer || []).map(f => { const q = byId.get(f.id); const i = q ? q.o.findIndex(o => dupNorm(o) === dupNorm(f.answerText)) : -1; return { ...f, q, i }; }).filter(f => f.q && f.i >= 0 && f.i !== f.q.a);
+  const nE = flags.filter(f => f.k === 'exact').length;
+  if (!confirm(`Import question decisions?\n\n• Flag ${nE} exact duplicate${nE === 1 ? '' : 's'} and ${flags.length - nE} reworded duplicate${flags.length - nE === 1 ? '' : 's'} — they stay active, only a marker is added\n• Correct ${fixes.length} answer key${fixes.length === 1 ? '' : 's'}: ${fixes.map(f => f.id).join(', ') || '—'}${miss ? `\n\n${miss} question${miss === 1 ? ' is' : 's are'} not on this site (or you marked them “not a duplicate”) and will be skipped.` : ''}`)) return;
+  await kv.set('qeditsBak', JSON.parse(JSON.stringify(QE)));
+  const ts = Date.now();
+  for (const f of flags) { const of = byId.get(f.of); QE[f.id] = { ...(QE[f.id] || {}), dup: { of: f.of, ofL: of ? qLabel(of) : f.of, k: f.k === 'same' ? 'same' : 'exact', ts } }; }
+  for (const f of fixes) { const E = { ...(QE[f.id] || {}) }; E.edit = { ...(E.edit || {}), a: f.i, ts, v: 2 }; QE[f.id] = E; }
+  await kv.set('qedits', QE); await loadQE();
+  let re = 0; for (const f of fixes) { try { re += (await qRecalc(f.id, f.i))?.changed || 0; } catch { } }
+  toast(`Done · ${flags.length} duplicates flagged · ${fixes.length} answer keys corrected${re ? ` · ${re} earlier attempt${re === 1 ? '' : 's'} re-marked` : ''}`);
+  await qRefreshPage();
+}
+async function dupToolsHTML() {
+  const vals = Object.values(QE || {}), nE = vals.filter(e => e.dup?.k === 'exact').length, nS = vals.filter(e => e.dup?.k === 'same').length, nNo = vals.filter(e => e.dup?.k === 'no').length;
+  return `<div class="card mb-3" id="dupCard"><h3 class="sec">📑 Duplicate questions</h3>
+    <p class="text-sm text-slate-500 mb-2">Duplicates are only <b>flagged</b> — every question stays active. In Custom practice you can choose “Skip duplicate copies”. Exact duplicates are found automatically each time you open the Library after uploading questions.</p>
+    <div class="flex flex-wrap gap-2 text-sm mb-3"><span class="chip">Exact: <b>${nE}</b></span><span class="chip">Reworded: <b>${nS}</b></span><span class="chip">Marked “not a duplicate”: <b>${nNo}</b></span></div>
+    <div class="flex flex-wrap gap-2"><button type="button" class="btn-primary text-sm" data-dupscan>🔍 Find exact duplicates now</button><label class="btn-ghost text-sm cursor-pointer">⬆️ Import decisions file<input type="file" accept=".json,application/json" id="dupFile" hidden></label><button type="button" class="btn-ghost text-sm text-rose-600" data-dupclear ${nE + nS ? '' : 'disabled'}>Remove all duplicate flags</button></div></div>`;
+}
+document.addEventListener('click', async e => {
+  const x = e.target.closest && e.target.closest('[data-undup]');
+  if (x) { e.preventDefault(); e.stopPropagation(); const id = x.dataset.undup; QE[id] = { ...(QE[id] || {}), dup: { ...(QE[id]?.dup || {}), k: 'no', ts: Date.now() } }; await kv.set('qedits', QE); await loadQE(); toast('Flag removed — this question will not be flagged again'); x.closest('.chip-dup')?.remove(); return; }
+  if (e.target.closest && e.target.closest('[data-dupscan]')) { await dupScan(false); return qRefreshPage(); }
+  if (e.target.closest && e.target.closest('[data-dupclear]')) { if (!confirm('Remove every duplicate flag? Questions you marked “not a duplicate” keep that choice.')) return; for (const [id, v] of Object.entries(QE)) if (v.dup && v.dup.k !== 'no') { delete v.dup; qPrune(id); } await kv.set('qedits', QE); await loadQE(); toast('All duplicate flags removed'); return qRefreshPage(); }
+});
+document.addEventListener('change', async e => { if (e.target && e.target.id === 'dupFile' && e.target.files?.[0]) { const f = e.target.files[0]; e.target.value = ''; await dupImport(f); } });
 // v29 · cognitive level: Recall (remember a fact/definition) vs Apply (calculate, use a concept in a case).
 // Your choice in Edit question wins; then a level in the file (lvl/level); otherwise an automatic guess from the wording.
 const LVL_NUM = /(?:\d[\d,]*\.?\d*\s*%|[$€£¥]\s?\d|\b\d+\.\d+\b)/g;
@@ -13800,7 +13863,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
   function addDock() {
     var head = document.querySelector('.bacalc .bc-head'); if (!head || head.querySelector('.bc-dock')) return !!head;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'bc-dock';
-    var paint = function () { var on = document.body.classList.contains('calc-dock'); b.textContent = on ? '⧉' : '⇥'; b.title = on ? 'Float the calculator' : 'Dock the calculator beside the question (wide screens)'; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', b.title); };
+    var paint = function () { var on = document.body.classList.contains('calc-dock'); b.textContent = on ? '📑' : '⇥'; b.title = on ? 'Float the calculator' : 'Dock the calculator beside the question (wide screens)'; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.setAttribute('aria-label', b.title); };
     b.addEventListener('click', function (e) { e.stopPropagation(); var on = !document.body.classList.contains('calc-dock'); document.body.classList.toggle('calc-dock', on); try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (x) { } paint(); });
     paint(); head.insertBefore(b, head.querySelector('[data-x]')); return true;
   }
