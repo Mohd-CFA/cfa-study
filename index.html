@@ -13293,7 +13293,7 @@ async function qvjShow(note) {
   qvjPill(note ? `${head} · ${note}` : head);
   const bar = document.getElementById('qvoBar'), msg = document.getElementById('qvoMsg');
   if (bar) { bar.style.width = pctN + '%'; bar.parentElement?.setAttribute('aria-valuenow', String(pctN)); }
-  if (msg) msg.innerHTML = `${note ? esc(note) + ' · ' : ''}<b>${doneN}/${C.all}</b> packs handled · ${mb} MB saved${j.fail ? ` · ${j.fail} could not be processed` : ''}`;
+  if (msg) msg.innerHTML = `${note ? esc(note) + ' · ' : ''}<b>${doneN}/${C.all}</b> packs handled · ${mb} MB saved${j.fail ? ` · ${j.fail} could not be processed${j.err ? ` <span class="text-rose-600">(${esc(j.err)})</span>` : ''}` : ''}`;
   qvjButtons();
 }
 function qvjButtons() {
@@ -13345,7 +13345,7 @@ async function qvjRun() {
   if (!(await qvoCanWebp())) return qvjPill('🗜 This browser cannot write WebP pictures — use Chrome or Edge.', true);
   const go = async () => {
     QVJ.run = true; QVJ.stop = false;
-    let j = { done: 0, skip: 0, fail: 0, saved: 0, orph: [], ...(qvjLoad() || {}) }; j.want = 'run'; j.fail = 0; j.at = Date.now(); qvjSave(j);
+    let j = { done: 0, skip: 0, fail: 0, saved: 0, orph: [], ...(qvjLoad() || {}) }; j.want = 'run'; j.fail = 0; j.streak = 0; j.err = ''; j.at = Date.now(); qvjSave(j);
     try {
       await qvjCleanup(j); await qvjShow('starting…');
       const ids = Object.keys(await kv.get('qpacks', {}));
@@ -13359,7 +13359,7 @@ async function qvjRun() {
           const oldBlob = await getBlob(m), txt = await oldBlob.text(), r = await qvoPack(JSON.parse(txt)); if (!r) break;
           const nb = new Blob([JSON.stringify(r.pack)], { type: 'application/json' });
           if (nb.size > oldBlob.size * 0.9) { metas = await kv.get('qpacks', {}); if (metas[m.id]) { metas[m.id] = { ...metas[m.id], opt: 'kept' }; await kv.set('qpacks', metas); } j.skip++; qvjSave(j); continue; }
-          const sid = `${m.id}~w${Date.now().toString(36)}`;
+          const sid = `${m.id}_w${Date.now().toString(36)}`;      // v34 · "~" is not allowed in Supabase Storage names
           j.pend = { id: m.id, sid, parts: Math.max(1, Math.ceil(nb.size / CHUNK)) }; qvjSave(j);
           const parts = await uploadBook(sid, nb);                                                                  // 1 · upload the new copy
           metas = { ...(await kv.get('qpacks', {})) }; const cur = metas[m.id];
@@ -13368,7 +13368,8 @@ async function qvjRun() {
           await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                         // 2 · switch to it
           j.pend = null; j.done++; j.saved += oldBlob.size - nb.size; qvjSave(j);
           try { await deleteBookFiles({ id: stoId(cur), parts: cur.parts }); } catch (e) { (j.orph = j.orph || []).push({ id: stoId(cur), parts: cur.parts }); qvjSave(j); }   // 3 · delete the old copy
-        } catch (e) { j.fail++; qvjSave(j); console.warn('optimise', id, e); if (!navigator.onLine) break; }
+          j.streak = 0;
+        } catch (e) { j.fail++; j.streak = (j.streak || 0) + 1; j.err = String(e && (e.message || e) || 'unknown error').slice(0, 160); qvjSave(j); console.warn('optimise', id, e); if (!navigator.onLine) break; if (j.streak >= 3) { j.stopErr = true; break; } }
       }
     } finally {
       QVJ.run = false;
@@ -13376,6 +13377,7 @@ async function qvjRun() {
       j = { ...j, ...(qvjLoad() || {}) };
       if (QVJ.stop) { j.want = 'paused'; qvjSave(j); await qvjShow('paused'); }
       else if (!navigator.onLine) { j.want = 'run'; qvjSave(j); await qvjShow('waiting for the internet'); }
+      else if (j.stopErr) { j.stopErr = false; j.streak = 0; j.want = 'paused'; qvjSave(j); await qvjShow(`stopped after 3 errors in a row: ${j.err}`); }
       else if (C.left && j.fail) { j.want = 'paused'; qvjSave(j); await qvjShow(`${j.fail} pack${j.fail === 1 ? '' : 's'} could not be processed — press Resume to retry`); }
       else { j.want = 'done'; j.end = Date.now(); qvjSave(j); await qvjShow('finished'); qvjPill(`✅ Picture optimisation finished · ${C.opt} packs optimised · ${((j.saved || 0) / 1048576).toFixed(1)} MB saved`, true); }
       QVJ.stop = false; qvjButtons();
