@@ -3131,6 +3131,8 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 
 .qvo-track{height:10px;border-radius:999px;background:rgba(148,163,184,.25);overflow:hidden}.qvo-track>div{height:100%;background:#6366f1;transition:width .4s}
 .qcount{display:grid;gap:.4rem}.qchips{display:flex;flex-wrap:wrap;gap:.35rem}.qchip{min-width:44px;min-height:36px;padding:0 .6rem;border-radius:.6rem;border:1px solid rgba(148,163,184,.45);background:transparent;color:inherit;font-weight:600;font-size:13px;cursor:pointer}.qchip.on{background:#4f46e5;border-color:#4f46e5;color:#fff}.qchip:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+/* v36 · icons are decoration: the click always lands on the button/link around them */
+.ic,.ic *,button svg,button svg *,a svg,a svg *,[role=button] svg,summary svg,.qchip *,.sess-ic,.sess-ic *{pointer-events:none}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -7412,11 +7414,12 @@ function modEstimate(m, c) {
 function modReadiness(m, p, c) { return Math.round(100 * modEstimate(m, c).p); }
 async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
-  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
+  const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
   return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
     
-    <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div></div>
+    <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div>
+    <div class="text-center hidden sm:block" data-tip="First try — share right the FIRST time you met each question of this module. Retries never count.">${ring(ft.n ? ftv : 0, 52, 6, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] text-slate-500 mt-0.5">first try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="One score per LOS — the same number as the LOS rating. Green ≥ 80 (Excellent) · amber 60–79 (Good to improve) · red < 60 (Must improve) · grey = not enough answers yet.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${prereqHTML(m, c)}${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
 
@@ -8964,12 +8967,16 @@ document.addEventListener('click', async e => {
   await kv.set('modTrack', t); route();
 }, true);
 let TRACK = {};
+// v37 · First try on every module: share right the FIRST time you met each question of this module (retries never count)
+function modFirstTry(m, c) { const r = { n: 0, c: 0 }; if (!c || !m.x) return r; for (const q of modQs(m, c).filter(inStat)) { const f = firstAtt(c.st[q.id]); if (f) { r.n++; if (f.ok) r.c++; } } return r; }
+const ftCol = (v, n) => !n ? '#94a3b8' : v >= 70 ? '#10b981' : v >= 60 ? '#f59e0b' : '#f43f5e';
+const ftI = () => `<button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-try accuracy">i</button>`;
 function moduleCard(m, p, c) {
-  const e = c ? modEstimate(m, c) : { p: 0.4, W: 0 }, rv = Math.round(e.p * 100), ev = e.W, evK = rdOk(e);
+  const e = c ? modEstimate(m, c) : { p: 0.4, W: 0 }, rv = Math.round(e.p * 100), ev = e.W, evK = rdOk(e), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0;
   return `<div class="card hover:border-indigo-400 relative">
     <a href="${m.href}" class="absolute inset-0" aria-label="${esc(m.title)}"></a>
     <div class="flex items-start gap-3">
-      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div></div></div>
+      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div><div class="relative z-10" data-tip="${ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet'}">${ring(ft.n ? ftv : 0, 46, 5, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div></div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1 min-w-0" style="overflow-wrap:anywhere">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
@@ -12075,7 +12082,7 @@ const ICON_RX = new RegExp('(?:' + Object.keys(ICONS).sort((a, b) => b.length - 
 const ICON_SKIP = 'script,style,textarea,input,option,select,title,svg,[data-noicon],[contenteditable="true"],.textLayer';
 function iconEl(ch) {
   const k = ch.replace(/\uFE0F/g, ''), d = ICONS[k]; if (!d) return document.createTextNode(ch);
-  const sp = document.createElement('span'); sp.className = 'ic ' + (d[1] || ''); sp.setAttribute('aria-hidden', 'true');
+  const sp = document.createElement('span'); sp.className = 'ic ' + (d[1] || ''); sp.setAttribute('aria-hidden', 'true'); sp.dataset.ch = k;
   sp.innerHTML = `<svg viewBox="0 0 24 24" focusable="false">${IC[d[0]]}</svg>`; return sp;
 }
 function iconify(root) {
@@ -12090,7 +12097,10 @@ function iconify(root) {
   for (const n of list) {
     const t = n.nodeValue, frag = document.createDocumentFragment(); let last = 0, m; ICON_RX.lastIndex = 0;
     while ((m = ICON_RX.exec(t))) { if (m.index > last) frag.append(t.slice(last, m.index)); frag.append(iconEl(m[0])); last = m.index + m[0].length; }
+    const host = n.parentElement && n.parentElement.closest('button,a,[role=button],summary');
     if (last < t.length) frag.append(t.slice(last)); n.replaceWith(frag);
+    // v36 · a button that was only "✕" keeps an accessible name after the character became an icon
+    if (host && !host.getAttribute('aria-label') && !(host.textContent || '').trim()) { const k = t.trim().replace(/\uFE0F/g, ''); const nm = { '✕': 'Close', '✗': 'Close', '✖': 'Close', '×': 'Close' }[k] || host.title || ''; if (nm) host.setAttribute('aria-label', nm); }
   }
   ICON_RX.lastIndex = 0;
 }
@@ -13846,6 +13856,32 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
 
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
 
+  // v36 · Escape closes the top window through its own close control (so any save/cleanup it does still runs)
+  function closeCtl(m) {
+    var bs = Array.prototype.filter.call(m.querySelectorAll('button,a[role=button],[role=button]'), isVisible);
+    var t = function (b) { return (b.textContent || '').trim(); };
+    var pick = function (f) { for (var i = 0; i < bs.length; i++) if (f(bs[i])) return bs[i]; return null; };
+    return pick(function (b) { return b.querySelector('.ic[data-ch="✕"],.ic[data-ch="✗"],.ic[data-ch="✖"]') && !t(b); })
+      || pick(function (b) { return /^(✕|×|✖|✗)$/.test(t(b)); })
+      || pick(function (b) { return /^close/i.test(b.getAttribute('aria-label') || '') || /^close\b/i.test(b.title || ''); })
+      || pick(function (b) { var d = b.dataset; for (var k in d) if (/^(x|close|cancel|no)$/i.test(d[k])) return true; return false; })
+      || pick(function (b) { return /^(cancel|close|not now|later|no|done|back)$/i.test(t(b)); });
+  }
+  // windows with their own Escape logic run first; this only acts if the same window is still open afterwards
+  var escFor = null;
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') escFor = topModal(); }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || e.isComposing) return;
+    var m = escFor; escFor = null;
+    if (!m || !m.isConnected || topModal() !== m) return;
+    if (document.querySelector('.qv-lb')) return;                             // the picture zoom has its own Escape
+    e.preventDefault();
+    var c = closeCtl(m);
+    if (c) { c.click(); return; }
+    if (m.getAttribute('role') === 'alertdialog') return;                      // a warning must be answered with one of its buttons
+    m.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); // same as clicking outside the window
+    setTimeout(function () { if (m.isConnected && topModal() === m) m.remove(); }, 60);
+  });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Tab') return;
     var m = topModal(); if (!m) return;
