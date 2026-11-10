@@ -3130,6 +3130,7 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 #qvjPill button:disabled{opacity:.6;cursor:default}
 
 .qvo-track{height:10px;border-radius:999px;background:rgba(148,163,184,.25);overflow:hidden}.qvo-track>div{height:100%;background:#6366f1;transition:width .4s}
+.qcount{display:grid;gap:.4rem}.qchips{display:flex;flex-wrap:wrap;gap:.35rem}.qchip{min-width:44px;min-height:36px;padding:0 .6rem;border-radius:.6rem;border:1px solid rgba(148,163,184,.45);background:transparent;color:inherit;font-weight:600;font-size:13px;cursor:pointer}.qchip.on{background:#4f46e5;border-color:#4f46e5;color:#fff}.qchip:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -6346,7 +6347,7 @@ function filterAdv(qs, adv, st) {
 }
 function poolCounts(qs, st) { const o = {}; POOLS.forEach(([k]) => o[k] = filterPool(qs, k, st).length); return o; }
 function readSide() {
-  return { pool: view.querySelector('[name=pool]:checked')?.value || 'all', mode: view.querySelector('[name=mode]:checked')?.value || 'practice', count: document.getElementById('qc').value,
+  return { pool: view.querySelector('[name=pool]:checked')?.value || 'all', mode: view.querySelector('[name=mode]:checked')?.value || 'practice', count: qCountOf(document.getElementById('qc').value),
     adv: { conf: document.getElementById('fConf').value, res: document.getElementById('fRes').value, reason: document.getElementById('fReason').value, dup: document.getElementById('fDup')?.value || '' }, reasons: document.getElementById('askWhy').checked };
 }
 // ================= P3 · learning engine: exam-aware spacing · twin retries · interleaving · weekly gauntlet · energy · blurting =================
@@ -6444,8 +6445,18 @@ async function blurtDlg(modId) {
   setTimeout(() => bg.querySelector('[data-bx]')?.focus(), 50);
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-blurt]'); if (b) { e.preventDefault(); blurtDlg(b.dataset.blurt); } });
+// v35 · one session holds at most QMAX questions (= the full exam, 180). Above that: new questions first, then the ones you got wrong, then the rest.
+const QMAX = 180, QCHIPS = [10, 20, 30, 50, 90, 180];
+const qCountOf = v => { const n = Math.round(+v); return v === 'all' || !Number.isFinite(n) || n < 1 ? QMAX : Math.min(QMAX, n); };
+const qCountHTML = (id, v) => { const n = qCountOf(v); return `<div class="qcount"><input type="number" id="${id}" class="inp" min="1" max="${QMAX}" step="1" inputmode="numeric" value="${n}" aria-describedby="${id}-h"><div class="qchips" role="group" aria-label="Quick choice">${QCHIPS.map(c => `<button type="button" class="qchip${c === n ? ' on' : ''}" data-qcset="${id}" data-n="${c}">${c}</button>`).join('')}</div><div id="${id}-h" class="text-[12px] text-slate-500">1–${QMAX} questions · ${QMAX} = a full exam day</div></div>`; };
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-qcset]'); if (!b) return; const i = document.getElementById(b.dataset.qcset); if (!i) return; i.value = b.dataset.n; b.parentElement.querySelectorAll('.qchip').forEach(x => x.classList.toggle('on', x === b)); i.dispatchEvent(new Event('change', { bubbles: true })); });
+document.addEventListener('change', e => { const i = e.target; if (!i || i.type !== 'number' || !i.closest || !i.closest('.qcount')) return; const n = qCountOf(i.value); if (String(n) !== i.value) i.value = n; i.closest('.qcount').querySelectorAll('.qchip').forEach(x => x.classList.toggle('on', +x.dataset.n === n)); }, true);
 async function startQSession(qs, mode, count, back, opts = {}) {
-  qs = opts.keepOrder ? qs : shuffle(qs); if (count !== 'all') qs = qs.slice(0, +count);
+  qs = opts.keepOrder ? qs : shuffle(qs);
+  const want = qCountOf(count), total = qs.length;
+  if (total > QMAX && !opts.keepOrder) { const st = await kv.get('qstats', {}), nw = [], bad = [], rest = []; for (const q of qs) { const z = st[q.id]; (!z || !z.n ? nw : !z.last ? bad : rest).push(q); } qs = [...nw, ...bad, ...rest]; }
+  if (qs.length > want) qs = qs.slice(0, want);
+  if (total > QMAX) setTimeout(() => toast(`${qs.length} of ${total.toLocaleString('en-GB')} matching questions — new ones first, then the ones you got wrong (limit ${QMAX} per session)`), 1800);
   if (!qs.length) return false;
   await kv.set('qsession', { id: uid(), mode, i: 0, start: Date.now(), limit: mode === 'exam' ? qs.length * 90 : 0, back: back || '#/qbank', reasons: !!opts.reasons, title: opts.title || '', next: opts.next || null, miniKey: opts.miniKey || null, mockId: opts.mockId || null, part: opts.part || null, gt: !!opts.gauntlet, strict: !!opts.strict, pausedTotal: 0,
     items: qs.map(q => ({ id: q.id, order: q.src ? q.o.map((_, k) => k) : shuffle(q.o.map((_, k) => k)), pick: null, sel: null, x: [], t: 0, conf: null, tw: (opts.twins && opts.twins[q.id]) || null })), done: false });
@@ -7837,7 +7848,7 @@ function sideSetup(s) {
     <div><h3 class="sec">Mode</h3><div class="grid grid-cols-2 gap-2">
       <label class="qmode"><input type="radio" name="mode" value="practice" ${s.mode !== 'exam' ? 'checked' : ''} class="accent-indigo-600"><span><b class="text-sm block">Practice</b><span class="text-[11px] text-slate-500">instant feedback</span></span></label>
       <label class="qmode"><input type="radio" name="mode" value="exam" ${s.mode === 'exam' ? 'checked' : ''} class="accent-indigo-600"><span><b class="text-sm block">Exam</b><span class="text-[11px] text-slate-500">timed · 90 s each</span></span></label></div></div>
-    <div><h3 class="sec">Number of questions</h3><select id="qc" class="inp">${[5, 10, 20, 30, 50, 90, 'all'].map(n => `<option ${String(s.count) === String(n) ? 'selected' : ''} value="${n}">${n === 'all' ? 'All matching' : n}</option>`).join('')}</select></div>
+    <div><h3 class="sec">Number of questions</h3>${qCountHTML('qc', s.count ?? 30)}</div>
     <label class="flex items-start gap-2 text-sm"><input type="checkbox" id="askWhy" class="accent-indigo-600 mt-1" ${s.reasons ? 'checked' : ''}><span>Ask why when I get a question wrong<span class="block text-[11px] text-slate-500">Optional — pick a mistake reason after each wrong answer (you can skip it).</span></span></label>
     <button id="start" class="btn-primary w-full py-3">Start</button><div id="qerr" class="text-sm text-red-600"></div></aside>`;
 }
@@ -7845,7 +7856,7 @@ const qStartBar = '<div class="qstartbar"><span class="text-sm"><b id="qbarN" cl
 function refreshCounts(qs, st, infoTxt) {
   const sd = readSide(), base = filterAdv(qs, sd.adv, st), c = poolCounts(base, st);
   POOLS.forEach(([k]) => { const el = view.querySelector(`[data-cnt="${k}"]`); if (el) el.textContent = c[k]; });
-  const nSel = filterPool(base, sd.pool, st).length, eff = sd.count === 'all' ? nSel : Math.min(nSel, +sd.count), setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const nSel = filterPool(base, sd.pool, st).length, eff = Math.min(nSel, qCountOf(sd.count)), setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
   const el = document.getElementById('selInfo'); if (el) el.textContent = infoTxt(nSel, qs.length);
   setT('selN', eff); setT('qbarN', eff); setT('selSub', eff ? `question${eff === 1 ? '' : 's'} selected · about ${Math.max(1, Math.round(eff * 1.5))} min at 90 s each` : 'no questions match this selection');
   const sb = document.getElementById('start'); if (sb) { sb.textContent = eff ? `Start · ${eff} question${eff === 1 ? '' : 's'}` : 'No questions match'; sb.disabled = !eff; }
@@ -7855,7 +7866,7 @@ const qPoolKick = (k) => { const r = view.querySelector(`[name=pool][value="${k}
 async function qbankModule(modId, qstr) {
   const m = modInfo(decodeURIComponent(modId)); if (!m || !m.x) return qbankSetup();
   const params = new URLSearchParams(qstr || '');
-  const key = 'qsetup:' + m.id; const s = { pool: 'all', count: 'all', mode: 'practice', ...(await kv.get(key, {})) };
+  const key = 'qsetup:' + m.id; const s = { pool: 'all', count: 180, mode: 'practice', ...(await kv.get(key, {})) };
   if (params.get('pool')) s.pool = params.get('pool');
   const st = await kv.get('qstats', {}), Q = (await allQs()).filter(q => modKey(q) === m.id), Qin = Q.filter(q => inScope(q, false));
   const isPack = m.kind === 'pack';
@@ -7976,7 +7987,7 @@ async function qbankSetup() {
       <div data-qt="ex">
         <div class="card border-indigo-300"><h3 class="sec">\uD83E\uDDEA Practice mock <span class="normal-case font-normal">· from your module Qbanks</span></h3>
           <p class="text-xs text-slate-600 dark:text-slate-300">A timed exam (90 s per question) from your module Qbanks, drawn from every topic in proportion to the 2027 topic weights.</p>
-          <div class="flex flex-wrap items-end gap-2 mt-3"><label class="text-xs">Questions<select id="mockN" class="inp mt-1 w-auto">${[30, 60, 90, 180].map(n => `<option value="${n}">${n}</option>`).join('')}</select></label>
+          <div class="flex flex-wrap items-end gap-2 mt-3"><label class="text-xs">Questions<select id="mockN" class="inp mt-1 w-auto">${[30, 60, 90, 180].map(n => `<option value="${n}">${n === 180 ? '180 · 2 sessions × 90' : n}</option>`).join('')}</select></label>
             <label class="text-xs">Pool<select id="mockPool" class="inp mt-1 w-auto"><option value="all">All questions</option><option value="new">Unanswered first</option></select></label>
             <button class="btn-primary" id="mockGo" ${subjQ.length ? '' : 'disabled'}>Start practice mock</button>
             <button class="btn-ghost" id="dayGo" ${subjQ.length ? '' : 'disabled'} data-tip="Real 2027 format: session 1 = Ethics, Quant, Economics, FSA, Corporate · session 2 = Equity, Fixed Income, Derivatives, Alternatives, Portfolio Mgmt · 90 questions and 135 minutes each, optional break, no pausing">\uD83C\uDFDB Practice exam day</button>
@@ -8046,7 +8057,9 @@ async function qbankSetup() {
       const alloc = mockAlloc(+document.getElementById('mockN').value), pool = document.getElementById('mockPool').value;
       const picked = alloc.flatMap(z => { let qs = shuffle(z.qs); if (pool === 'new') qs = [...qs.filter(q => !st[q.id]?.n), ...qs.filter(q => st[q.id]?.n)]; return qs.slice(0, z.n); });
       if (!picked.length) return toast('No questions available yet');
-      await startQSession(shuffle(picked), 'exam', 'all', '#/qbank', { reasons: document.getElementById('askWhy').checked, title: 'Practice mock', keepOrder: true, strict: true });
+      const pk = shuffle(picked);
+      if (pk.length > 90) { const h = Math.ceil(pk.length / 2); await startQSession(pk.slice(0, h), 'exam', 'all', '#/qbank', { reasons: document.getElementById('askWhy').checked, title: 'Practice mock · Session 1 of 2', keepOrder: true, strict: true, next: pk.slice(h).map(q => q.id) }); }
+      else await startQSession(pk, 'exam', 'all', '#/qbank', { reasons: document.getElementById('askWhy').checked, title: 'Practice mock', keepOrder: true, strict: true });
     }
   };
   document.getElementById('start').onclick = async () => {
@@ -9790,7 +9803,7 @@ async function topicPage(subj) {
     view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Topic Qbank']]) + `<h1 class="h1">🎯 ${esc(sj.name)} — Topic Qbank</h1><div class="card"><p class="text-sm">${why}</p><a class="btn-primary mt-3 inline-block" href="#/library" data-lib="${subj}">Open Library</a></div>`;
     return;
   }
-  const s = { pool: 'all', count: 'all', mode: 'practice', reasons: false, ...(await kv.get('tqsetup:' + subj, {})) };
+  const s = { pool: 'all', count: 180, mode: 'practice', reasons: false, ...(await kv.get('tqsetup:' + subj, {})) };
   const names = [...new Set(all.map(q => q.srcName))], mods = ms.filter(m => all.some(q => q.m === m.id));
   s.srcSel = Array.isArray(s.srcSel) ? s.srcSel.filter(n => names.includes(n)) : names; s.modSel = Array.isArray(s.modSel) ? s.modSel.filter(id => mods.some(m => m.id === id)) : mods.map(m => m.id);
   const match = () => all.filter(q => inScope(q, false) && s.srcSel.includes(q.srcName) && s.modSel.includes(q.m));
@@ -9807,7 +9820,7 @@ async function topicPage(subj) {
       <p class="text-xs text-slate-500 mt-3">${match().length} questions match · ${pool.length} in the selected pool</p></div>
     <div class="lg:col-span-2 card"><h3 class="sec">Question pool</h3><div class="space-y-1 text-sm">${POOLS.filter(p => ['all', 'new', 'wrong', 'ever', 'flag', 'due', 'slow', 'crp', 'cra', 'crk'].includes(p[0])).map(p => `<label class="flex items-center gap-2"><input type="radio" name="tp" value="${p[0]}" class="accent-indigo-600" ${s.pool === p[0] ? 'checked' : ''}><span class="flex-1" title="${esc(p[2])}">${p[1]}</span><span class="text-xs text-slate-500">${filterPool(match(), p[0], st).length}</span></label>`).join('')}</div>
       <h3 class="sec mt-3">Mode</h3><label class="flex items-center gap-2 text-sm"><input type="radio" name="tm" value="practice" class="accent-indigo-600" ${s.mode === 'practice' ? 'checked' : ''}> Practice — instant feedback</label><label class="flex items-center gap-2 text-sm"><input type="radio" name="tm" value="exam" class="accent-indigo-600" ${s.mode === 'exam' ? 'checked' : ''}> Exam — timed (90 s / question)</label>
-      <h3 class="sec mt-3">Number of questions</h3><select id="tcount" class="inp">${['all', 10, 20, 30, 60, 90].map(n => `<option value="${n}" ${String(s.count) === String(n) ? 'selected' : ''}>${n === 'all' ? 'All matching' : n}</option>`).join('')}</select>
+      <h3 class="sec mt-3">Number of questions</h3>${qCountHTML('tcount', s.count)}
       <label class="flex items-start gap-2 text-sm mt-3"><input type="checkbox" id="treasons" class="accent-indigo-600 mt-1" ${s.reasons ? 'checked' : ''}><span>Ask why when I get a question wrong<span class="block text-xs text-slate-500">Optional — pick a mistake reason after a wrong answer (you can skip it).</span></span></label>
       <button class="btn-primary w-full mt-4" id="tgo" ${pool.length ? '' : 'disabled'}>Start (${pool.length})</button>
       <a class="link text-xs block text-center mt-2" href="#/library" data-lib="${subj}">Manage files in Library</a></div></div>`;
@@ -9818,7 +9831,7 @@ async function topicPage(subj) {
     const t = e.target;
     if (t.dataset.tm) s.modSel = t.checked ? [...new Set([...s.modSel, t.dataset.tm])] : s.modSel.filter(x => x !== t.dataset.tm);
     else if (t.dataset.ts !== undefined) s.srcSel = t.checked ? [...new Set([...s.srcSel, t.dataset.ts])] : s.srcSel.filter(x => x !== t.dataset.ts);
-    else if (t.name === 'tp') s.pool = t.value; else if (t.name === 'tm') s.mode = t.value; else if (t.id === 'tcount') s.count = t.value; else if (t.id === 'treasons') s.reasons = t.checked; else return;
+    else if (t.name === 'tp') s.pool = t.value; else if (t.name === 'tm') s.mode = t.value; else if (t.id === 'tcount') s.count = qCountOf(t.value); else if (t.id === 'treasons') s.reasons = t.checked; else return;
     await save(); draw();
   };
   view.onclick = async e => {
