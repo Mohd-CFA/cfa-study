@@ -3123,6 +3123,13 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 .th-next{display:inline-flex;align-items:center;min-height:44px;margin-top:.4rem;padding:.4rem .9rem;border-radius:.7rem;background:#fff;color:#3730a3;font-weight:700;text-decoration:none}.th-next:hover{background:#eef2ff}.smart-card .th-next{background:#4f46e5;color:#fff}
 /* v31 · the floating calculator never hides the last answer controls: the question page gets room to scroll above it */
 @media (max-width: 639px) { body.calc-on #view { padding-bottom: 10rem; } }
+/* v33 · background picture optimiser */
+#qvjPill{position:fixed;left:12px;bottom:132px;z-index:71;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .75rem;max-width:min(94vw,520px);padding:.55rem .8rem;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #6366f1;font-size:13px;line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#qvjPill .qvj-b{display:flex;gap:.4rem;margin-left:auto;flex-shrink:0}#qvjPill .qvj-t{flex:1;min-width:0}
+@media (max-width:639px){#qvjPill{flex-wrap:nowrap;left:8px;right:8px;max-width:none;bottom:calc(64px + env(safe-area-inset-bottom,0px));padding:.4rem .5rem .4rem .7rem}#qvjPill .qvj-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#qvjPill a[data-qvj=open]{display:none}body:has(.bc-fab:not([hidden])) #qvjPill{right:60px}}#qvjPill button,#qvjPill a{min-height:36px;padding:0 .7rem;border-radius:.6rem;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:600;font-size:13px;display:inline-flex;align-items:center;text-decoration:none;cursor:pointer}
+#qvjPill button:disabled{opacity:.6;cursor:default}
+
+.qvo-track{height:10px;border-radius:999px;background:rgba(148,163,184,.25);overflow:hidden}.qvo-track>div{height:100%;background:#6366f1;transition:width .4s}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -8167,6 +8174,7 @@ async function settings() {
       <p class="text-sm text-slate-600 dark:text-slate-300">Supabase pauses free projects that are idle for about a week. A pause does not delete anything — press <b>Resume project</b> in the Supabase dashboard — but the site cannot sync until you do. Studying a few times a week is enough to avoid it.</p>
       <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Free-plan limits to watch: <b>File storage 1 GB</b> (books + question pictures) · <b>Egress 5 GB / month</b> (downloads to your devices) · <b>Database 500 MB</b>. Check them under <i>Storage &amp; usage</i> about once a month; above 80 %, delete unused books or pictures in the Library.</p>
       <div class="flex flex-wrap gap-2 mt-3"><a class="btn-ghost text-xs" href="https://supabase.com/dashboard/org/_/usage" target="_blank" rel="noopener">📊 Storage &amp; usage</a><a class="btn-ghost text-xs" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase dashboard</a><button type="button" class="btn-ghost text-xs" data-kaw="1">⬇️ Download optional keep-alive file (GitHub)</button></div></div>
+    ${await qvoHTML()}
     <div class="card md:col-span-2" id="layoutBox"></div>
     <div class="card md:col-span-2" id="cleanBox" style="min-width:0"></div>
     <div class="card"><h3 class="sec">💾 Backup & restore</h3>
@@ -9373,7 +9381,6 @@ async function library(libFocus) {
   <div id="locWarn" class="hidden text-xs text-amber-600 mb-3" role="note">⚠ Books uploaded while this is ticked are NOT sent to your account — they will not open on your other devices.</div>
   <div id="upMsg" class="text-sm my-2"></div>
   ${await (async () => { try { const n = (await allQsAll()).length, sig = await kv.get('dupSig', 0); if (n && n !== sig) await dupScan(true); } catch (e) { console.warn('dup scan', e); } return dupToolsHTML(); })()}
-  ${await qvoHTML()}
   ${await qvBarHTML()}
   <div id="vlibBox">${await vidLibHTML()}</div>
   <div id="mockLibBox" class="mb-3">${await mockLibHTML()}</div>
@@ -13198,11 +13205,16 @@ async function dupImport(file) {
   toast(`Done · ${flags.length} duplicates flagged · ${fixes.length} answer keys corrected${re ? ` · ${re} earlier attempt${re === 1 ? '' : 's'} re-marked` : ''}`);
   await qRefreshPage();
 }
-// ================= v32 · optimise existing question pictures: PNG → lossless WebP (pixel-identical) =================
-// Step 1 Measure: works on packs already on this device (+ a small sample when few are cached) — nothing is uploaded or deleted.
-// Step 2 Optimise: one pack at a time · every picture is checked pixel by pixel · JPEG pictures are left as they are ·
+// ================= v33 · question-picture optimiser: a background job (Settings) =================
+// PNG → lossless WebP. Safety rules (unchanged): every picture is compared pixel by pixel · JPEG pictures are left as they are ·
 // a pack is kept unless it shrinks by 10 %+ · the NEW copy is uploaded first, the old one is deleted only after the switch is saved.
-let QVO = { run: false, stop: false };
+// v33: the work runs in a Web Worker (the page never freezes), keeps going while you use ANY page, shows a pill that survives
+// page changes, pauses quickly, and — if you close the site — resumes by itself the next time you open it on this device.
+const QVJ = { run: false, stop: false, measuring: false };
+const qvjLoad = () => { try { return JSON.parse(localStorage.getItem('qvoJob') || 'null'); } catch { return null; } };
+const qvjSave = j => { try { localStorage.setItem('qvoJob', JSON.stringify(j)); } catch { } };
+
+// ---- pixel work (main-thread fallback) ----
 const qvoDecode = async url => { const im = new Image(); im.decoding = 'async'; im.src = url; await im.decode(); const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return { c, x, w: c.width, h: c.height }; };
 let qvoWebpOk = null;
 async function qvoCanWebp() { if (qvoWebpOk != null) return qvoWebpOk; try { const c = document.createElement('canvas'); c.width = c.height = 2; qvoWebpOk = c.toDataURL('image/webp', 1).startsWith('data:image/webp'); } catch { qvoWebpOk = false; } return qvoWebpOk; }
@@ -13214,86 +13226,198 @@ async function qvoOne(url) {      // returns a smaller pixel-identical WebP, or 
     const b = await qvoDecode(w); if (a.w !== b.w || a.h !== b.h) return url;
     const da = a.x.getImageData(0, 0, a.w, a.h).data, db = b.x.getImageData(0, 0, b.w, b.h).data;
     for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return url;          // any pixel differs → keep the PNG
+    a.c.width = a.c.height = b.c.width = b.c.height = 0;
     return w;
   } catch { return url; }
+}
+// ---- pixel work in a Web Worker (same checks, off the main thread) ----
+function qvoWorkerMain() {
+  const u2b = u => { const i = u.indexOf(','), bin = atob(u.slice(i + 1)), a = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k); return new Blob([a], { type: u.slice(5, u.indexOf(';')) }); };
+  const px = async blob => { const bm = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }); const c = new OffscreenCanvas(bm.width, bm.height), x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(bm, 0, 0); bm.close(); return { c, w: c.width, h: c.height, d: x.getImageData(0, 0, c.width, c.height).data }; };
+  self.onmessage = async e => {
+    const { id, url } = e.data; let out = url;
+    try {
+      if (typeof url === 'string' && url.startsWith('data:image/png')) {
+        const a = await px(u2b(url)), wb = await a.c.convertToBlob({ type: 'image/webp', quality: 1 });
+        if (wb.type === 'image/webp') {
+          const wu = new FileReaderSync().readAsDataURL(wb);
+          if (wu.length < url.length * 0.97) {
+            const b = await px(wb); let same = a.w === b.w && a.h === b.h;
+            for (let i = 0; same && i < a.d.length; i++) if (a.d[i] !== b.d[i]) same = false;
+            if (same) out = wu;
+          }
+        }
+      }
+    } catch (err) { out = url; }
+    self.postMessage({ id, url: out });
+  };
+}
+let QVW = null, QVWseq = 0; const QVWcb = new Map();
+function qvoWorker() {
+  if (QVW !== null) return QVW || null;
+  try {
+    if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || !OffscreenCanvas.prototype.convertToBlob) throw new Error('no worker canvas');
+    QVW = new Worker(URL.createObjectURL(new Blob(['(' + qvoWorkerMain.toString() + ')()'], { type: 'text/javascript' })));
+    QVW.onmessage = e => { const f = QVWcb.get(e.data.id); if (f) { QVWcb.delete(e.data.id); f(e.data.url); } };
+    QVW.onerror = () => { for (const f of QVWcb.values()) f(null); QVWcb.clear(); try { QVW.terminate(); } catch { } QVW = false; };
+  } catch { QVW = false; }
+  return QVW || null;
+}
+async function qvoConvert(url) {
+  const w = qvoWorker();
+  if (w) { const r = await new Promise(res => { const id = ++QVWseq; QVWcb.set(id, res); w.postMessage({ id, url }); }); if (typeof r === 'string') return r; }
+  await new Promise(r => setTimeout(r, 0));                                     // fallback: main thread, one picture at a time
+  return qvoOne(url);
 }
 async function qvoPack(pack) {
   const imgs = pack.imgs || {}, out = {}; let n = 0, conv = 0;
   for (const [k, v] of Object.entries(imgs)) {
-    if (Array.isArray(v)) { const arr = []; for (const u of v) { const r = await qvoOne(u); n++; if (r !== u) conv++; arr.push(r); } out[k] = arr; }
-    else { const r = await qvoOne(v); n++; if (r !== v) conv++; out[k] = r; }
-    if (QVO.stop) return null;
+    if (QVJ.stop) return null;
+    if (Array.isArray(v)) { const arr = []; for (const u of v) { if (QVJ.stop) return null; const r = await qvoConvert(u); n++; if (r !== u) conv++; arr.push(r); } out[k] = arr; }
+    else { const r = await qvoConvert(v); n++; if (r !== v) conv++; out[k] = r; }
   }
   return { pack: { ...pack, imgs: out }, n, conv };
 }
+
+// ---- a status pill that stays on screen on every page ----
+function qvjPill(html, done) {
+  let e = document.getElementById('qvjPill');
+  if (!html) { if (e) e.remove(); return; }
+  if (!e) { e = document.createElement('div'); e.id = 'qvjPill'; e.setAttribute('role', 'status'); e.setAttribute('aria-live', 'polite'); document.body.appendChild(e); }
+  e.innerHTML = `<span class="qvj-t">${html}</span><span class="qvj-b">${done ? '<button type="button" data-qvj="hide" aria-label="Close">✕</button>' : QVJ.run ? `<button type="button" data-qvj="pause"${QVJ.stop ? ' disabled' : ''}>${QVJ.stop ? 'Pausing…' : '⏸ Pause'}</button>` : '<button type="button" data-qvj="resume">▶ Resume</button>'}<a href="#/settings" data-qvj="open">Details</a></span>`;
+}
+async function qvjCounts() { const all = Object.values((await kv.get('qpacks', {})) || {}); return { all: all.length, opt: all.filter(m => m.opt === 'webp').length, kept: all.filter(m => m.opt === 'kept').length, left: all.filter(m => !m.opt && !m.localOnly).length }; }
+async function qvjShow(note) {
+  const j = qvjLoad() || {}, C = await qvjCounts(), doneN = C.opt + C.kept, pctN = C.all ? Math.round(100 * doneN / C.all) : 0, mb = ((j.saved || 0) / 1048576).toFixed(1);
+  const head = `🗜 Pictures ${doneN}/${C.all} · ${mb} MB saved`;
+  qvjPill(note ? `${head} · ${note}` : head);
+  const bar = document.getElementById('qvoBar'), msg = document.getElementById('qvoMsg');
+  if (bar) { bar.style.width = pctN + '%'; bar.parentElement?.setAttribute('aria-valuenow', String(pctN)); }
+  if (msg) msg.innerHTML = `${note ? esc(note) + ' · ' : ''}<b>${doneN}/${C.all}</b> packs handled · ${mb} MB saved${j.fail ? ` · ${j.fail} could not be processed` : ''}`;
+  qvjButtons();
+}
+function qvjButtons() {
+  const j = qvjLoad() || {}, set = (s, on, txt) => { const b = document.querySelector(`[data-qvo="${s}"]`); if (b) { b.hidden = !on; if (txt) b.textContent = txt; } };
+  set('run', !QVJ.run, j.done || j.skip ? '▶ Resume in background' : '▶ Start in background');
+  set('pause', QVJ.run); set('measure', !QVJ.run);
+  const p = document.querySelector('[data-qvo="pause"]'); if (p) { p.disabled = QVJ.stop; p.textContent = QVJ.stop ? 'Pausing after this picture…' : '⏸ Pause'; }
+}
+
+// ---- measure: nothing is uploaded or deleted ----
 async function qvoMeasure(set) {
   if (!(await qvoCanWebp())) return set('This browser cannot write WebP pictures — use Chrome or Edge on a computer.');
   const metas = await kv.get('qpacks', {}), all = Object.values(metas).filter(m => !m.localOnly && !m.opt);
-  if (!all.length) return set('Nothing to measure — every picture pack is already optimised.');
+  if (!all.length) return set('Nothing to measure — every picture pack is already handled.');
   const cached = []; for (const m of all) if (await isCached(m.id)) cached.push(m);
-  let sample = cached.slice(); const extra = all.filter(m => !cached.includes(m)).sort(() => Math.random() - 0.5).slice(0, Math.max(0, 12 - cached.length));
-  sample = sample.concat(extra);
-  QVO = { run: true, stop: false }; let b0 = 0, b1 = 0, i = 0, png = 0, jpg = 0;
-  for (const m of sample) {
-    if (QVO.stop) break; i++; set(`Measuring ${i}/${sample.length}…`);
-    try {
-      const txt = await (await getBlob(m)).text(), pack = JSON.parse(txt);
-      for (const v of Object.values(pack.imgs || {})) for (const u of [].concat(v)) { if (String(u).startsWith('data:image/png')) png++; else jpg++; }
-      const r = await qvoPack(pack); if (!r) break;
-      b0 += txt.length; b1 += JSON.stringify(r.pack).length;
-    } catch (e) { console.warn('measure', m.id, e); }
-  }
-  QVO.run = false;
+  const sample = cached.concat(all.filter(m => !cached.includes(m)).sort(() => Math.random() - 0.5).slice(0, Math.max(0, 12 - cached.length)));
+  QVJ.measuring = true; QVJ.stop = false; let b0 = 0, b1 = 0, i = 0, png = 0, jpg = 0;
+  try {
+    for (const m of sample) {
+      if (QVJ.run) break; i++; set(`Measuring ${i}/${sample.length}…`);
+      try {
+        const txt = await (await getBlob(m)).text(), pack = JSON.parse(txt);
+        for (const v of Object.values(pack.imgs || {})) for (const u of [].concat(v)) { if (String(u).startsWith('data:image/png')) png++; else jpg++; }
+        const r = await qvoPack(pack); if (!r) break;
+        b0 += txt.length; b1 += JSON.stringify(r.pack).length;
+      } catch (e) { console.warn('measure', m.id, e); }
+    }
+  } finally { QVJ.measuring = false; }
   if (!b0) return set('Could not read any picture pack.');
   const save = 1 - b1 / b0, tot = all.reduce((a, m) => a + (m.bytes || m.size || 0), 0), est = tot * save / 1048576, estT = est >= 10 ? Math.round(est) : est.toFixed(1);
   await kv.set('qvoMeasure', { at: Date.now(), save, packs: i, total: all.length });
-  set(`<b>Measured ${i} of ${all.length} packs</b> (${(b0 / 1048576).toFixed(1)} MB → ${(b1 / 1048576).toFixed(1)} MB): <b>${Math.round(save * 100)} % smaller</b>. ${png} PNG and ${jpg} JPEG pictures (JPEG pictures are left as they are).<br>Estimate for all packs: about <b>${estT} MB</b> less in Supabase storage and in every download.${save < 0.3 ? '<br><b>Below 30 % — optimising is not worth it. Nothing was changed.</b>' : '<br>Nothing was changed. If you want the saving, download a full backup first, then press Optimise.'}`, save >= 0.3);
+  set(`<b>Measured ${i} of ${all.length} packs</b>: <b>${Math.round(save * 100)} % smaller</b> (${png} PNG · ${jpg} JPEG pictures; JPEG are left as they are). Estimate for all packs: about <b>${estT} MB</b> less.${save < 0.3 ? '<br><b>Below 30 % — not worth it. Nothing was changed.</b>' : '<br>Nothing was changed. Download a full backup first, then start the optimisation.'}`);
+  qvjButtons(); const rb = document.querySelector('[data-qvo="run"]'); if (rb) rb.disabled = save < 0.3;
 }
-async function qvoRun(set) {
-  if (!cloud || !navigator.onLine) return set('Connect to the internet first.');
-  if (!(await qvoCanWebp())) return set('This browser cannot write WebP pictures — use Chrome or Edge on a computer.');
-  if (!confirm('Optimise all question pictures?\n\n• Every picture is checked pixel by pixel — nothing changes on screen\n• One pack at a time; the new copy is uploaded first and the old one is deleted only after that\n• You can stop at any time and continue later\n\nDownload a full backup first if you have not done so.')) return;
-  QVO = { run: true, stop: false }; let done = 0, skip = 0, fail = 0, b0 = 0, b1 = 0;
-  const ids = Object.keys(await kv.get('qpacks', {}));
-  for (let i = 0; i < ids.length; i++) {
-    if (QVO.stop) break;
-    let metas = await kv.get('qpacks', {}), m = metas[ids[i]];
-    if (!m || m.opt || m.localOnly) continue;
-    set(`Optimising pack ${i + 1}/${ids.length} · ${done} done · ${((b0 - b1) / 1048576).toFixed(1)} MB saved so far… <button type="button" class="btn-ghost text-xs ml-2" data-qvo="stop">Stop</button>`, false, true);
+
+// ---- the job ----
+async function qvjCleanup(j) {            // leftovers from an interrupted run: a half-uploaded new copy, or an old copy that could not be deleted
+  const metas = await kv.get('qpacks', {});
+  if (j.pend && metas[j.pend.id]?.sid !== j.pend.sid) { try { await deleteBookFiles({ id: j.pend.sid, parts: j.pend.parts }); } catch { } }
+  j.pend = null;
+  const keep = [];
+  for (const o of j.orph || []) { try { await deleteBookFiles(o); } catch { keep.push(o); } }
+  j.orph = keep; qvjSave(j);
+}
+async function qvjRun() {
+  if (QVJ.run || QVJ.measuring) return;
+  if (!cloud) return;
+  if (!navigator.onLine) { const j = qvjLoad() || {}; j.want = 'run'; qvjSave(j); return qvjPill('🗜 Picture optimisation is waiting for the internet — it continues by itself.'); }
+  if (!(await qvoCanWebp())) return qvjPill('🗜 This browser cannot write WebP pictures — use Chrome or Edge.', true);
+  const go = async () => {
+    QVJ.run = true; QVJ.stop = false;
+    let j = { done: 0, skip: 0, fail: 0, saved: 0, orph: [], ...(qvjLoad() || {}) }; j.want = 'run'; j.fail = 0; j.at = Date.now(); qvjSave(j);
     try {
-      const oldBlob = await getBlob(m), txt = await oldBlob.text(), r = await qvoPack(JSON.parse(txt)); if (!r) break;
-      const nb = new Blob([JSON.stringify(r.pack)], { type: 'application/json' });
-      if (nb.size > oldBlob.size * 0.9) { metas = await kv.get('qpacks', {}); if (metas[m.id]) { metas[m.id] = { ...metas[m.id], opt: 'kept' }; await kv.set('qpacks', metas); } skip++; continue; }
-      const sid = `${m.id}~w${Date.now().toString(36)}`, parts = await uploadBook(sid, nb);           // 1 · upload the new copy
-      metas = { ...(await kv.get('qpacks', {})) }; const cur = metas[m.id]; if (!cur) { try { await deleteBookFiles({ id: sid, parts }); } catch { } continue; }
-      metas[m.id] = { ...cur, sid, parts, bytes: nb.size, size: nb.size, opt: 'webp', optAt: Date.now() };
-      await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                     // 2 · switch to it
-      try { await deleteBookFiles({ id: stoId(cur), parts: cur.parts }); } catch (e) { console.warn('old copy kept', e); }   // 3 · delete the old copy
-      done++; b0 += oldBlob.size; b1 += nb.size;
-    } catch (e) { fail++; console.warn('optimise', m.id, e); if (!navigator.onLine) break; }
-  }
-  QVO.run = false;
-  const msg = `${QVO.stop ? '<b>Stopped.</b> Press Optimise again to continue where you stopped.<br>' : ''}<b>${done} pack${done === 1 ? '' : 's'} optimised</b> · ${((b0 - b1) / 1048576).toFixed(1)} MB saved${skip ? ` · ${skip} left as they are (saving under 10 %)` : ''}${fail ? ` · ${fail} could not be processed (left unchanged — try again later)` : ''}.`;
-  await kv.set('qvoLast', { at: Date.now(), done, skip, fail, saved: b0 - b1 }); set(msg);
+      await qvjCleanup(j); await qvjShow('starting…');
+      const ids = Object.keys(await kv.get('qpacks', {}));
+      for (const id of ids) {
+        if (QVJ.stop) break;
+        if (!navigator.onLine) break;
+        let metas = await kv.get('qpacks', {}), m = metas[id];
+        if (!m || m.opt || m.localOnly) continue;
+        await qvjShow('working…');
+        try {
+          const oldBlob = await getBlob(m), txt = await oldBlob.text(), r = await qvoPack(JSON.parse(txt)); if (!r) break;
+          const nb = new Blob([JSON.stringify(r.pack)], { type: 'application/json' });
+          if (nb.size > oldBlob.size * 0.9) { metas = await kv.get('qpacks', {}); if (metas[m.id]) { metas[m.id] = { ...metas[m.id], opt: 'kept' }; await kv.set('qpacks', metas); } j.skip++; qvjSave(j); continue; }
+          const sid = `${m.id}~w${Date.now().toString(36)}`;
+          j.pend = { id: m.id, sid, parts: Math.max(1, Math.ceil(nb.size / CHUNK)) }; qvjSave(j);
+          const parts = await uploadBook(sid, nb);                                                                  // 1 · upload the new copy
+          metas = { ...(await kv.get('qpacks', {})) }; const cur = metas[m.id];
+          if (!cur) { try { await deleteBookFiles({ id: sid, parts }); } catch { } j.pend = null; qvjSave(j); continue; }
+          metas[m.id] = { ...cur, sid, parts, bytes: nb.size, size: nb.size, opt: 'webp', optAt: Date.now() };
+          await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                         // 2 · switch to it
+          j.pend = null; j.done++; j.saved += oldBlob.size - nb.size; qvjSave(j);
+          try { await deleteBookFiles({ id: stoId(cur), parts: cur.parts }); } catch (e) { (j.orph = j.orph || []).push({ id: stoId(cur), parts: cur.parts }); qvjSave(j); }   // 3 · delete the old copy
+        } catch (e) { j.fail++; qvjSave(j); console.warn('optimise', id, e); if (!navigator.onLine) break; }
+      }
+    } finally {
+      QVJ.run = false;
+      const C = await qvjCounts();
+      j = { ...j, ...(qvjLoad() || {}) };
+      if (QVJ.stop) { j.want = 'paused'; qvjSave(j); await qvjShow('paused'); }
+      else if (!navigator.onLine) { j.want = 'run'; qvjSave(j); await qvjShow('waiting for the internet'); }
+      else if (C.left && j.fail) { j.want = 'paused'; qvjSave(j); await qvjShow(`${j.fail} pack${j.fail === 1 ? '' : 's'} could not be processed — press Resume to retry`); }
+      else { j.want = 'done'; j.end = Date.now(); qvjSave(j); await qvjShow('finished'); qvjPill(`✅ Picture optimisation finished · ${C.opt} packs optimised · ${((j.saved || 0) / 1048576).toFixed(1)} MB saved`, true); }
+      QVJ.stop = false; qvjButtons();
+    }
+  };
+  if (navigator.locks && navigator.locks.request) {
+    await navigator.locks.request('cfa-qvo-job', { ifAvailable: true }, async lock => { if (!lock) { qvjPill('🗜 Picture optimisation is already running in another tab or window.', true); return; } await go(); });
+  } else await go();
 }
+function qvjPause() { if (!QVJ.run) return; QVJ.stop = true; const j = qvjLoad() || {}; j.want = 'paused'; qvjSave(j); qvjShow('pausing after this picture…'); }
+// resume by itself after the site opens again (or the internet comes back), only if you did not pause it
+function qvjAuto() { const j = qvjLoad(); if (j && j.want === 'run' && !QVJ.run && navigator.onLine && cloud) qvjRun(); }
+addEventListener('online', () => setTimeout(qvjAuto, 3000));
+window.__qvo = { worker: () => !!qvoWorker(), running: () => QVJ.run };      // diagnostics (console)
+
 async function qvoHTML() {
-  const metas = await kv.get('qpacks', {}), all = Object.values(metas); if (!all.length) return '';
-  const opt = all.filter(m => m.opt === 'webp').length, kept = all.filter(m => m.opt === 'kept').length, left = all.filter(m => !m.opt && !m.localOnly).length, M = await kv.get('qvoMeasure', null), L = await kv.get('qvoLast', null);
-  return `<div class="card mb-3" id="qvoCard"><h3 class="sec">🗜 Question pictures — size</h3>
-    <p class="text-sm text-slate-500 mb-2">Turns PNG pictures into lossless WebP: the picture stays <b>pixel-identical</b>, the file gets smaller in Supabase storage and in every download. JPEG pictures are left as they are.</p>
-    <div class="flex flex-wrap gap-2 text-sm mb-3"><span class="chip">Packs: <b>${all.length}</b></span><span class="chip">Optimised: <b>${opt}</b></span>${kept ? `<span class="chip">Left as they are: <b>${kept}</b></span>` : ''}<span class="chip">To do: <b>${left}</b></span></div>
-    <div class="flex flex-wrap gap-2"><button type="button" class="btn-primary text-sm" data-qvo="measure" ${left ? '' : 'disabled'}>🔍 Measure (changes nothing)</button><button type="button" class="btn-ghost text-sm" data-qvo="run" ${left && M && M.save >= 0.3 ? '' : 'disabled'} title="${M ? '' : 'Measure first'}">🗜 Optimise</button></div>
-    <div class="text-sm mt-3" id="qvoMsg" role="status" aria-live="polite">${L ? `Last run ${new Date(L.at).toLocaleDateString('en-GB')}: <b>${L.done} pack${L.done === 1 ? '' : 's'} optimised · ${(L.saved / 1048576).toFixed(1)} MB saved</b>${L.skip ? ` · ${L.skip} left as they are` : ''}${L.fail ? ` · ${L.fail} could not be processed` : ''}.${left ? ' Press Optimise to continue.' : ''}` : M ? `Last measurement: about ${Math.round(M.save * 100)} % smaller${M.save < 0.3 ? ' — below 30 %, not worth it' : ''}.` : 'Measure first: Optimise unlocks only when the saving is 30 % or more.'}</div></div>`;
+  const C = await qvjCounts(); if (!C.all) return '';
+  const M = await kv.get('qvoMeasure', null), j = qvjLoad() || {}, doneN = C.opt + C.kept, pctN = Math.round(100 * doneN / C.all);
+  const canRun = C.left && M && M.save >= 0.3;
+  const status = QVJ.run ? 'Running in the background…' : j.want === 'done' ? `Finished ${j.end ? new Date(j.end).toLocaleDateString('en-GB') : ''}.` : j.want === 'paused' ? 'Paused — press Resume to continue where it stopped.' : j.want === 'run' ? 'Interrupted — it continues by itself, or press Resume.' : M ? `Last measurement: about ${Math.round(M.save * 100)} % smaller${M.save < 0.3 ? ' — below 30 %, not worth it' : ''}.` : 'Measure first: the optimisation unlocks only when the saving is 30 % or more.';
+  return `<div class="card md:col-span-2" id="qvoCard"><h3 class="sec">🗜 Question pictures — size</h3>
+    <p class="text-sm text-slate-600 dark:text-slate-300 mb-2">Turns PNG pictures into lossless WebP: every picture stays <b>pixel-identical</b>, the files get smaller in Supabase storage and in every download. JPEG pictures are left as they are.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-300 mb-3"><b>Runs in the background:</b> keep using any page — a small bar at the bottom shows the progress. If you close the site it pauses safely and continues by itself the next time you open it on this device. Best on a computer with a steady connection.</p>
+    <div class="flex flex-wrap gap-2 text-sm mb-2"><span class="chip">Packs: <b>${C.all}</b></span><span class="chip">Optimised: <b>${C.opt}</b></span>${C.kept ? `<span class="chip">Left as they are: <b>${C.kept}</b></span>` : ''}<span class="chip">To do: <b>${C.left}</b></span>${j.saved ? `<span class="chip">Saved: <b>${(j.saved / 1048576).toFixed(1)} MB</b></span>` : ''}</div>
+    <div class="qvo-track" role="progressbar" aria-label="Pictures handled" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pctN}"><div id="qvoBar" style="width:${pctN}%"></div></div>
+    <div class="flex flex-wrap gap-2 mt-3"><button type="button" class="btn-ghost text-sm" data-qvo="measure" ${C.left ? '' : 'disabled'} ${QVJ.run ? 'hidden' : ''}>🔍 Measure (changes nothing)</button><button type="button" class="btn-primary text-sm" data-qvo="run" ${canRun ? '' : 'disabled'} ${QVJ.run ? 'hidden' : ''} title="${M ? '' : 'Measure first'}">${j.done || j.skip ? '▶ Resume in background' : '▶ Start in background'}</button><button type="button" class="btn-ghost text-sm" data-qvo="pause" ${QVJ.run ? '' : 'hidden'}>⏸ Pause</button></div>
+    <div class="text-sm mt-3" id="qvoMsg" role="status" aria-live="polite">${status}</div></div>`;
 }
 document.addEventListener('click', async e => {
-  const b = e.target.closest && e.target.closest('[data-qvo]'); if (!b) return;
-  const a = b.dataset.qvo, msg = document.getElementById('qvoMsg');
-  const set = (h, canRun, busy) => { if (!msg) return; msg.innerHTML = h; const rb = document.querySelector('[data-qvo="run"]'), mb = document.querySelector('[data-qvo="measure"]'); if (rb && canRun !== undefined) rb.disabled = !canRun; if (mb) mb.disabled = !!busy; };
-  if (a === 'stop') { QVO.stop = true; b.disabled = true; b.textContent = 'Stopping…'; return; }
-  if (QVO.run) return toast('Already running…');
-  b.disabled = true;
-  try { if (a === 'measure') await qvoMeasure(set); else if (a === 'run') { await qvoRun(set); setTimeout(() => qRefreshPage(), 2500); } }
-  finally { b.disabled = false; }
+  const q = e.target.closest && e.target.closest('[data-qvj]');
+  if (q) { const a = q.dataset.qvj; if (a === 'pause') { e.preventDefault(); qvjPause(); } else if (a === 'resume') { e.preventDefault(); qvjRun(); } else if (a === 'hide') { e.preventDefault(); qvjPill(''); } return; }
+  const b = e.target.closest && e.target.closest('[data-qvo]'); if (!b || b.disabled) return;
+  const a = b.dataset.qvo, msg = document.getElementById('qvoMsg'), set = h => { if (msg) msg.innerHTML = h; };
+  if (a === 'pause') return qvjPause();
+  if (a === 'measure') { if (QVJ.run || QVJ.measuring) return toast('Already running…'); b.disabled = true; try { await qvoMeasure(set); } finally { b.disabled = false; } return; }
+  if (a === 'run') {
+    if (QVJ.run) return toast('Already running in the background');
+    if (!cloud || !navigator.onLine) return set('Connect to the internet first.');
+    const j = qvjLoad();
+    if (!j || (!j.done && !j.skip)) { if (!confirm('Optimise all question pictures in the background?\n\n• Every picture is checked pixel by pixel — nothing changes on screen\n• You can keep studying on any page while it runs\n• Pause at any time; closing the site pauses it and it continues by itself next time\n\nDownload a full backup first if you have not done so.')) return; }
+    qvjRun(); setTimeout(qvjButtons, 50);
+  }
 });
 async function dupToolsHTML() {
   const vals = Object.values(QE || {}), nE = vals.filter(e => e.dup?.k === 'exact').length, nS = vals.filter(e => e.dup?.k === 'same').length, nNo = vals.filter(e => e.dup?.k === 'no').length;
@@ -13585,6 +13709,7 @@ async function startSession(session) {
   if (/access_token|type=recovery/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/');
   if (location.search.includes('code=')) history.replaceState(null, '', location.pathname + location.hash);
   route(); __boot.set('first_route_ms');
+  setTimeout(() => { try { qvjAuto(); } catch { } }, 8000);      // v33 · resume an interrupted picture optimisation
   if (quick) pull().then(n => { lastPull = Date.now(); __boot.set('synced_ms'); if (n) afterPullChanged(); }).catch(e => setStatus('error', e.message || String(e)));
 }
 
