@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CFA L1 · Study</title>
 <meta name="theme-color" content="#1e1b4b">
@@ -773,7 +773,7 @@
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
   .text-\[11px\] {
-    font-size: 11px;
+    font-size: 12px;
   }
   .text-\[15px\] {
     font-size: 15px;
@@ -1342,7 +1342,7 @@
     background-color: var(--color-slate-100);
     padding-inline: calc(var(--spacing) * 2);
     padding-block: calc(var(--spacing) * 0.5);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--color-slate-700);
     &:where(.dark, .dark *) {
       background-color: var(--color-slate-700);
@@ -1361,7 +1361,7 @@
     background-color: var(--color-amber-100);
     padding-inline: calc(var(--spacing) * 1.5);
     padding-block: calc(var(--spacing) * 0.5);
-    font-size: 10px;
+    font-size: 12px;
     --tw-tracking: var(--tracking-normal);
     letter-spacing: var(--tracking-normal);
     color: var(--color-amber-800);
@@ -1592,7 +1592,7 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
     border-color: var(--color-slate-300);
-    font-size: 11px;
+    font-size: 12px;
     &:where(.dark, .dark *) {
       border-color: var(--color-slate-600);
     }
@@ -2281,14 +2281,14 @@ div.opt .opt-l:hover { outline: 2px solid var(--color-indigo-400, #818cf8); }
 .los-h { padding: .35rem .6rem; margin-top: .5rem; border-radius: .6rem; background: #eef2ff; color: #3730a3; line-height: 1.35; }
 .dark .los-h { background: rgba(79,70,229,.2); color: #c7d2fe; }
 .shrink-0 { flex-shrink: 0; } .tabular-nums { font-variant-numeric: tabular-nums; } .absolute { position: absolute; } .inset-0 { inset: 0; } .z-10 { z-index: 10; }
-.w-9 { width: 2.25rem; } .w-20 { width: 5rem; } .h-24 { height: 6rem; } .-ml-1 { margin-left: -.25rem; } .text-\[9px\] { font-size: 9px; } .text-\[10px\] { font-size: 10px; }
+.w-9 { width: 2.25rem; } .w-20 { width: 5rem; } .h-24 { height: 6rem; } .-ml-1 { margin-left: -.25rem; } .text-\[9px\] { font-size: 12px; } .text-\[10px\] { font-size: 12px; }
 .rounded-t { border-top-left-radius: .25rem; border-top-right-radius: .25rem; } .bg-indigo-500 { background-color: #6366f1; } .bg-indigo-50 { background-color: #eef2ff; }
 .dark .dark\:bg-indigo-950\/40 { background-color: rgba(30,27,75,.4); } .border-l-2 { border-left-width: 2px; border-left-style: solid; } .border-indigo-200 { border-color: #c7d2fe; } .pl-3 { padding-left: .75rem; }
 .min-w-\[200px\] { min-width: 200px; } .gap-5 { gap: 1.25rem; } .gap-6 { gap: 1.5rem; } .gap-x-4 { column-gap: 1rem; } .gap-y-1 { row-gap: .25rem; } .max-h-48 { max-height: 12rem; } .space-y-0\.5 > :not(:last-child) { margin-bottom: .125rem; }
 .lg\:grid-cols-3 { } @media (min-width: 64rem) { .lg\:col-span-3 { grid-column: span 3 / span 3; } }
 .text-indigo-600 { color: #4f46e5; } .bg-emerald-50\/50 { background-color: rgba(236,253,245,.5); } .border-emerald-200 { border-color: #a7f3d0; } .flex-col { flex-direction: column; } .whitespace-nowrap { white-space: nowrap; }
 
-.mx { font-size: 11px; padding: .1rem .45rem; border-radius: 999px; font-weight: 600; }
+.mx { font-size: 12px; padding: .1rem .45rem; border-radius: 999px; font-weight: 600; }
 .mx-grey { background: #e2e8f0; color: #64748b; } .mx-red { background: #ffe4e6; color: #be123c; } .mx-amber { background: #fef3c7; color: #b45309; } .mx-green { background: #d1fae5; color: #047857; }
 .dark .mx-grey { background: #334155; color: #94a3b8; } .dark .mx-red { background: rgba(244,63,94,.25); color: #fda4af; } .dark .mx-amber { background: rgba(245,158,11,.25); color: #fcd34d; } .dark .mx-green { background: rgba(16,185,129,.25); color: #6ee7b7; }
 .fcard { min-height: 220px; padding: 1.5rem; border-radius: 1.25rem; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; box-shadow: 0 6px 24px rgba(15,23,42,.06); }
@@ -2495,9 +2495,9 @@ body.rd-fs .keys-fab { bottom: 1rem; }
 .topbar, .bottomnav, body.reading { --fs: 1; }          /* navigation bars and the PDF reader keep their fixed size */
 body { font-size: calc(1rem * var(--fs)); }
 .topbar, .bottomnav { font-size: 1rem; }
-.text-\[9px\] { font-size: calc(9px * var(--fs)); }
-.text-\[10px\], .badge { font-size: calc(10px * var(--fs)); }
-.text-\[11px\], .chip, .mx, .qdot { font-size: calc(11px * var(--fs)); }
+.text-\[9px\] { font-size: calc(12px * var(--fs)); }
+.text-\[10px\], .badge { font-size: calc(12px * var(--fs)); }
+.text-\[11px\], .chip, .mx, .qdot { font-size: calc(12px * var(--fs)); }
 .text-\[15px\] { font-size: calc(15px * var(--fs)); }
 .formula, #toast { font-size: calc(13px * var(--fs)); }
 #tip { font-size: calc(12px * var(--fs)); }
@@ -2520,7 +2520,7 @@ body { font-size: calc(1rem * var(--fs)); }
 .fs-pop .fs-large { font-size: 20px; }
 .fs-pop .fs-reset { margin-left: auto; font-size: 13px; font-weight: 600; }
 .fs-pop .fs-val { min-width: 52px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
-.fs-pop .fs-note { flex-basis: 100%; font-size: 11px; line-height: 1.4; color: #475569; }
+.fs-pop .fs-note { flex-basis: 100%; font-size: 12px; line-height: 1.4; color: #475569; }
 .dark .fs-pop .fs-note { color: #b6c2d4; }
 
 /* ================= v15 · full-width layout, 6-tile dashboard, mini-exam rows, Word view ================= */
@@ -2691,7 +2691,7 @@ body.rd-resizing * { cursor: col-resize !important; }
 .bc-body { padding: 10px; max-height: min(68vh, 520px); overflow: auto; }
 .bc-disp { background: #f1f5f9; border-radius: 10px; padding: 8px 10px; text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; margin-bottom: 8px; min-height: 52px; }
 .dark .bc-disp { background: #0f172a; }
-.bc-disp small { display: block; height: 15px; font-size: 11px; color: #64748b; }
+.bc-disp small { display: block; height: 15px; font-size: 12px; color: #64748b; }
 .dark .bc-disp small { color: #a3b1c6; }
 .bc-disp div { font-size: 24px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bc-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
@@ -2713,9 +2713,9 @@ body.rd-resizing * { cursor: col-resize !important; }
 .bc-msg { min-height: 18px; margin-top: 6px; font-size: 12px; color: #64748b; }
 .bc-msg.err { color: #dc2626; } .dark .bc-msg.err { color: #fca5a5; }
 .bc-msg.ok { color: #047857; font-weight: 700; } .dark .bc-msg.ok { color: #6ee7b7; }
-.bc-note { font-size: 11px; color: #64748b; margin-top: 6px; line-height: 1.4; } .dark .bc-note { color: #a3b1c6; }
+.bc-note { font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.4; } .dark .bc-note { color: #a3b1c6; }
 .bc-cfrow { display: grid; grid-template-columns: 38px 1fr 56px; gap: 6px; align-items: center; margin-bottom: 5px; }
-.bc-cfrow span { font-size: 11px; font-weight: 700; color: #64748b; }
+.bc-cfrow span { font-size: 12px; font-weight: 700; color: #64748b; }
 </style>
 <link rel="preconnect" href="https://ipqtcbkplcjfuhyavzdi.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -2904,7 +2904,7 @@ body.rd-resizing * { cursor: col-resize !important; }
 .dark .nav-menu{background:#1e293b;border-color:#334155}
 .nav-menu a{display:flex;align-items:center;min-height:40px;padding:.3rem .7rem;border-radius:.6rem;font-size:.875rem;color:#0f172a}.dark .nav-menu a{color:#e2e8f0}
 .nav-menu a:hover,.nav-menu a:focus-visible{background:#eef2ff;outline:none}.dark .nav-menu a:hover,.dark .nav-menu a:focus-visible{background:#312e81}
-.nav-sec{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;padding:.5rem .7rem .15rem}.dark .nav-sec{color:#a3b1c6}
+.nav-sec{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;padding:.5rem .7rem .15rem}.dark .nav-sec{color:#a3b1c6}
 .nav-sep{height:1px;background:#e2e8f0;margin:.3rem .4rem}.dark .nav-sep{background:#334155}
 .bottomnav button.bn-more{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:48px;padding-block:.375rem;color:#64748b;font-size:12px;background:none}
 .dark .bottomnav button.bn-more{color:#adbacd}
@@ -2967,8 +2967,8 @@ button.dtr[aria-expanded=true]{background:#eef2ff}.dark button.dtr[aria-expanded
 .proto-w ul,.proto-l{margin:.3rem 0 0 1.1rem;list-style:disc;font-size:.8125rem;display:grid;gap:.2rem}.proto-l{margin-top:.5rem}
 .exd-row{display:flex;gap:.7rem;align-items:flex-start;padding:.55rem .35rem;border-top:1px solid #e2e8f0;min-height:48px;cursor:pointer}.dark .exd-row{border-color:#334155}
 .exd-row:first-of-type{border-top:0}.exd-row input{margin-top:.2rem;width:1.15rem;height:1.15rem;flex:none}.exd-row.on .exd-t{text-decoration:line-through;opacity:.6}
-.exd-t{display:block;font-size:.9rem}.exd-s{display:block;font-size:.72rem;color:#64748b;margin-top:.1rem}.dark .exd-s{color:#a3b1c6}
-.exd-tag{display:inline-block;padding:.02rem .45rem;border-radius:999px;font-weight:700;font-size:.68rem;margin-right:.3rem}
+.exd-t{display:block;font-size:.9rem}.exd-s{display:block;font-size:.75rem;color:#64748b;margin-top:.1rem}.dark .exd-s{color:#a3b1c6}
+.exd-tag{display:inline-block;padding:.02rem .45rem;border-radius:999px;font-weight:700;font-size:.75rem;margin-right:.3rem}
 .exd-off{background:#d1fae5;color:#065f46}.exd-gd{background:#fef3c7;color:#92400e}.exd-tip{background:#e0e7ff;color:#3730a3}
 .dark .exd-off{background:rgba(16,185,129,.2);color:#6ee7b7}.dark .exd-gd{background:rgba(245,158,11,.2);color:#fcd34d}.dark .exd-tip{background:rgba(99,102,241,.25);color:#c7d2fe}
 .exd-tl{display:flex;flex-wrap:wrap;gap:.4rem}.exd-tl span{padding:.4rem .7rem;border-radius:.7rem;background:#f1f5f9;font-size:.8rem}.dark .exd-tl span{background:#273449}.exd-tl .big{background:#e0e7ff;font-weight:700}.dark .exd-tl .big{background:#312e81}
@@ -3032,11 +3032,11 @@ button.dtr[aria-expanded=true]{background:#eef2ff}.dark button.dtr[aria-expanded
 .dk-i{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1.5px solid currentColor;font:700 9px/1 Georgia,serif;margin-left:.35rem;opacity:.55;text-transform:none;vertical-align:1px}
 [data-kpi]:hover .dk-i{opacity:1}
 .dk-nd{color:#94a3b8;font-style:italic}
-.kp-l{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1;margin-bottom:.15rem}
+.kp-l{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1;margin-bottom:.15rem}
 .kp-f{margin-top:.4rem;padding:.5rem .7rem;border-radius:.6rem;background:#f1f5f9;font:500 .8rem/1.4 ui-monospace,Consolas,monospace;overflow-x:auto;white-space:pre-wrap}
 .dark .kp-f{background:#111317}.dark .kp-l{color:#a5b4fc}
 .kp-dot{width:.7rem;height:.7rem;border-radius:50%;flex:none}.kp-g{background:#10b981}.kp-a{background:#f59e0b}.kp-r{background:#f43f5e}.kp-n{background:#94a3b8}
-.dg{display:inline-flex;align-items:center;gap:.2rem;font-size:.68rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.dg{display:inline-flex;align-items:center;gap:.2rem;font-size:.75rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;white-space:nowrap;vertical-align:1px}
 .dg-keep{background:#d1fae5;color:#065f46}.dg-fix{background:#ffedd5;color:#9a3412}.dg-fast{background:#e0e7ff;color:#3730a3}.dg-new{background:#e2e8f0;color:#334155}
 .dark .dg-keep{background:rgba(16,185,129,.18);color:#6ee7b7}.dark .dg-fix{background:rgba(249,115,22,.18);color:#fdba74}.dark .dg-fast{background:rgba(99,102,241,.2);color:#c7d2fe}.dark .dg-new{background:#2c323b;color:#cbd5e1}
 @media (min-width:1024px){.dk-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
@@ -3078,14 +3078,14 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 .line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.list-disc{list-style:disc}.ml-5{margin-left:1.25rem}.pr-3{padding-right:.75rem}.overflow-x-auto{overflow-x:auto}.max-h-\[40vh\]{max-height:40vh}.min-h-\[1\.25rem\]{min-height:1.25rem}
 @media (min-width:640px){.sm\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}}
 /* module cards: rings stacked so the title keeps its width */
-.mod-rings .text-\[11px\]{font-size:10px;margin-top:0}
+.mod-rings .text-\[11px\]{font-size:12px;margin-top:0}
 /* topic rows: full name on two lines, diagnosis under it */
 .dtr-n{white-space:normal;line-height:1.25}.dtr-n .dg{display:flex;width:max-content;margin-top:.2rem}
 @media (min-width:1024px){.dtr{grid-template-columns:minmax(0,14rem) 3.6rem 1fr 2.6rem 2.6rem}}
 /* topics without answers are grey, not red */
 .dbr.nd{background:#94a3b8!important}.dtr-v.nd{color:#94a3b8!important}
 /* P9 · study rows: two metrics + diagnosis */
-.st-m{display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem 1rem;align-items:center}.st-mi{display:grid;grid-template-columns:4.6rem 1fr 2.6rem;align-items:center;gap:.4rem;font-size:.72rem;color:#64748b}.st-mi b{text-align:right;font-variant-numeric:tabular-nums;color:inherit}.dark .st-mi{color:#adbacd}
+.st-m{display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem 1rem;align-items:center}.st-mi{display:grid;grid-template-columns:4.6rem 1fr 2.6rem;align-items:center;gap:.4rem;font-size:.75rem;color:#64748b}.st-mi b{text-align:right;font-variant-numeric:tabular-nums;color:inherit}.dark .st-mi{color:#adbacd}
 @media (max-width:640px){.st-m{grid-template-columns:1fr}}
 /* P5 · explorers */
 .ex-svg{max-height:300px}.ex-ax{stroke:#94a3b8;stroke-width:1}.ex-dash{stroke-dasharray:4 4}.ex-l1{stroke:#4f46e5;stroke-width:2.5}.ex-l2{stroke:#f59e0b;stroke-width:1.8;stroke-dasharray:6 4}.ex-pt{fill:#4f46e5}.ex-t{font-size:11px;fill:#64748b}
@@ -3501,12 +3501,12 @@ async function wipeDevice() {
 const db = {
   get: local.get, all: local.all, byIndex: local.byIndex, keys: local.keys,
   async put(store, val, key) {
-    await local.put(store, val, key); CTX_VER++;
+    await local.put(store, val, key); CTX_VER++; tabsSay({ type: 'changed', store, key: key === undefined ? val && val.id : key });
     if (SYNCED.has(store) && !(store === 'kv' && LOCAL_KV.has(key))) await queue({ op: 'up', store, id: key === undefined ? val.id : key, data: val });
   },
   async del(store, key) {
     CTX_VER++; const old = store === 'notes' && window.__undoNote ? await local.get(store, key) : null;
-    await local.del(store, key);
+    await local.del(store, key); tabsSay({ type: 'changed', store, key });
     if (SYNCED.has(store)) await queue({ op: 'del', store, id: key });
     if (old) window.__undoNote(old);
   },
@@ -3531,6 +3531,32 @@ function dataBump(k) { if (k == null || !(VOLATILE_KV.has(k) || /^(qstats|curLos
 { const _d = kvCache.delete.bind(kvCache), _c = kvCache.clear.bind(kvCache);
   kvCache.delete = k => { dataBump(k); CTX_VER++; return _d(k); };
   kvCache.clear = () => { DATA_EP++; return _c(); }; }
+// v24 · the site open in more than one tab: every save tells the other tabs, which drop their in-memory copy of that item
+// (IndexedDB is shared, so the next read gets the newest value) and show a one-time notice to work in one tab at a time.
+var TAB_ID = Math.random().toString(36).slice(2), _bc = null;
+try { _bc = 'BroadcastChannel' in self ? new BroadcastChannel('cfa-l1-tabs') : null; } catch (e) { _bc = null; }
+function tabsSay(m) { try { _bc && _bc.postMessage(Object.assign({}, m, { from: TAB_ID })); } catch (e) { } }
+function tabsNotice() {
+  if (document.getElementById('tabsBar')) return; try { if (sessionStorage.getItem('tabsBarOff')) return; } catch (e) { }
+  const b = document.createElement('div'); b.id = 'tabsBar'; b.setAttribute('role', 'status');
+  b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:64px;z-index:80;display:flex;gap:10px;align-items:center;max-width:min(560px,calc(100vw - 24px));padding:6px 6px 6px 14px;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #f59e0b;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+  b.innerHTML = '<span>The site is also open in another tab. Saves from both tabs are kept, but to be safe work in one tab at a time.</span><button type="button" class="ib" aria-label="Close" style="min-width:44px;min-height:44px;color:inherit">✕</button>';
+  b.querySelector('button').onclick = () => { b.remove(); try { sessionStorage.setItem('tabsBarOff', '1'); } catch (e) { } };
+  (document.body || document.documentElement).appendChild(b);
+}
+if (_bc) {
+  _bc.onmessage = e => {
+    const d = e.data || {}; if (d.from === TAB_ID) return;
+    if (d.type === 'hello') { tabsSay({ type: 'here' }); tabsNotice(); }
+    else if (d.type === 'here') tabsNotice();
+    else if (d.type === 'changed') {
+      const k = String(d.key);
+      if (d.store === 'kv') { if (k.startsWith('qstats:')) kvCache.delete('qstats'); else kvCache.delete(k); }
+      else { DATA_EP++; CTX_VER++; }
+    }
+  };
+  tabsSay({ type: 'hello' });
+}
 // ---------------- per-module question statistics (one synced row per module instead of one row for everything) ----------------
 let _qsSnap = new Map(), _qsP = null;
 const qsShard = id => {
@@ -7118,7 +7144,7 @@ async function aisumSection(box, x, subjPath) {
       <div id="aiMsg" class="text-xs text-slate-500 mt-1"></div>
       ${pdfF ? `<div class="flex flex-wrap items-center gap-2 mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm">📕 ${esc(pdfF.label || pdfF.name)} · ${pdfF.pages} pages <a class="btn-primary text-xs ml-auto" href="${subjPath}/aipdf">Open PDF summary</a><button class="link text-rose-600 text-xs" id="aiPdel">Remove</button></div>` : ''}
       ${doc ? `<div class="flex flex-wrap items-center gap-2 mt-3 text-xs text-slate-500"><span>📘 ${esc(doc.name)} · ${fmtD(doc.ts)}</span><span class="ml-auto">Select any text → <b>+ Mohd Summary</b> or <b>🃏 Flashcard</b></span>${doc.html ? `<button class="link" id="aiView">${simple ? "📄 Original Word look" : "🗎 Simple text"}</button>` : ""}${orig ? `<button class="link" id="aiDl">⬇ Download .docx</button>` : ""}<button class="link text-rose-600" id="aiWdel">Remove</button></div>
-        ${doc.html && !simple ? `<div id="aiDoc" class="dx-wrap mt-2" style="max-height:82vh;overflow:auto">${doc.html}</div>` : `${doc.html ? "" : `<p class="text-[11px] text-amber-700 mt-1">Saved in the simple text format. Upload the .docx again to see it exactly like the Word file.</p>`}<div id="aiDoc" class="aidoc mt-2 max-h-[70vh] overflow-auto pr-2">${doc.blocks.map(b => { if (/^h/.test(b.t)) { los = losFromHeading(b.text, x) || los; }
+        ${doc.html && !simple ? `<div id="aiDoc" class="dx-wrap mt-2" style="max-height:82vh;overflow:auto">${safeHTML(doc.html)}</div>` : `${doc.html ? "" : `<p class="text-[11px] text-amber-700 mt-1">Saved in the simple text format. Upload the .docx again to see it exactly like the Word file.</p>`}<div id="aiDoc" class="aidoc mt-2 max-h-[70vh] overflow-auto pr-2">${doc.blocks.map(b => { if (/^h/.test(b.t)) { los = losFromHeading(b.text, x) || los; }
           const a = `data-los="${los || ''}"`;
           return b.t === 'row' ? `<div class="aid-row" ${a}>${b.cells.map(c => `<span>${esc(c)}</span>`).join('')}</div>` : b.t === 'li' ? `<div class="aid-li" ${a}>• ${esc(b.text)}</div>` : `<div class="aid-${b.t}" ${a}>${esc(b.text)}</div>`; }).join('')}</div>`}`
         : (!pdfF ? '<p class="text-sm text-slate-500 mt-3">Upload the AI summary for this module (Word or PDF). Word files appear exactly as in the original document (fonts, colours, tables, lists) — you can still select sentences and send them to Mohd Summary or turn them into flashcards. PDFs open in the reader with highlighting and printing.</p>' : '')}
@@ -7193,6 +7219,30 @@ async function aisumSection(box, x, subjPath) {
   showKeys('ai');
   await draw();
   return () => { document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp); bar.remove(); box.onchange = null; box.onclick = null; document.removeEventListener('fullscreenchange', onFsChange); document.removeEventListener('keydown', onFsKey); if (document.fullscreenElement && fs) { try { document.exitFullscreen(); } catch { } } document.body.classList.remove('ai-fs', 'ai-notes-on'); notesEl?.remove(); notesStop && notesStop(); };
+}
+// v24 · stored Word/HTML summaries are cleaned before they are shown: scripts, frames, embedded objects, event handlers
+// (onclick…) and javascript: links are removed; text, tables, pictures and formatting stay exactly as they are.
+const _safeMemo = new Map();
+function safeHTML(html) {
+  html = String(html || ''); if (_safeMemo.has(html)) return _safeMemo.get(html);
+  let out = '';
+  try {
+    const d = new DOMParser().parseFromString('<!doctype html><body>' + html, 'text/html');
+    d.body.querySelectorAll('script,iframe,frame,frameset,object,embed,applet,base,meta,link,form,noscript,template,portal').forEach(n => n.remove());
+    const bad = v => /^(javascript|vbscript|data:(?!image\/(png|jpe?g|gif|webp|bmp|svg\+xml)))/i.test(String(v).replace(/[\u0000-\u0020]+/g, ''));
+    d.body.querySelectorAll('*').forEach(el => {
+      for (const a of [...el.attributes]) {
+        const n = a.name.toLowerCase();
+        if (n.startsWith('on') || n === 'srcdoc' || n === 'formaction') el.removeAttribute(a.name);
+        else if (/^(href|src|xlink:href|action|background|poster|lowsrc|dynsrc)$/.test(n) && bad(a.value)) el.removeAttribute(a.name);
+        else if (n === 'style' && /expression\s*\(|javascript:/i.test(a.value)) el.removeAttribute(a.name);
+      }
+      if (el.tagName === 'A' && el.getAttribute('target') === '_blank') el.setAttribute('rel', 'noopener noreferrer');
+    });
+    out = d.body.innerHTML;
+  } catch (e) { out = ''; window.__diag && __diag.log('safeHTML-failed', e.message || e); }
+  if (_safeMemo.size > 20) _safeMemo.clear();
+  _safeMemo.set(html, out); return out;
 }
 async function fsaAiTab(body, x) { body.innerHTML = '<div id="aiBox"></div>'; return aisumSection(document.getElementById('aiBox'), x, x.href); }
 
@@ -7673,6 +7723,18 @@ const allReasons = s => [...(s?.hist || []).filter(h => h.r && !h.ok), ...(s?.rA
 
 // ---------- Study: subjects (custom order) ----------
 // ---------- Study: one performance card per topic ----------
+// v24 · "Continue" never points at a module that no longer exists (e.g. old Economics numbers econ-12…19 → econ-1…8)
+let _staleDone = false;
+async function fixStaleMods() {
+  if (_staleDone) return; _staleDone = true;
+  try {
+    const ok = id => { const m = modInfo(id); return !!(m && m.x); }, fix = id => { if (!id || ok(id)) return id; const e = /^econ-(\d+)$/.exec(id); return e && +e[1] > 11 && ok('econ-' + (e[1] - 11)) ? 'econ-' + (e[1] - 11) : null; };
+    const by = (await kv.get('lastModBy', {})) || {}, nb = {}; let ch = false;
+    for (const [s, id] of Object.entries(by)) { const v = fix(id); if (v) nb[s] = v; if (v !== id) ch = true; }
+    if (ch) await kv.set('lastModBy', nb);
+    const lm = await kv.get('lastModule', ''); if (lm && !ok(lm)) { const v = fix(lm); await kv.set('lastModule', v || ''); }
+  } catch (e) { window.__diag && __diag.log('fixStaleMods-failed', e.message || e); }
+}
 async function setLastBy(mid) { const s = String(mid).split('-')[0], cur = await kv.get('lastModBy', {}); if (cur[s] === mid) return; await kv.set('lastModBy', { ...cur, [s]: mid }); }
 const dayKeyL = t => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
 function studyStats(c, lastBy, lastGlobal) {
@@ -8176,6 +8238,53 @@ async function installPack(D) {
   }
   await flush(); await loadPacks();
   return { id, title: md.title, los: D.los.length };
+}
+// ================= v24 · Data health — read only: checks the question bank and module files and lists anything odd. It never changes data. =================
+async function dataHealth() {
+  view.innerHTML = crumbs([['Settings', '#/settings'], ['Data health']]) + '<div class="card text-sm text-slate-500">Checking your data…</div>';
+  const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const mods = moduleList().filter(m => m.kind === 'pack'), raw = await extQRaw(), Q = raw.map(q => ({ ...qApply(q), off: qOff(q) }));
+  const byMod = new Map(); Q.forEach(q => { const k = modKey(q); (byMod.get(k) || byMod.set(k, []).get(k)).push(q); });
+  const isDupFlag = q => !!(QE[q.id] && (QE[q.id].dup || (QE[q.id].off && QE[q.id].off.why === 'dup')));
+  // 1 · questions
+  const noLos = Q.filter(q => !q.off && !q.los), noX = Q.filter(q => !q.off && !String(q.x || '').trim());
+  const badOpt = Q.filter(q => !q.off && (q.o || []).length !== 3), badKey = Q.filter(q => !q.off && !(Number.isInteger(q.a) && q.a >= 0 && q.a < (q.o || []).length));
+  const losBad = Q.filter(q => { if (q.off || !q.los) return false; const L = losListFor(modKey(q)); return L.length && !L.some(l => l.id === q.los); });
+  // 2 · duplicates (same stem + same options)
+  const g = new Map(); Q.forEach(q => { if (q.off) return; const k = norm(q.q) + '|' + (q.o || []).map(norm).sort().join('|'); (g.get(k) || g.set(k, []).get(k)).push(q); });
+  const dups = [...g.values()].filter(a => a.length > 1), cross = dups.filter(a => new Set(a.map(modKey)).size > 1), unflag = dups.filter(a => !a.some(isDupFlag));
+  const conflict = dups.filter(a => new Set(a.map(q => norm((q.o || [])[q.a]))).size > 1);
+  // 3 · modules: summary file name vs module number, empty question banks
+  const sumBad = [], noSum = [], noQ = [], sumSeen = new Map(), sumSame = [];
+  for (const m of mods) {
+    const a = await kv.get('aisum:' + m.id, null); if (!a) { noSum.push(m); } else { const n = /LM\s*0*(\d+)/i.exec(a.name || ''), head = String(a.html || '').slice(0, 6000).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '), hm = /Module\s+[A-Z]{2,6}\s+LM\s*0*(\d+)/.exec(head); if ((n && +n[1] !== m.num) || (hm && +hm[1] !== m.num)) sumBad.push({ m, name: a.name + (hm && +hm[1] !== m.num ? ` (content says LM${hm[1]})` : '') }); const body = String(a.html || '') || JSON.stringify(a.blocks || ''); if (body.length > 200) { const o = sumSeen.get(body); if (o) sumSame.push([o, m]); else sumSeen.set(body, m); } }
+    if (!(byMod.get(m.id) || []).length) noQ.push(m);
+  }
+  const stale = []; { const by = (await kv.get('lastModBy', {})) || {}; for (const [s, id] of Object.entries(by)) if (!modInfo(id)) stale.push(`${s}: ${id}`); }
+  const qLink = q => `<a class="link" href="#/qbank/m/${encodeURIComponent(modKey(q))}">${esc(q.id)}</a>`;
+  const mLink = m => `<a class="link" href="${m.href}">${esc(m.short)}</a>`;
+  const list = (arr, f, max = 40) => arr.length ? `<div class="text-xs mt-2 leading-6">${arr.slice(0, max).map(f).join(' · ')}${arr.length > max ? ` · … +${arr.length - max} more` : ''}</div>` : '';
+  const byModCount = arr => { const c = {}; arr.forEach(q => { const k = qModLabel(q); c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} <b>${n}</b>`).join(' · '); };
+  const row = (lvl, title, n, why, body = '') => `<details class="card mb-2" ${n && lvl !== 'ok' ? '' : ''}><summary class="cursor-pointer flex items-center gap-2" style="min-height:44px"><span aria-hidden="true">${n ? (lvl === 'hi' ? '🔴' : lvl === 'mid' ? '🟠' : '🟡') : '✅'}</span><span class="font-semibold flex-1">${title}</span><span class="chip">${n}</span></summary><p class="text-xs text-slate-500 mt-2">${why}</p>${body}</details>`;
+  const items = [
+    row('hi', 'Same question, different correct answer', conflict.length, 'Two copies of one question that disagree on the answer — one key is wrong.', list(conflict, a => a.map(qLink).join(' = '))),
+    row('hi', 'AI summary file looks like another module', sumBad.length, 'The Word file name says a different LM number than the module it is attached to.', list(sumBad, z => `${mLink(z.m)} ← ${esc(z.name)}`)),
+    row('hi', 'Same AI summary in two modules', sumSame.length, 'Two modules show exactly the same summary — one of them probably got the wrong Word file.', list(sumSame, ([a, b]) => `${mLink(a)} = ${mLink(b)}`)),
+    row('mid', 'Duplicates across different modules', cross.length, 'The same question is stored in two modules. Usually one copy belongs to the other module.', list(cross, a => a.map(q => `${qLink(q)} (${esc(qModLabel(q))})`).join(' = '), 60)),
+    row('mid', 'Questions without a LOS', noLos.length, 'They count in the module score but not in any LOS rating.', `<div class="text-xs mt-2">${byModCount(noLos)}</div>`),
+    row('mid', 'LOS code not in the module', losBad.length, 'The LOS written on the question is not one of this module’s 2027 LOS.', list(losBad, q => `${qLink(q)} (${esc(q.los)})`)),
+    row('mid', 'Answer key missing or out of range', badKey.length, 'The question has no valid correct option.', list(badKey, qLink)),
+    row('low', 'Not 3 options', badOpt.length, 'Every real Level I question has exactly three options (A, B, C).', list(badOpt, q => `${qLink(q)} (${(q.o || []).length})`)),
+    row('low', 'No explanation', noX.length, 'The answer is shown without a reason.', list(noX, qLink)),
+    row('low', 'Duplicates without a flag', unflag.length, 'Identical copies that are not marked as duplicates yet.', list(unflag, a => a.map(qLink).join(' = '))),
+    row('low', 'Modules without an AI summary', noSum.length, '', list(noSum, mLink)),
+    row('low', 'Modules without questions', noQ.length, '', list(noQ, mLink)),
+    row('low', 'Saved “continue” points to a module that no longer exists', stale.length, 'Fixed automatically when you open Study.', list(stale, esc)),
+  ];
+  const issues = [conflict, sumBad, sumSame, cross, noLos, losBad, badKey].reduce((t, a) => t + (a.length ? 1 : 0), 0);
+  view.innerHTML = crumbs([['Settings', '#/settings'], ['Data health']]) + `<h1 class="h1">🩺 Data health</h1>
+    <p class="text-sm text-slate-500 mb-3">Read only — this page checks ${Q.length.toLocaleString()} questions in ${mods.length} modules and never changes anything. ${issues ? `<b>${issues}</b> check${issues > 1 ? 's' : ''} need a look.` : 'Everything important looks fine.'} Duplicates: ${dups.length} group${dups.length === 1 ? '' : 's'} (${cross.length} across modules).</p>
+    ${items.join('')}`;
 }
 async function settings() {
   const exam = await kv.get('examDate', ''), lastB = await kv.get('lastBackup', null);
@@ -8692,6 +8801,8 @@ async function mocksView() {
       else { const half = Math.ceil(qs.length / 2); sel = part === 1 ? qs.slice(0, half) : qs.slice(half); if (part === 1) next = qs.slice(half).map(q => q.id); }
       if (!sel.length) { toast(`Add the session ${part} PDF in Library first`); return; }
       if (!(await mockBrief(x, part, sel.length, np))) return;
+      // v24 · readiness check: before the first attempt of a full mock, keep the readiness the site predicts, to compare with the real score later
+      if (part === 1 && !mockIsCp(x)) { try { const R0 = (await kv.get('mockRes', {})) || {}, P0 = (await kv.get('mockPred', {})) || {}; if (!(R0[x.id] && R0[x.id].f1) && !P0[x.id]) { const D = await dshData(); if (D.examR != null) await kv.set('mockPred', { ...P0, [x.id]: { r: D.examR, at: Date.now() } }); } } catch (e) { window.__diag && __diag.log('mockPred-failed', e.message || e); } }
       await startQSession(sel, 'exam', 'all', '#/qbank/mocks', { title: np > 1 ? `${x.name} · Session ${part} of ${np}` : x.name, keepOrder: true, strict: true, reasons: true, mockId: x.id, part, next });
     }
   };
@@ -10540,6 +10651,17 @@ function perfKpisHTML(D, delta, wkDelta) {
     (hid.length ? `<div class="dk-hidbar"><span>👁 ${hid.length} hidden metric${hid.length > 1 ? 's' : ''}:</span>${hid.map(k => `<button type="button" class="chip" data-kshow="${k}" title="Show again">${esc(KPI_INFO[k].t)} ＋</button>`).join('')}<button type="button" class="link text-xs" data-kshow="*">Show all</button></div>` : '') +
     (favs.length || hid.length ? `<div class="text-right mb-3"><button type="button" class="link text-xs" data-kreset="1">Reset metrics to default</button></div>` : '');
 }
+// v24 · readiness vs real mock score: the readiness saved just before each first-attempt full mock, next to the score you got
+function predVsMockHTML(D) {
+  const rows = (D.mocks || []).filter(z => !z.cp && z.F && z.F.done && D.mockPred && D.mockPred[z.x.id]).map(z => { const p = D.mockPred[z.x.id].r, a = z.F.sc; return { n: z.x.name, p, a, g: a - p }; });
+  if (!rows.length) return `<div class="text-xs text-slate-500 mt-3">🎯 <b>Readiness check:</b> before your first attempt of each full mock the site keeps its predicted readiness; when you finish, the gap appears here.</div>`;
+  const avg = Math.round(rows.reduce((t, r) => t + r.g, 0) / rows.length), cls = g => Math.abs(g) <= 5 ? 'text-emerald-700 dark:text-emerald-300' : Math.abs(g) <= 10 ? 'text-amber-700 dark:text-amber-300' : 'text-rose-700 dark:text-rose-300';
+  const verdict = Math.abs(avg) <= 5 ? 'Readiness matches your mock scores well — you can trust it.' : avg < 0 ? `Readiness is about ${-avg} points too optimistic — read it as ${-avg} points lower.` : `Readiness is about ${avg} points too cautious — your mocks score higher.`;
+  return `<div class="mt-3"><div class="text-xs font-semibold text-slate-500 mb-1">🎯 Readiness check · predicted vs first-attempt score</div>
+    <div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="text-left text-slate-500"><th class="py-1 pr-2 font-semibold">Mock</th><th class="py-1 pr-2 font-semibold">Predicted</th><th class="py-1 pr-2 font-semibold">Actual</th><th class="py-1 font-semibold">Gap</th></tr></thead>
+    <tbody>${rows.map(r => `<tr class="border-t border-slate-200 dark:border-slate-700"><td class="py-1 pr-2">${esc(r.n)}</td><td class="py-1 pr-2">${r.p}%</td><td class="py-1 pr-2">${r.a}%</td><td class="py-1 font-semibold ${cls(r.g)}">${r.g > 0 ? '+' : ''}${r.g}</td></tr>`).join('')}</tbody></table></div>
+    <div class="text-xs mt-1 ${cls(avg)}">${rows.length > 1 ? `Average gap ${avg > 0 ? '+' : ''}${avg} pts. ` : ''}${verdict}</div></div>`;
+}
 async function dshData() {
   const exam = await kv.get('examDate', null), now = Date.now();
   const days = exam ? Math.ceil((new Date(exam) - new Date()) / 864e5) : null;
@@ -10604,7 +10726,7 @@ async function dshData() {
   // P2 · pace: median seconds per question — Exam-mode answers when there are 20+, otherwise all timed answers
   const tEx = ev.filter(e => e.s > 0 && e.md === 'exam'), tAll = ev.filter(e => e.s > 0 && e.s < 1200), tUse = tEx.length >= 20 ? tEx : tAll.length >= 20 ? tAll : null;
   const pace2 = tUse ? (() => { const a = tUse.slice(-400).map(e => e.s).sort((x, y) => x - y); return { med: a[a.length >> 1], slow: Math.round(a.filter(x => x > 90).length / a.length * 100), src: tUse === tEx ? 'exam mode' : 'all modes' }; })() : null;
-  const D0 = { lvA, covN, covW, complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime };
+  const D0 = { lvA, covN, covW, complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime, mockPred: (await kv.get('mockPred', {})) || {} };
   D0.K = await perfExtra(D0); try { window.__examReady = examReady(D0, D0.K); } catch { } return D0;
 }
 // actions that move the score most this week (prescriptive, not just descriptive)
@@ -10701,7 +10823,7 @@ async function dashboardView() {
     mocks: `<div class="card"><h3 class="sec">Mock scores <span class="normal-case font-normal">· line = ${MPS}%</span></h3>
       ${D.doneFull.length ? svgLine(mockSeries, { target: MPS, label: 'Mock scores' }) : '<div class="text-sm text-slate-500">No full mock completed yet.</div>'}
       ${D.doneCp.length ? `<div class="text-xs font-semibold text-slate-500 mt-3">Checkpoints</div>${svgLine(cpSeries, { target: MPS, h: 140, label: 'Checkpoint scores' })}` : ''}
-      <div class="text-xs text-slate-500 mt-2">${D.calOn ? 'Purple = raw · green = adjusted by your offsets. ' : ''}Many candidates find third-party mocks harder than the real exam — read the trend, not one score.</div></div>`,
+      <div class="text-xs text-slate-500 mt-2">${D.calOn ? 'Purple = raw · green = adjusted by your offsets. ' : ''}Many candidates find third-party mocks harder than the real exam — read the trend, not one score.</div>${predVsMockHTML(D)}</div>`,
     activity: `<div class="card"><h3 class="sec">Activity <span class="normal-case font-normal">· last 26 weeks</span></h3>${svgHeat(D.act)}
       <div class="dwk"><div><b>${D.tw.n}</b><span>questions this week</span>${wkDelta(D.tw.n, D.lw.n)}</div><div><b>${D.tw.acc ?? '—'}${D.tw.acc != null ? '%' : ''}</b><span>accuracy incl. retries</span>${delta(D.tw.acc, D.lw.acc, ' pts')}</div><div><b>${D.tw.min}</b><span>minutes on questions</span>${wkDelta(D.tw.min, D.lw.min)}</div><div><b>${D.examR == null ? '—' : D.examR + '%'}</b><span>readiness</span>${delta(D.examR, D.rdWeekAgo, ' pts')}</div></div></div>`,
     traps: `<div class="card"><h3 class="sec">Top traps <span class="normal-case font-normal">· LOS where you were Sure and wrong</span></h3>
@@ -11220,7 +11342,7 @@ const NAV_SVG = {
 const navIcon = k => `<svg class="bn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_SVG[k]}</svg>`;
 const NAV_PAGES = { today: { label: 'Today', href: '#/' }, study: { label: 'Study', href: '#/study' }, practice: { label: 'Practice', href: '#/qbank' }, progress: { label: 'Performance', short: 'Perform.', href: '#/progress' }, plan: { label: 'Plan', href: '#/plan' }, library: { label: 'Library', href: '#/library' }, settings: { label: 'Settings', href: '#/settings' } };
 const NAV_MAIN = ['today', 'study', 'practice', 'progress'], NAV_ALL = Object.keys(NAV_PAGES), NAV_MANAGE = ['plan', 'library', 'settings'];
-const NAV_EXTRA = [['Lecture notes', '#/lecnotes'], ['Things to remember', '#/remember'], ['Weekly report', '#/weekly'], ['Error log', '#/errors'], ['Ethics lab', '#/ethics'], ['Calculator drill', '#/calc'], ['Exam-day checklist', '#/examday'], ['Trap library', '#/traps'], ['Explorers', '#/explore'], ['Flashcards', '#/cards'], ['Search', '#/search']];
+const NAV_EXTRA = [['Lecture notes', '#/lecnotes'], ['Things to remember', '#/remember'], ['Weekly report', '#/weekly'], ['Error log', '#/errors'], ['Ethics lab', '#/ethics'], ['Calculator drill', '#/calc'], ['Exam-day checklist', '#/examday'], ['Trap library', '#/traps'], ['Explorers', '#/explore'], ['Flashcards', '#/cards'], ['Search', '#/search'], ['Data health', '#/health']];
 const NAV_DEF = { order: NAV_MAIN.slice(), hidden: [], start: 'today', same: false };
 let NAVP = { ...NAV_DEF, order: NAV_MAIN.slice(), hidden: [] }, NAVM = NAV_MAIN.slice(), _navSig = '';
 function navClean(p) {
@@ -12322,6 +12444,7 @@ const routes = [
   [/^#\/summary(?:\/(\w+))?$/, fullSummary],
   [/^#\/formulas(?:\/(\w+))?$/, formulasView],
   [/^#\/settings$/, settings],
+  [/^#\/health$/, dataHealth],
   [/^#\/(?:progress|dashboard)$/, dashboardView],
   [/^#\/layout$/, layoutPage],
   [/^#\/errors$/, errorsView],
@@ -12340,7 +12463,7 @@ async function route() {
   cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
   if (_prepEp !== DATA_EP) {             // only when something was saved / synced since the last page
     const t0 = performance.now();
-    await loadPacks(); await applySubjOrder(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
+    await loadPacks(); await applySubjOrder(); await fixStaleMods(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
     _prepEp = DATA_EP; window.__diag && __diag.log('route-prep', Math.round(performance.now() - t0) + ' ms');
   } else { TRACK = await kv.get('modTrack', {}); }
   await navLoad();
@@ -12851,8 +12974,9 @@ async function refreshSyncLabel() {
   const el = document.getElementById('sync'); if (!el) return;
   let n = 0; try { n = await pendingCount(); } catch { }
   const st = el.dataset.state || 'synced', last = +(localStorage.getItem('lastSyncAt') || 0);
-  const icon = { synced: '☁️', saving: '⏳', offline: '\uD83D\uDCF4', error: '⚠️' }[st] || '☁️';
-  const txt = n ? `${n} pending` : st === 'synced' ? (last ? fmtSyncT(last) : '') : st === 'offline' ? 'offline' : '';
+  let parked = 0; try { parked = JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch (e) { parked = 0; }   // v24 · rows the server kept rejecting are shown, not hidden in Diagnostics
+  const icon = parked && st !== 'saving' ? '⚠️' : ({ synced: '☁️', saving: '⏳', offline: '\uD83D\uDCF4', error: '⚠️' }[st] || '☁️');
+  const txt = n ? `${n} pending` : parked ? `${parked} not uploaded` : st === 'synced' ? (last ? fmtSyncT(last) : '') : st === 'offline' ? 'offline' : '';
   el.innerHTML = `<span aria-hidden="true">${icon}</span>${txt ? `<span class="sync-txt">${esc(txt)}</span>` : ''}`;
   el.setAttribute('role', 'button'); el.tabIndex = 0;
   el.title = `${window.__syncTitle || 'Saved to cloud'} · ${n} pending · last sync ${fmtSyncT(last)} — click for details`;
@@ -12864,7 +12988,7 @@ async function syncPanel() {
     const n = await pendingCount(), el = document.getElementById('sync'), st = el?.dataset.state || 'synced', last = +(localStorage.getItem('lastSyncAt') || 0);
     const stText = { synced: '✅ Saved to your account', saving: '⏳ Saving…', offline: '\uD83D\uDCF4 Offline — changes are saved on this device and upload when you are back online', error: '⚠️ Sync problem' + (window.__syncDetail ? ': ' + window.__syncDetail : '') }[st] || '';
     pop.innerHTML = `<div class="flex items-center mb-2"><b>☁️ Sync status</b><button type="button" class="ib ml-auto" data-sp="x" aria-label="Close">✕</button></div>
-      <div class="text-sm space-y-1"><div>${esc(stText)}</div><div><b>${n}</b> change${n === 1 ? '' : 's'} waiting to upload${n ? '' : ' — everything is uploaded'}</div><div>Last successful sync: <b>${esc(fmtSyncT(last))}</b></div></div>
+      <div class="text-sm space-y-1"><div>${esc(stText)}</div>${(() => { let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch (e) { d = []; } return d.length ? `<div class="text-rose-700 dark:text-rose-300">⚠️ <b>${d.length}</b> item${d.length === 1 ? ' was' : 's were'} rejected by the server 3 times and not uploaded. They are safe on this device — open <a class="link" href="#/settings">Settings → Diagnostics</a> and press Retry.</div>` : ''; })()}<div><b>${n}</b> change${n === 1 ? '' : 's'} waiting to upload${n ? '' : ' — everything is uploaded'}</div><div>Last successful sync: <b>${esc(fmtSyncT(last))}</b></div></div>
       <div class="flex gap-2 mt-3"><button type="button" class="btn-primary text-xs" data-sp="now" ${navigator.onLine ? '' : 'disabled'}>↻ Sync now</button><button type="button" class="btn-ghost text-xs" data-sp="x">Close</button></div>
       ${st === 'error' ? `<p class="text-xs text-rose-700 dark:text-rose-300 mt-2">${esc(CLOUD_HELP)}</p>` : ''}
       <p class="text-xs text-slate-500 mt-2">Everything is saved on this device first, then uploaded in the background.</p>
@@ -14217,6 +14341,8 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
     });
     navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
       var urls = [].map.call(document.querySelectorAll('script[src*="supabase-js"]'), function (e) { return e.src; });
+      // v24 · also fetch the PDF engine now (vendor/ or next to index.html — the worker keeps whichever exists), so books open offline
+      ['vendor/pdf.js', 'pdf.js', 'vendor/pdf.worker.js', 'pdf.worker.js'].forEach(function (p) { urls.push(new URL(p, document.baseURI).href); });
       if (reg.active && urls.length) reg.active.postMessage({ type: 'precache', urls: urls });
     }).catch(function () { });
   });

@@ -7,13 +7,14 @@
  *    Only when it really changed is the new copy stored, and the open page shows "A new version is ready · Reload".
  *    First visit, or nothing saved yet: network first.
  *  - The Supabase library (CDN) is cached on first use and then served from the cache.
- *  - The PDF engine (vendor/pdf.js and vendor/pdf.worker.js, about 1.5 MB) is NOT part of the page any more: it is fetched the first time a PDF is opened,
- *    cached here, and then served from the cache — also offline.
+ *  - The PDF engine (pdf.js + pdf.worker.js, about 1.5 MB) is fetched right after sign-in (v24), kept in its own cache
+ *    (cfa-l1-vendor) that survives a VERSION bump, served from that cache — also offline — and refreshed quietly in the background.
  *  - Everything else — above all the Supabase API (auth + sync + uploads) — is NOT touched.
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v23';
+const VERSION = 'v24';
+const VENDOR = 'cfa-l1-vendor';                     // v24 · PDF engine lives in its own cache: a new VERSION no longer drops it
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
 const META = new URL('__sw-meta', self.registration.scope).href;
@@ -33,7 +34,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k.startsWith('cfa-l1-') && k !== CACHE) await caches.delete(k);
+    for (const k of await caches.keys()) if (k.startsWith('cfa-l1-') && k !== CACHE && k !== VENDOR) await caches.delete(k);
     await self.clients.claim();
   })());
 });
@@ -77,6 +78,16 @@ async function pageFirst(event) {
   } catch (e) { return Response.error(); }
 }
 
+// v24 · PDF engine: served from its own cache at once; refreshed quietly in the background so a new pdf.js still arrives
+const isPdfEngine = url => { const u = new URL(url); return u.origin === self.location.origin && /\/(vendor\/)?pdf(\.worker)?\.js$/.test(u.pathname); };
+async function vendorFirst(event) {
+  const request = event.request, key = pageKey(request.url), cache = await caches.open(VENDOR);
+  const hit = await cache.match(key);
+  const refresh = fetch(key, { cache: 'no-cache', credentials: 'same-origin' }).then(r => { if (r.ok) return cache.put(key, r.clone()).then(() => r); return r; });
+  if (hit) { event.waitUntil(refresh.catch(() => { })); return hit; }
+  try { return await refresh; } catch (e) { return Response.error(); }
+}
+
 async function libFirst(request) {
   const cache = await caches.open(CACHE);
   const hit = await cache.match(request.url, { ignoreVary: true });
@@ -92,7 +103,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (req.mode === 'navigate' && url.origin === self.location.origin) { event.respondWith(pageFirst(event)); return; }
   if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req)); return; }
-  if (url.origin === self.location.origin && /\/(vendor\/[^/]+|pdf(\.worker)?)\.js$/.test(url.pathname)) event.respondWith(libFirst(req));
+  if (isPdfEngine(req.url)) { event.respondWith(vendorFirst(event)); return; }
+  if (url.origin === self.location.origin && /\/vendor\/[^/]+\.js$/.test(url.pathname)) { event.respondWith(libFirst(req)); return; }
   // v17 · app icon + manifest (installed app) are served from the cache so the app also starts offline
   if (url.origin === self.location.origin && /\/(manifest\.webmanifest|icons\/[^/]+\.png)$/.test(url.pathname)) event.respondWith(libFirst(req));
 });
@@ -102,7 +114,18 @@ self.addEventListener('message', event => {
   const d = event.data || {};
   if (d.type !== 'precache' || !Array.isArray(d.urls)) return;
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
+    const cache = await caches.open(CACHE), vend = await caches.open(VENDOR);
+    // v24 · the PDF engine is fetched right after sign-in, so books open offline even on a device that never opened one online
+    const pdfs = d.urls.filter(u => { try { return isPdfEngine(u); } catch (e) { return false; } });
+    const groups = {};                                          // pdf.js may sit in vendor/ or next to index.html: keep whichever exists
+    for (const u of pdfs) { const n = new URL(u).pathname.split('/').pop(); (groups[n] = groups[n] || []).push(pageKey(u)); }
+    for (const list of Object.values(groups)) {
+      try {
+        let have = false; for (const u of list) if (await vend.match(u)) { have = true; break; }
+        if (have) continue;
+        for (const u of list) { const r = await fetch(u, { credentials: 'same-origin' }); if (r.ok) { await vend.put(u, r); break; } }
+      } catch (e) { /* retried on the next visit */ }
+    }
     for (const u of d.urls) {
       try {
         if (!String(u).includes(LIB_MARK) || await cache.match(u, { ignoreVary: true })) continue;
