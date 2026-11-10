@@ -13,7 +13,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v16';
+const VERSION = 'v18';
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
 const META = new URL('__sw-meta', self.registration.scope).href;
@@ -93,6 +93,8 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate' && url.origin === self.location.origin) { event.respondWith(pageFirst(event)); return; }
   if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req)); return; }
   if (url.origin === self.location.origin && /\/(vendor\/[^/]+|pdf(\.worker)?)\.js$/.test(url.pathname)) event.respondWith(libFirst(req));
+  // v17 · app icon + manifest (installed app) are served from the cache so the app also starts offline
+  if (url.origin === self.location.origin && /\/(manifest\.webmanifest|icons\/[^/]+\.png)$/.test(url.pathname)) event.respondWith(libFirst(req));
 });
 
 // the page asks us to pre-cache the library right after registration, so the very first offline visit already works

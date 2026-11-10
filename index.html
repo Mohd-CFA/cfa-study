@@ -6,6 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CFA L1 · Study</title>
 <meta name="theme-color" content="#1e1b4b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CFA Study">
 <script>try{var _fs=parseFloat(localStorage.getItem("fs"));if(_fs>=0.8&&_fs<=1.8)document.documentElement.style.setProperty("--fs",_fs)}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAET0lEQVR4nO3dv2vcdRzH8fy4pE6iRaUkejlcRLpYdFDwP+guDipdLLi5qYMUcZBuzp0cHV39BwSn0KEgDnJJltRiQSfbnJ7DSQmCDenr+/lxyeMxX+4+fD/Pe38/yZFkdbx9dQWe1FrrBbDcBEREQEQERERARAREREBEBEREQEQERERARAREREBEBEREQEQERERARAREREBEBEREQEQERGTUegGPc+XyrdZL6MLuneutl/C/Vnv7vTDRnKirnnoJSDdPoIeS2gcknVDbjFoGJJ0BtcqoTUDSKaFJQw0CUk9RlTOq/XMg9ZRW+QrXm0DSqazOKKo0gdRTX51rXiMg9bRS4coXD0g9bZW+/mUDUk8Piu6CT+OJFAzI+OlHub0oFZB6elNoR4oEpJ4+ldgXZyAiwwdk/PRs8N0xgYgMHJDx079h98gEIjJkQMbPshhwp0wgIgIiMlhA7l/LZaj9MoGICIiIgIgME5AD0DIaZNdMICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiXf+7p+M++fziW28/deLDvvri/o8//FlhPY+sra1c2hrt7IxemmzsTEbjycbW9mh9/YSvmv5y9PFH96ossKylCagfz7+wvjPZGE9G48nGeGf04ni0ubnaelHNCOh0Xnl18+bXz7VeRUecgYgIiIiAiAiIiICICIiIb+NT8/nK3cPZ3nR2MJ3t7R0dTGdvvHnhvWtPt15XJQI6nfl85d6vf+1Pj/b3ZvvT2f7e0cH+7OGD+fHHvPb6hVbLq09Ap/PzTw8/fP9u61V0xBmIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIictT+u8NmNi/mTfPDO4R+//50/z3lw1gKq4JtvLz3zbDq5Jy9vfPf91uMfc+PT327vPghfqDS3MCICIiIgIgIiIiAiAiIiICICIrI0P0i8+eX91kv417V3D1svoSMmEBEBEREQEQERERARAREREBEBEREQEQERERARAREREBEBEREQEQERERARAREREJFhAtq9c32Q56GmQXbNBCIiICICIiIgIoMF5By9XIbaLxOIiIDOowFvF0MG5C52DplARAYOyBDq37B7ZAIRGT4gQ6hng+9OkQmkoT6V2Be3MCKlAjKEelNoRwpOIA31o9xeuIWdfUXfyWUDMoSaK70FxSeQhhqqcPFr3MI01ESdy17pDKShyqpd8NXx9tU6r7Rw5fKtmi93PtV8u9b+LswoKq3yFa49gRbMoRKavDnbBLQgowG1Gu0tA1qQUajtqaB9QAsyOq1OTpO9BPSIkk7USToL3QV0nJgWuirmP7oOiP75NJ6IgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiIiAiAiIiICICIiIgIgIiMg/pi3R/DgPIT0AAAAASUVORK5CYII=">
@@ -2661,7 +2666,7 @@ body.rd-resizing * { cursor: col-resize !important; }
 @media (hover: none) and (pointer: coarse) {
   .kb-only, .keys-fab { display: none !important; }
   .touch-only { display: inline; }
-  .bc-fab.bc-fab { width: 36px; height: 36px; font-size: 16px; right: .25rem; bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); opacity: .7; }
+  .bc-fab.bc-fab { width: 44px; height: 44px; font-size: 18px; right: .35rem; bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px)); opacity: .85; }
   .qnav { max-height: 5.75rem; }
 }
 .onb li { display: flex; align-items: center; gap: .5rem; padding: .35rem 0; }
@@ -3115,6 +3120,9 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 @media (max-width:639px){.dsh-more{display:inline-flex;align-items:center;justify-content:center}.dsh-acts{display:none;position:absolute;right:0;top:100%;z-index:40;flex-direction:column;align-items:stretch;gap:.4rem;padding:.6rem;border-radius:.9rem;background:#fff;border:1px solid rgba(148,163,184,.4);box-shadow:0 10px 30px rgba(15,23,42,.2);min-width:14rem}.dark .dsh-acts{background:#1e293b}.dsh-acts.open{display:flex}.dsh-acts>*{min-height:44px;justify-content:flex-start}}
 .chip-dup{background:rgba(245,158,11,.15);color:#b45309;border:1px solid rgba(245,158,11,.45);display:inline-flex;align-items:center;gap:.3rem}.dark .chip-dup{color:#fbbf24}
 .dup-x{border:0;background:none;color:inherit;cursor:pointer;font-size:12px;opacity:.7;min-width:24px;min-height:24px;position:relative}.dup-x::after{content:"";position:absolute;inset:-10px}.dup-x:hover{opacity:1}
+.th-next{display:inline-flex;align-items:center;min-height:44px;margin-top:.4rem;padding:.4rem .9rem;border-radius:.7rem;background:#fff;color:#3730a3;font-weight:700;text-decoration:none}.th-next:hover{background:#eef2ff}.smart-card .th-next{background:#4f46e5;color:#fff}
+/* v31 · the floating calculator never hides the last answer controls: the question page gets room to scroll above it */
+@media (max-width: 639px) { body.calc-on #view { padding-bottom: 10rem; } }
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -3185,6 +3193,10 @@ const local = {
 // ---------------- cloud ----------------
 let cloud = null, userId = null;
 const SYNCED = new Set(['notes', 'highlights', 'kv', 'files']);
+// v31 · keys merged entry by entry with the cloud copy (3-way: last synced · this device · cloud), like question statistics
+const MERGE_KV = new Set(['qedits']);
+const mbKey = id => String(id).startsWith('qstats:') ? 'qsbase:' + String(id).slice(7) : 'mbase:' + id;
+const isMergeKv = id => String(id).startsWith('qstats:') || MERGE_KV.has(String(id));
 const LOCAL_KV = new Set(['zoom', 'sideOpen', '__owner', 'aiZoom', 'navMobile']); // device-specific preferences
 function setClient(client, uid) { cloud = client; userId = uid; }
 
@@ -3236,14 +3248,14 @@ function flush() {
           else (dels[v.store] = dels[v.store] || []).push(String(v.id));
         }
         // question statistics: merge with what another device may have uploaded in the meantime
-        const qsMerged = [], qsUps = ups.filter(u => u.store === 'kv' && u.id.startsWith('qstats:'));
+        const qsMerged = [], qsUps = ups.filter(u => u.store === 'kv' && isMergeKv(u.id));
         if (qsUps.length) {
           const { data: cr, error: ce } = await cloud.from('items').select('id,data').eq('store', 'kv').in('id', qsUps.map(u => u.id));
           if (ce) throw ce;
           const cm = new Map((cr || []).map(r => [r.id, r.data]));
           for (const u of qsUps) {
-            const key = 'qsbase:' + u.id.slice(7), base = (await local.get('kv', key)) || {}, sent = JSON.stringify(u.data);
-            u.data = qsMerge3(base, u.data || {}, cm.get(u.id) || {});
+            const key = mbKey(u.id), b0 = await local.get('kv', key), base = b0 || (u.id.startsWith('qstats:') ? {} : cm.get(u.id) || {}), sent = JSON.stringify(u.data);   // no base yet (first sync after the update): this device wins, as before
+            u.data = (u.id.startsWith('qstats:') ? qsMerge3 : objMerge3)(base, u.data || {}, cm.get(u.id) || {});
             qsMerged.push({ id: u.id, key, merged: u.data, sent });
           }
         }
@@ -3274,7 +3286,11 @@ function flush() {
           if (failed.has(ik('kv', m.id))) continue;
           await local.put('kv', m.merged, m.key);                                  // the copy the next merge starts from (never uploaded itself)
           const mj = JSON.stringify(m.merged);
-          if (mj !== m.sent && JSON.stringify(await local.get('kv', m.id)) === m.sent) { await local.put('kv', m.merged, m.id); _qsSnap.set(m.id, mj); kvCache.delete('qstats'); }
+          if (mj !== m.sent && JSON.stringify(await local.get('kv', m.id)) === m.sent) {
+            await local.put('kv', m.merged, m.id);
+            if (m.id.startsWith('qstats:')) { _qsSnap.set(m.id, mj); kvCache.delete('qstats'); }
+            else { kvCache.delete(m.id); if (m.id === 'qedits') try { await loadQE(); } catch { } }
+          }
         }
         for (const [s, ids] of Object.entries(dels)) {
           for (let i = 0; i < ids.length; i += 200) {
@@ -3375,13 +3391,13 @@ async function pullDiff() {
     if (rs.length) await local.bulk(s, rs.map(r => [r.data]));
   }
   const kvr = rows.filter(r => r.store === 'kv' && !LOCAL_KV.has(r.id));
-  if (kvr.length) await local.bulk('kv', kvr.map(r => [r.data, r.id]).concat(kvr.filter(r => String(r.id).startsWith('qstats:')).map(r => [r.data, 'qsbase:' + String(r.id).slice(7)])));
+  if (kvr.length) await local.bulk('kv', kvr.map(r => [r.data, r.id]).concat(kvr.filter(r => isMergeKv(r.id)).map(r => [r.data, mbKey(r.id)])));
   for (const r of rows) idx[ik(r.store, r.id)] = tsNum(r.updated_at);
   let removed = 0;
   for (const k of gone) {
     if (pend1.has(k)) continue;
     const [s, id] = k.split('\u0000');
-    if (s === 'kv') { await local.delKeys('kv', [id].concat(id.startsWith('qstats:') ? ['qsbase:' + id.slice(7)] : [])); }
+    if (s === 'kv') { await local.delKeys('kv', [id].concat(isMergeKv(id) ? [mbKey(id)] : [])); }
     else { const lk = (await local.keys(s)).find(x => String(x) === id); if (lk !== undefined) await local.delKeys(s, [lk]); }
     delete idx[k]; removed++;
   }
@@ -3427,7 +3443,7 @@ async function pullFull() {
     });
   }
   const want = new Map();
-  for (const r of rows) if (r.store === 'kv' && !LOCAL_KV.has(r.id)) { want.set(r.id, r.data); if (String(r.id).startsWith('qstats:')) want.set('qsbase:' + String(r.id).slice(7), r.data); }
+  for (const r of rows) if (r.store === 'kv' && !LOCAL_KV.has(r.id)) { want.set(r.id, r.data); if (isMergeKv(r.id)) want.set(mbKey(r.id), r.data); }
   await tx('kv', 'readwrite', async st => {
     const keys = await req(st.getAllKeys());
     for (const [k, v] of want) st.put(v, k);
@@ -3561,6 +3577,22 @@ function qsMergeEntry(a, b) {
   if (n.rq === undefined) delete out.rq;
   return out;
 }
+// v31 · generic 3-way merge of an object keyed by id (question edits, duplicate flags…): a change on one side wins over an untouched entry;
+// when both devices changed the same entry, the newer one wins (by the latest ts inside it)
+const objTs = v => { let t = 0; const w = o => { if (!o || typeof o !== 'object') return; for (const [k, x] of Object.entries(o)) { if (k === 'ts' && typeof x === 'number' && x > t) t = x; else if (x && typeof x === 'object') w(x); } }; w(v); return t; };
+function objMerge3(base, mine, theirs) {
+  const out = {}, same = (a, b) => JSON.stringify(a) === JSON.stringify(b), ids = new Set([...Object.keys(mine || {}), ...Object.keys(theirs || {})]);
+  for (const id of ids) {
+    const l = mine[id], r = theirs[id], b = (base || {})[id];
+    if (same(l, r)) { if (l !== undefined) out[id] = l; continue; }
+    if (same(l, b)) { if (r !== undefined) out[id] = r; continue; }
+    if (same(r, b)) { if (l !== undefined) out[id] = l; continue; }
+    if (l === undefined) { if (objTs(r) > objTs(b)) out[id] = r; continue; }
+    if (r === undefined) { out[id] = l; continue; }
+    out[id] = objTs(r) > objTs(l) ? r : l;
+  }
+  return out;
+}
 function qsMerge3(base, mine, theirs) {
   const out = {}, ids = new Set([...Object.keys(mine), ...Object.keys(theirs)]);
   for (const id of ids) {
@@ -3624,6 +3656,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // ---------------- books (private storage) ----------------
 const CHUNK = 8 * 1024 * 1024; // pieces of 8 MB: a dropped connection only repeats the current piece, and every piece fits the per-file limit of the free plan
 const partPath = (id, i) => `${userId}/${id}/part-${i}`;
+const stoId = m => (m && m.sid) || m.id;      // v32 · storage name of a file (optimised picture packs get a new one; the id stays the same)
 const resumeKey = (id, size) => `upl:${userId}:${id}:${size}:${CHUNK}`;
 
 // one piece, with real byte progress (XHR) — same request the Supabase library sends
@@ -3676,7 +3709,7 @@ async function uploadBook(id, file, onProgress) {
 }
 
 async function deleteBookFiles(meta) {
-  const paths = Array.from({ length: meta.parts || 1 }, (_, i) => partPath(meta.id, i));
+  const paths = Array.from({ length: meta.parts || 1 }, (_, i) => partPath(stoId(meta), i));
   const { error } = await cloud.storage.from('books').remove(paths);
   if (error) throw error;
   try { const pre = `upl:${userId}:${meta.id}:`; Object.keys(localStorage).filter(k => k.startsWith(pre)).forEach(k => localStorage.removeItem(k)); } catch { }
@@ -3693,7 +3726,7 @@ async function getBlob(meta, onProgress) {
   if (!navigator.onLine) throw new Error('This book is not downloaded on this device yet. Connect to the internet once to download it.');
   const chunks = []; let loaded = 0;
   for (let i = 0; i < (meta.parts || 1); i++) {
-    const { data, error } = await cloud.storage.from('books').createSignedUrl(partPath(meta.id, i), 3600);
+    const { data, error } = await cloud.storage.from('books').createSignedUrl(partPath(stoId(meta), i), 3600);
     if (error) throw error;
     const res = await fetch(data.signedUrl);
     if (!res.ok) throw new Error('Download failed (' + res.status + ')');
@@ -5619,6 +5652,9 @@ function qvCrop(big, sx, sy, sw, sh, padT = 8, padB = 8, jpg = false) {
   ox.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, 0, t, sw, o.height, 0, 0, sw, o.height);
   if (jpg) return o.toDataURL('image/jpeg', 0.82);
   let url = o.toDataURL('image/png');
+  // v31 · lossless WebP: exactly the same pixels as the PNG (no quality loss), usually several times smaller.
+  // Browsers that cannot write WebP (older Safari) return PNG here, so nothing changes for them.
+  try { const w = o.toDataURL('image/webp', 1); if (w.startsWith('data:image/webp') && w.length < url.length * 0.9) return w; } catch { }
   if (url.length > 160000) { const j = o.toDataURL('image/jpeg', 0.85); if (j.length < url.length * 0.7) url = j; }
   return url;
 }
@@ -8129,7 +8165,8 @@ async function settings() {
       <a class="btn-primary mt-3 inline-block" href="#/library">Open Library</a><div id="modLib" hidden></div></div>
     <div class="card md:col-span-2"><h3 class="sec">☁️ Free cloud project</h3>
       <p class="text-sm text-slate-600 dark:text-slate-300">Supabase pauses free projects that are idle for about a week. A pause does not delete anything — press <b>Resume project</b> in the Supabase dashboard — but the site cannot sync until you do. Studying a few times a week is enough to avoid it.</p>
-      <div class="flex flex-wrap gap-2 mt-3"><a class="btn-ghost text-xs" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase dashboard</a><button type="button" class="btn-ghost text-xs" data-kaw="1">⬇️ Download optional keep-alive file (GitHub)</button></div></div>
+      <p class="text-sm text-slate-600 dark:text-slate-300 mt-2">Free-plan limits to watch: <b>File storage 1 GB</b> (books + question pictures) · <b>Egress 5 GB / month</b> (downloads to your devices) · <b>Database 500 MB</b>. Check them under <i>Storage &amp; usage</i> about once a month; above 80 %, delete unused books or pictures in the Library.</p>
+      <div class="flex flex-wrap gap-2 mt-3"><a class="btn-ghost text-xs" href="https://supabase.com/dashboard/org/_/usage" target="_blank" rel="noopener">📊 Storage &amp; usage</a><a class="btn-ghost text-xs" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase dashboard</a><button type="button" class="btn-ghost text-xs" data-kaw="1">⬇️ Download optional keep-alive file (GitHub)</button></div></div>
     <div class="card md:col-span-2" id="layoutBox"></div>
     <div class="card md:col-span-2" id="cleanBox" style="min-width:0"></div>
     <div class="card"><h3 class="sec">💾 Backup & restore</h3>
@@ -8611,13 +8648,16 @@ async function mocksView() {
   view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Mocks']]) + `
   <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/library?mocks">\uD83D\uDCC1 Manage mock files</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Qbank stats</a></div>
   ${upNext ? `<div class="card mb-4 mk-hero flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="text-xs uppercase tracking-wide opacity-80">Next step</div><div class="font-bold text-lg">${esc(upNext.name)}</div><div class="text-xs opacity-90">${ST[upNext.id].started ? `Continue with session ${ST[upNext.id].next}` : `${upNext.n} questions · ${mockIsCp(upNext) ? 'checkpoint' : 'full mock'}`}</div></div><button class="btn-primary" data-mk="${upNext.id}" data-part="${ST[upNext.id].next || 1}">▶ ${ST[upNext.id].started ? 'Continue' : 'Start'}</button></div>` : ''}
-  <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Exam conditions: the clock cannot be paused and keeps running if you leave the tab. Mock questions never appear in module Qbanks, Weakest LOS, mini-exams or practice mocks — but your results update LOS mastery and readiness.</p>
+  <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Exam conditions: the clock cannot be paused and keeps running if you leave the tab. Mock files are kept apart from module Qbanks, Weakest LOS, mini-exams and practice mocks. If a provider also put the same question in its practice bank, that copy is flagged “Duplicate” (it is not hidden). Your mock results update LOS mastery and readiness.</p>
   ${ms.length ? `${cps.length ? `<h3 class="sec">Checkpoints · ${cps.filter(x => ST[x.id].S.done).length}/${cps.length} done</h3><div class="space-y-2 mb-5">${cps.map(card).join('')}</div>` : ''}
   ${full.length ? `<h3 class="sec">Mock exams · ${full.filter(x => ST[x.id].S.done).length}/${full.length} done</h3><div class="space-y-2">${full.map(card).join('')}</div>` : ''}`
   : '<div class="card text-sm text-slate-500">No mocks yet. Add the mock files in <a class="link" href="#/library?mocks">Library → Mocks &amp; Checkpoints</a>.</div>'}
-  ${tr ? `<div class="card mt-4"><h3 class="sec">Score trend <span class="normal-case font-normal">· line = 70% target</span></h3>${tr}</div>` : ''}`;
+  ${tr ? `<div class="card mt-4"><h3 class="sec">Score trend <span class="normal-case font-normal">· line = 70% target</span></h3>${tr}</div>` : ''}
+  ${await extMockHTML()}`;
+  view.onsubmit = async e => { if (e.target.id !== 'extF') return; e.preventDefault(); await extMockAdd(e.target); };
   view.onclick = async e => {
     const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.extdel) { const L = (await kv.get('extMocks', [])) || [], x = L.find(z => z.id === t.dataset.extdel); if (!x || !confirm(`Delete the score of “${x.name}”?`)) return; await kv.set('extMocks', L.filter(z => z.id !== x.id)); toast('Score deleted'); return route(); }
     if (t.dataset.mk) {
       const x = ms.find(z => z.id === t.dataset.mk), part = +t.dataset.part, qs = await mockqLive(x.id), np = mockParts(x);
       let sel, next = null;
@@ -8632,6 +8672,30 @@ async function mocksView() {
     }
   };
   return () => { view.onclick = null; };
+}
+// v31 · mocks taken outside the site: enter the score only
+async function extMockHTML() {
+  const L = ((await kv.get('extMocks', [])) || []).slice().sort((a, b) => (a.at || 0) - (b.at || 0)), today = isoDay(new Date());
+  return `<div class="card mt-4" id="extBox"><h3 class="sec">Mock taken outside this site</h3>
+    <p class="text-sm text-slate-500 mb-3">For example the CFA Institute Practice Pack. Enter your first-attempt score — it counts in Mock average, Mock trend, Projected score and Exam-ready.</p>
+    <form id="extF" class="grid gap-2 sm:grid-cols-5 items-end text-sm" novalidate>
+      <label class="sm:col-span-2">Name<input class="inp mt-1" name="name" required maxlength="80" placeholder="CFAI Practice Pack · Mock A"></label>
+      <label>Provider<select class="inp mt-1" name="prov"><option>CFA Institute</option><option>Kaplan Schweser</option><option>AnalystPrep</option><option>UWorld</option><option>IFT</option><option>Other</option></select></label>
+      <label>Date<input class="inp mt-1" type="date" name="d" value="${today}" max="${today}"></label>
+      <label>Score %<input class="inp mt-1" type="number" name="sc" min="0" max="100" step="1" required inputmode="numeric"></label>
+      <div class="sm:col-span-5 flex items-center gap-3"><button class="btn-primary text-sm" type="submit">＋ Add score</button><span id="extErr" class="text-sm text-rose-600" role="alert"></span></div>
+    </form>
+    ${L.length ? `<div class="mt-3 space-y-1">${L.map(x => `<div class="flex flex-wrap items-center gap-2 text-sm py-1 border-t border-slate-200 dark:border-slate-700"><b class="flex-1 min-w-[10rem]">${esc(x.name)}</b><span class="text-slate-500">${esc(x.prov || '')} · ${x.at ? new Date(x.at).toLocaleDateString('en-GB') : ''}</span><span class="mk-st ${x.sc >= 70 ? 'ok' : x.sc >= 60 ? 'mid' : 'bad'}">${x.sc}%</span><button type="button" class="btn-ghost text-xs" data-extdel="${esc(x.id)}" aria-label="Delete ${esc(x.name)}">Delete</button></div>`).join('')}</div>` : ''}</div>`;
+}
+async function extMockAdd(f) {
+  const err = document.getElementById('extErr'), name = f.name.value.trim(), sc = Number(f.sc.value), d = f.d.value;
+  if (!name) { err.textContent = 'Enter a name.'; return f.name.focus(); }
+  if (f.sc.value === '' || !Number.isFinite(sc) || sc < 0 || sc > 100) { err.textContent = 'Score must be between 0 and 100.'; return f.sc.focus(); }
+  const at = d ? new Date(d + 'T12:00:00').getTime() : Date.now();
+  if (!Number.isFinite(at) || at > Date.now() + 864e5) { err.textContent = 'Pick a date that is not in the future.'; return f.d.focus(); }
+  const L = (await kv.get('extMocks', [])) || [];
+  L.push({ id: 'ext-' + uid(), name, prov: f.prov.value, sc: Math.round(sc), at }); await kv.set('extMocks', L);
+  toast('Score added'); route();
 }
 // ---------- Library → Mocks & Checkpoints: the one place where mock files are added, replaced and removed ----------
 async function mockLibHTML() {
@@ -9309,6 +9373,7 @@ async function library(libFocus) {
   <div id="locWarn" class="hidden text-xs text-amber-600 mb-3" role="note">⚠ Books uploaded while this is ticked are NOT sent to your account — they will not open on your other devices.</div>
   <div id="upMsg" class="text-sm my-2"></div>
   ${await (async () => { try { const n = (await allQsAll()).length, sig = await kv.get('dupSig', 0); if (n && n !== sig) await dupScan(true); } catch (e) { console.warn('dup scan', e); } return dupToolsHTML(); })()}
+  ${await qvoHTML()}
   ${await qvBarHTML()}
   <div id="vlibBox">${await vidLibHTML()}</div>
   <div id="mockLibBox" class="mb-3">${await mockLibHTML()}</div>
@@ -9772,7 +9837,7 @@ async function backupBlob(onStep, opt = {}) {
   step('Reading progress & settings…');
   parts.push(',"kv":{'); let first = true, metas = {};
   for (const { k, v } of await local.entries('kv')) {
-    if (['qsession', '__owner', 'syncIdx'].includes(k) || String(k).startsWith('qsbase:')) continue;
+    if (['qsession', '__owner', 'syncIdx'].includes(k) || String(k).startsWith('qsbase:') || String(k).startsWith('mbase:')) continue;
     if (k === 'qpacks') metas = v || {};
     parts.push((first ? '' : ',') + JSON.stringify(String(k)) + ':' + _bkJ(v)); first = false;
   }
@@ -9816,7 +9881,7 @@ async function downloadBackupNow(opt = {}) {
     P.set('⏳ Preparing backup…');
     const blob = await backupBlob(t => P.set('⏳ ' + t), opt);
     if (fh) { const w = await fh.createWritable(); await w.write(blob); await w.close(); } else downloadBlob(name, blob);
-    await kv.set('lastBackup', Date.now());
+    await kv.set('lastBackup', Date.now()); if (opt.full) await kv.set('lastFullBackup', Date.now());
     P.done(`✅ Backup ready · ${(blob.size / 1048576).toFixed(1)} MB${blob.skipped ? ` · ${blob.skipped} picture pack(s) could not be read` : ''}`, blob.skipped ? 'warn' : 'ok');
     return blob;
   } catch (err) {
@@ -9830,7 +9895,7 @@ async function restoreQvPacks(qv) {
   const metas = { ...(await kv.get('qpacks', {})) }; let ch = false;
   for (const [id, txt] of Object.entries(qv)) {
     const blob = new Blob([txt], { type: 'application/json' }); await cacheBlob(id, blob);
-    if (metas[id] && cloud && navigator.onLine) { try { const parts = await uploadBook(id, blob); metas[id] = { ...metas[id], parts, localOnly: false }; } catch { metas[id] = { ...metas[id], localOnly: true }; } ch = true; }
+    if (metas[id] && cloud && navigator.onLine) { const old = metas[id]; try { const parts = await uploadBook(id, blob); metas[id] = { ...old, parts, localOnly: false, bytes: blob.size, size: blob.size }; delete metas[id].sid; delete metas[id].opt; if (old.sid) { try { await deleteBookFiles({ id: old.sid, parts: old.parts }); } catch { } } } catch { metas[id] = { ...old, localOnly: true }; } ch = true; }
   }
   if (ch) await kv.set('qpacks', metas);
 }
@@ -10123,6 +10188,10 @@ async function noticeBannersHTML() {
     const has = (await db.keys('notes')).length || Object.keys(await kv.get('qstats', {})).length || (await kv.get('packIds', [])).length;
     if (has) parts.push(`<div class="notice" role="status">💾 <b>${last ? 'Last backup ' + Math.floor((Date.now() - last) / DAYMS) + ' days ago.' : 'No backup downloaded yet.'}</b> It is your only safety copy. <button type="button" class="btn-primary text-xs ml-2" data-bk="now">Download backup</button> <button type="button" class="link text-xs ml-1" data-bk="later">Remind me tomorrow</button></div>`);
   }
+  // v31 · the full backup (with question pictures) is the only copy of the pictures outside Supabase: remind every 30 days
+  { const lf = await kv.get('lastFullBackup', null); let sz = 0; try { sz = +(localStorage.getItem('fullBkSnooze') || 0); } catch { }
+    if (Date.now() > sz && Object.keys((await kv.get('qpacks', {})) || {}).length && (!lf || Date.now() - lf > 30 * DAYMS))
+      parts.push(`<div class="notice" role="status">\uD83D\uDDC2 <b>${lf ? 'Last full backup ' + Math.floor((Date.now() - lf) / DAYMS) + ' days ago.' : 'No full backup yet.'}</b> The full backup also keeps your question pictures. <button type="button" class="btn-primary text-xs ml-2" data-bk="full">Download full backup</button><button type="button" class="btn-ghost text-xs ml-1" data-bk="fullLater">Remind me in a week</button></div>`); }
   return parts.join('');
 }
 async function showNotices() {
@@ -10138,6 +10207,8 @@ async function showNotices() {
 document.addEventListener('click', async e => {
   const b = e.target.closest && e.target.closest('[data-bk]'); if (!b) return;
   if (b.dataset.bk === 'now') { try { await downloadBackupNow(); } catch { } }
+  else if (b.dataset.bk === 'full') { try { await downloadBackupNow({ full: true }); } catch { } }
+  else if (b.dataset.bk === 'fullLater') { try { localStorage.setItem('fullBkSnooze', String(Date.now() + 7 * DAYMS)); } catch { } }
   else { try { localStorage.setItem('backupSnoozeUntil', String(Date.now() + DAYMS)); } catch { } }
   document.getElementById('notices')?.remove();
 });
@@ -10252,6 +10323,19 @@ const DIAG = {
 const diagOf = (r, cmp) => r >= MPS ? (cmp >= 80 ? 'keep' : 'fast') : (cmp >= 80 ? 'fix' : 'new');
 const diagChip = (r, cmp) => { const d = DIAG[diagOf(r, cmp)]; return `<span class="dg ${d.cls}" data-tip="${esc(d.tip)}">${d.icon} ${d.name}</span>`; };
 
+// v31 · Exam-ready: one verdict built from five checks (same idea as “exam day ready” scores in CPA / CMA review courses)
+function examReady(D, K) {
+  const last2 = D.doneFull.slice(-2).map(z => D.adjOf(z)), allOk = D.subj.every(z => z.ok), weak = allOk ? Math.min(...D.subj.map(z => z.r)) : null;
+  const faP = D.faAll.n >= 100 ? pct(D.faAll.c, D.faAll.n) : null;
+  const list = [
+    { ok: D.complete >= 100, short: `curriculum ${D.complete}% done`, t: 'The whole curriculum is complete', v: `${D.complete}%` },
+    { ok: last2.length === 2 && last2.every(v => v >= MPS), short: last2.length < 2 ? `${last2.length}/2 full mocks` : 'last 2 mocks under 70 %', t: `Your last 2 full mocks are both ${MPS} % or more`, v: last2.length ? last2.map(v => v + '%').join(' · ') : 'none yet' },
+    { ok: weak != null && weak >= 60, short: weak == null ? 'not all topics practised' : `weakest topic ${weak}%`, t: 'Every topic has a readiness of 60 % or more', v: weak == null ? `${D.subj.filter(z => z.ok).length}/10 topics practised` : `weakest ${weak}%` },
+    { ok: faP != null && faP >= 70, short: faP == null ? `${D.faAll.n}/100 first attempts` : `first try ${faP}%`, t: 'First-attempt accuracy is 70 % or more (100+ questions)', v: faP == null ? `${D.faAll.n} first attempts` : faP + '%' },
+    { ok: K.ret.v != null && K.ret.v >= 75, short: K.ret.v == null ? 'retention not measured yet' : `retention ${K.ret.v}%`, t: 'Retention is 75 % or more (answers 7+ days later)', v: K.ret.v == null ? `${K.ret.n}/30 spaced attempts` : K.ret.v + '%' },
+  ];
+  return { ok: list.filter(z => z.ok).length, list };
+}
 async function perfExtra(D) {
   const st = D.c.st, now = Date.now(), DAYMS = 864e5, K = {};
   K.margin = D.pred == null ? null : D.pred - D.band - MPS;
@@ -10307,6 +10391,7 @@ async function perfExtra(D) {
 
 // every KPI: what it is for, how it is measured, how to read it, minimum data, limits
 const KPI_INFO = {
+  ready: { t: 'Exam-ready', goal: 'One clear answer to “am I ready to sit the exam?” — instead of reading twenty numbers.', how: 'Five checks must all pass: (1) the whole curriculum is complete · (2) your last 2 full mocks are both 70 % or more (mocks you took outside the site count — add them on the Mocks page) · (3) every topic has a readiness of 60 % or more · (4) first-attempt accuracy is 70 % or more on 100+ questions · (5) retention is 75 % or more.', f: 'Exam-ready = all 5 checks passed', read: [['5/5', 'g', 'ready — keep it warm with mocks and the review pack'], ['3–4/5', 'a', 'close — fix the failed checks first'], ['0–2/5', 'r', 'keep building']], min: 'None — the card always shows which checks are still open.', lim: 'A rule of thumb used by review courses, not a guarantee. The 70 % line is a working target, not the official pass mark.' },
   rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'Your chance of answering a NEW exam question on this module or topic correctly today. It measures how well you know what you studied — not how much you finished (that is Completeness).',
     plain: 'Think of a restaurant you have never tried. Asked “out of 10?”, you would not say 10 or 0 — you would guess about 4. After one good meal you might say 5 (once can be luck). After ten good meals you can say 8 with confidence. Readiness works the same way: before you answer anything the site assumes 40 % — a little above blind guessing on three options (33 %). Each real answer pulls the number towards your true level, and the starting guess matters less and less.',
     how: 'The site behaves as if you had already answered 6 imaginary questions at 40 %, then adds your real answers. First attempts and retries after 5+ days count fully, a next-day retry counts half, a same-day retry hardly counts (you remember the answer, not the idea). Old answers fade (half weight after 60 days). A right guess counts half; a wrong answer marked Sure counts against you.',
@@ -10315,7 +10400,7 @@ const KPI_INFO = {
     read: [['≥ 70 %', 'g', 'ready'], ['50–69 %', 'a', 'getting there'], ['< 50 %', 'r', 'needs work'], ['—', '', 'not enough answers yet (about 5 needed)']],
     min: 'About 5 fully-weighted answers. Until then the 40 % is used only in the background and the screen shows “—”. The ± number is the uncertainty — it shrinks as you answer more.',
     lim: 'Why not “first-time correct ÷ all questions in the bank”? That number falls whenever you add a new bank, and it cannot tell “not studied yet” from “studied but weak”. Completeness answers “how much is done”; Readiness answers “how well do I know what I studied”.' },
-  pred: { t: 'Projected score', goal: 'Your most likely score if the exam were today.', how: 'Readiness of each topic weighted by the 2027 topic weights, blended with your first-attempt full mocks (each mock adds 20 % weight, up to 60 %).', f: 'Projected = w·Mock + (1 − w)·Σ(weight × topic readiness),   w = min(60 %, 20 % × mocks)', read: [['≥ 70 %', 'g', 'on track'], ['50–69 %', 'a', 'gap to close'], ['< 50 %', 'r', 'far from target']], min: '15 answered questions or one full mock.', lim: 'Not calibrated against real CFA results. Read the range, not the single number.' },
+  pred: { t: 'Projected score', goal: 'Your most likely score if the exam were today.', how: 'Readiness of the topics you have practised (about 5 answers or more), weighted by the 2027 topic weights, blended with your first-attempt full mocks (each mock adds 20 % weight, up to 60 %). Topics you have not touched are left out — they never count as 40 %.', f: 'Projected = w·Mock + (1 − w)·Σ(weight × topic readiness),   w = min(60 %, 20 % × mocks)', read: [['≥ 70 %', 'g', 'on track'], ['50–69 %', 'a', 'gap to close'], ['< 50 %', 'r', 'far from target']], min: 'About 5 answers in one topic, or one full mock.', lim: 'Early on it describes only the topics you have started — check “based on X/10 topics”. Not calibrated against real CFA results. Read the range, not the single number.' },
   margin: { t: 'Safety margin', goal: 'Shows whether you pass even on a bad day.', how: 'The LOW end of the projected range minus the 70 % target.', f: 'Margin = (Projected − range) − 70', read: [['≥ 0', 'g', 'safe'], ['0 to −5', 'a', 'on the edge'], ['< −5', 'r', 'at risk']], min: 'Same as Projected score.', lim: 'The 70 % target is a working assumption — CFA Institute does not publish the pass mark.' },
   floor: { t: 'Topic floor', goal: 'Finds the big topic that drags your score down most.', how: 'Lowest readiness among the topics weighing 10 % or more (Ethics, Quant, FSA, Equity, Fixed Income, Portfolio Mgmt).', f: 'Floor = min(readiness of topics with weight ≥ 10 %)', read: [['≥ 60 %', 'g', 'fine'], ['50–59 %', 'a', 'watch'], ['< 50 %', 'r', 'start with this topic']], min: 'About 5 answers in at least one big topic.', lim: 'Topics without enough answers are left out, so the floor can move when you start a new topic.' },
   mock: { t: 'Mock average', goal: 'Your score under exam conditions.', how: 'Average of your last 3 full mocks, first attempts only, adjusted by your provider offsets if you entered any.', f: 'Mock avg = mean(last 3 first-attempt full mocks)', read: [['≥ 70 %', 'g', 'exam-ready'], ['60–69 %', 'a', 'close'], ['< 60 %', 'r', 'more work needed']], min: 'One full mock.', lim: 'Providers differ in difficulty; retakes never count.' },
@@ -10345,6 +10430,7 @@ function kpiPopup(key) {
   const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.setAttribute('role', 'dialog'); bg.setAttribute('aria-modal', 'true'); bg.setAttribute('aria-label', I.t);
   bg.innerHTML = `<div class="card modal-box kp-box space-y-3" style="max-width:34rem;width:100%;max-height:88vh;overflow-y:auto"><div class="flex items-center gap-2"><h3 class="font-bold text-lg">${esc(I.t)}</h3><button type="button" class="ib ml-auto" data-x="1" aria-label="Close">✕</button></div>
     <div><div class="kp-l">Purpose</div><p class="text-sm">${esc(I.goal)}</p></div>
+    ${key === 'ready' && window.__examReady ? `<div><div class="kp-l">Your checks now</div><ul class="text-sm space-y-1">${window.__examReady.list.map(z => `<li>${z.ok ? '✅' : '⬜'} ${esc(z.t)} — <b>${esc(z.v)}</b></li>`).join('')}</ul></div>` : ''}
     ${I.plain ? `<div><div class="kp-l">In plain words</div><p class="text-sm">${esc(I.plain)}</p></div>` : ''}
     <div><div class="kp-l">How it is measured</div><p class="text-sm">${esc(I.how)}</p><div class="kp-f">${esc(I.f)}</div></div>
     ${I.ex ? `<div><div class="kp-l">Examples</div><table class="kp-ex"><tbody>${I.ex.map(r => `<tr>${r.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
@@ -10397,7 +10483,8 @@ function perfKpisHTML(D, delta, wkDelta) {
     card('rq', K.rq.g == null ? '—' : `${K.rq.g}%`, `${K.rq.grad} graduated · ${K.rq.inq} in queue${K.rq.backlog ? ` · <b>${K.rq.backlog} overdue</b>` : ''}`, K.rq.g == null ? '' : K.rq.backlog > 30 ? 'r' : K.rq.backlog > 0 ? 'a' : K.rq.g >= 50 ? 'g' : 'a'),
   ]) +
   grp('🎯 Result', 'will I pass?', [
-    card('pred', D.pred == null ? '—' : `${D.pred}%`, D.pred == null ? nd() : `range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% ${delta(D.pred, D.rdWeekAgo, ' pts')}<br><span class="text-[12px]">based on ${D.covN}/10 topics (${D.covW}% of the exam) · the rest count as 40 % “unknown”</span>`, dshCol(D.pred)),
+    (() => { const R = examReady(D, K); return card('ready', R.ok === 5 ? '✓ Ready' : `${R.ok}/5`, R.ok === 5 ? 'all five checks passed' : R.list.filter(z => !z.ok).slice(0, 2).map(z => esc(z.short)).join(' · '), R.ok === 5 ? 'g' : R.ok >= 3 ? 'a' : R.ok ? 'r' : ''); })(),
+    card('pred', D.pred == null ? '—' : `${D.pred}%`, D.pred == null ? nd() : `range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% ${delta(D.pred, D.rdWeekAgo, ' pts')}<br><span class="text-[12px]">${D.covN ? `based on ${D.covN}/10 topics (${D.covW}% of the exam)${D.mockAvg != null ? ' + your mocks' : ''} · topics without answers are left out` : 'based on your mocks only — no topic has enough answers yet'}</span>`, dshCol(D.pred)),
     card('margin', K.margin == null ? '—' : sgn(K.margin), K.margin == null ? nd() : 'low end of the range vs 70 %', K.margin == null ? '' : K.margin >= 0 ? 'g' : K.margin >= -5 ? 'a' : 'r'),
     card('floor', K.floor ? `${K.floor.r}%` : '—', K.floor ? esc(K.floor.name) : 'no big topic practised yet', c3(K.floor && K.floor.r, 60, 50)),
     card('mock', D.mockAvg == null ? '—' : `${D.mockAvg}%`, D.mockAvg == null ? 'no full mock yet' : `last ${Math.min(3, D.doneFull.length)} · first attempts${D.calOn ? ' · adjusted' : ''}`, dshCol(D.mockAvg)),
@@ -10436,10 +10523,12 @@ async function dshData() {
   const subj = SUBJECTS.map(sj => {
     const zs = ps.filter(z => z.m.subject === sj.id), zl = zs.filter(z => z.m.x), qs = Q.filter(q => modInfo(modKey(q))?.subject === sj.id);
     const a = qs.filter(q => st[q.id]?.n), k = a.filter(q => st[q.id].last), r = mixMini(sj.id, avgR(zs));
-    return { sj, ev: zs.reduce((a, z) => a + modEstimate(z.m, c).W, 0), fa: faOf(qs, st), w: CFA_W[sj.id], range: W_RANGE[sj.id], r, prog: zs.length ? (zs.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.floor(zs.reduce((t, z) => t + z.p.complete, 0) / zs.length))) : 0,
-      loaded: zl.length, total: zs.length, qn: qs.length, qa: a.length, acc: a.length ? pct(k.length, a.length) : null, stake: Math.max(0, MPS - r) * CFA_W[sj.id] / 100 };
+    const ev = zs.reduce((a, z) => a + modEstimate(z.m, c).W, 0), ok = ev >= RM.MIN;      // v31 · no numbers for a topic you have not touched
+    return { sj, ev, ok, fa: faOf(qs, st), w: CFA_W[sj.id], range: W_RANGE[sj.id], r, prog: zs.length ? (zs.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.floor(zs.reduce((t, z) => t + z.p.complete, 0) / zs.length))) : 0,
+      loaded: zl.length, total: zs.length, qn: qs.length, qa: a.length, acc: a.length ? pct(k.length, a.length) : null, stake: ok ? Math.max(0, MPS - r) * CFA_W[sj.id] / 100 : 0 };
   });
-  const Wt = subj.reduce((a, z) => a + z.w, 0), examR = Math.round(subj.reduce((a, z) => a + z.w * z.r, 0) / Wt);
+  // v31 · exam readiness only from topics with enough answers (≈ 5); untouched topics never count as 40 %
+  const subjOk = subj.filter(z => z.ok), Wt = subjOk.reduce((a, z) => a + z.w, 0), examR = Wt ? Math.round(subjOk.reduce((a, z) => a + z.w * z.r, 0) / Wt) : null;
   const overall = ps.length ? Math.round(ps.reduce((a, z) => a + z.p.overall, 0) / ps.length) : 0;
   const complete = ps.length ? (ps.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, z) => a + z.p.complete, 0) / ps.length))) : 0, modsDone = ps.filter(z => z.p.complete >= 100).length;
   const ans = Q.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
@@ -10457,6 +10546,8 @@ async function dshData() {
   const traps = Object.values(trapLos).filter(z => z.m).sort((a, b) => b.n - a.n);
   const msAll = mockSorted(await kv.get('mocks', [])), res = await kv.get('mockRes', {});
   const mocks = msAll.map(x => ({ x, cp: mockIsCp(x), S: mockScore(x, res[x.id] || {}), F: mockScore(x, firstRes(res[x.id] || {})), at: (res[x.id] || {}).at || null, retaken: !!(res[x.id] && res[x.id].f1 && res[x.id].at && res[x.id].f1.at !== res[x.id].at) }));
+  // v31 · mocks taken outside the site (e.g. the CFA Institute Practice Pack): only the score is entered
+  for (const e of (await kv.get('extMocks', [])) || []) { const sc = Math.max(0, Math.min(100, Math.round(+e.sc))); if (!isFinite(sc)) continue; mocks.push({ x: { id: e.id, name: e.name, provider: e.prov || '', ext: true }, cp: false, S: { done: true, sc, ps: [] }, F: { done: true, sc, ps: [] }, at: e.at || null, retaken: false }); }
   const cal = (await kv.get('mockCal', {})) || {}, calOn = Object.values(cal).some(v => +v), examTime = await kv.get('examTime', '');
   const rawOf = z => z.F.done ? z.F.sc : z.S.sc, adjOf = z => Math.max(0, Math.min(100, rawOf(z) + (+cal[mockProvider(z.x)] || 0)));   // your own offset per provider; 0 until you enter one
   const doneFull = mocks.filter(z => !z.cp && z.S.done).sort((a, b) => (a.at || 0) - (b.at || 0)), doneCp = mocks.filter(z => z.cp && z.S.done);
@@ -10472,8 +10563,8 @@ async function dshData() {
   // P2 · projected score = the readiness model (all topics, by 2027 weight) blended with first-attempt full mocks: each mock adds 20 % weight, up to 60 %.
   const evW = mods.reduce((a, m) => a + modEstimate(m, c).W, 0), wM = mockAvg == null ? 0 : Math.min(0.6, 0.2 * last3.length);
   const covN = subj.filter(z => z.ev >= RM.MIN).length, covW = Math.round(subj.filter(z => z.ev >= RM.MIN).reduce((a, z) => a + z.w, 0));
-  const pred = (evW >= 15 || mockAvg != null) ? Math.round(wM * mockAvg + (1 - wM) * examR) : null;
-  const band = pred == null ? null : Math.round(Math.min(15, Math.max(4, (1 - wM) * 28 / Math.sqrt(1 + evW / 40) + (wM ? 6 / Math.sqrt(last3.length) : 0))));
+  const pred = examR != null ? Math.round((mockAvg != null ? wM * mockAvg : 0) + (mockAvg != null ? 1 - wM : 1) * examR) : mockAvg != null ? mockAvg : null;
+  const band = pred == null ? null : Math.round(Math.min(15, Math.max(4, (examR == null ? 0 : (1 - wM) * 28 / Math.sqrt(1 + evW / 40)) + (mockAvg != null ? 6 / Math.sqrt(last3.length) : 0))));
   const rdHist = await kv.get('rdHist2', {}); const today = dshDay(now);
   if (pred != null && rdHist[today] !== pred) { rdHist[today] = pred; const ks = Object.keys(rdHist).sort(); while (ks.length > 120) delete rdHist[ks.shift()]; await kv.set('rdHist2', rdHist); }
   const rdAt = t => { const k = Object.keys(rdHist).filter(d => d <= dshDay(t)).sort().pop(); return k ? rdHist[k] : null; };
@@ -10487,7 +10578,7 @@ async function dshData() {
   const tEx = ev.filter(e => e.s > 0 && e.md === 'exam'), tAll = ev.filter(e => e.s > 0 && e.s < 1200), tUse = tEx.length >= 20 ? tEx : tAll.length >= 20 ? tAll : null;
   const pace2 = tUse ? (() => { const a = tUse.slice(-400).map(e => e.s).sort((x, y) => x - y); return { med: a[a.length >> 1], slow: Math.round(a.filter(x => x > 90).length / a.length * 100), src: tUse === tEx ? 'exam mode' : 'all modes' }; })() : null;
   const D0 = { lvA, covN, covW, complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime };
-  D0.K = await perfExtra(D0); return D0;
+  D0.K = await perfExtra(D0); try { window.__examReady = examReady(D0, D0.K); } catch { } return D0;
 }
 // actions that move the score most this week (prescriptive, not just descriptive)
 function dshActions(D) {
@@ -10506,7 +10597,8 @@ function dshActions(D) {
     if (sN >= 20 && sAcc < 90) A.push({ t: `Only ${sAcc}% of your “Sure” answers are right`, why: 'Well-calibrated candidates are right on 90 %+ of what they mark Sure. Below that, slow down on “easy” questions and mark Unsure more often — overconfidence costs points on exam day.', act: 'sw' }); }
   if (D.sureWrong.length) A.push({ t: `Redo ${D.sureWrong.length} “Sure but wrong” questions`, why: 'Concepts you think you know but do not — the most dangerous gaps on exam day.', act: 'sw' });
   const top = D.subj.filter(z => z.stake > 0 && z.loaded).sort((a, b) => b.stake - a.stake)[0];
-  if (top) A.push({ t: top.ev < 5 ? `Start ${top.sj.name} — the biggest topic you have not practised yet` : `Raise ${top.sj.name} (readiness ${top.r}%)`, why: `Largest weighted gap to ${MPS}% — worth about ${top.stake.toFixed(1)} exam points.`, href: `#/study/${top.sj.id}` });
+  if (top) A.push({ t: `Raise ${top.sj.name} (readiness ${top.r}%)`, why: `Largest weighted gap to ${MPS}% — worth about ${top.stake.toFixed(1)} exam points.`, href: `#/study/${top.sj.id}` });
+  else { const nw = D.subj.filter(z => !z.ok && z.loaded).sort((a, b) => b.w - a.w)[0]; if (nw) A.push({ t: `Start ${nw.sj.name} — the heaviest topic you have not practised yet`, why: 'No estimate yet: readiness appears after about 5 answers.', href: `#/study/${nw.sj.id}` }); }
   if (D.must.length) A.push({ t: `Practise ${D.must.length} “Must improve” LOS`, why: 'Red LOS with enough answers to be sure they are weak.', act: 'weak' });
   const nextMock = D.mocks.find(z => !z.S.done);
   if (nextMock && (D.days == null || D.days <= 84 || D.overall >= 80)) A.push({ t: `Take ${nextMock.x.name}`, why: 'Timed mocks build pace and show readiness better than untimed practice.', href: '#/qbank/mocks' });
@@ -10566,10 +10658,10 @@ async function dashboardView() {
     final: F ? `<div class="card dfinal"><div class="flex flex-wrap items-center gap-2"><b>\uD83C\uDFC1 Final review phase · ${D.days} days left</b><span class="text-xs opacity-80">No new material — mocks, weak areas and your review pack.</span><button class="btn-ghost text-xs ml-auto" data-pack="">⬇️ Final review pack (Word)</button></div></div>` : '',
     kpis: perfKpisHTML(D, delta, wkDelta),
     topics: `<div class="card"><h3 class="sec">Topics · readiness vs ${MPS}% target <span class="normal-case font-normal">${NAVP.same ? "" : "· sorted by points at stake"} · tap a topic for details</span></h3>
-      <div class="dtopics">${topicRows.map(z => `<div class="dtw"><button type="button" class="dtr" data-ptopic="${z.sj.id}" aria-expanded="false" data-tip="${esc(`${z.sj.name} · weight ${z.range}\nCompleteness ${z.prog}% · readiness ${z.r}% · first-attempt ${z.fa.n ? pct(z.fa.c, z.fa.n) + '%' : '—'} (${z.fa.n} Q) · latest ${z.acc ?? '—'}%\n${z.qa}/${z.qn} answered · ${z.loaded}/${z.total} modules loaded`)}">
+      <div class="dtopics">${topicRows.map(z => `<div class="dtw"><button type="button" class="dtr" data-ptopic="${z.sj.id}" aria-expanded="false" data-tip="${esc(`${z.sj.name} · weight ${z.range}\nCompleteness ${z.prog}% · readiness ${z.ok ? z.r + '%' : '— (not enough answers)'} · first-attempt ${z.fa.n ? pct(z.fa.c, z.fa.n) + '%' : '—'} (${z.fa.n} Q) · latest ${z.acc ?? '—'}%\n${z.qa}/${z.qn} answered · ${z.loaded}/${z.total} modules loaded`)}">
         <span class="dtr-n">${z.sj.icon} ${esc(z.sj.name)} ${z.ev < 5 && z.prog < 5 ? `<span class="dg dg-new">${DIAG.new.icon} ${DIAG.new.name}</span>` : diagChip(z.r, z.prog)}</span><span class="dtr-w">${z.range}</span>
-        <span class="dbullet"><span class="dbp" style="width:${z.prog}%"></span><span class="dbr ${z.ev < 5 ? 'nd' : dshCol(z.r)}" style="width:${z.r}%"></span><i style="left:${MPS}%"></i></span>
-        <b class="dtr-v ${z.ev < 5 ? 'nd' : dshCol(z.r)}">${z.ev < 5 ? '—' : z.r + '%'}</b><span class="dtr-s">${z.stake ? '+' + z.stake.toFixed(1) : '✓'}</span></button><div class="dtd" id="dtd-${z.sj.id}" hidden></div></div>`).join('')}</div>
+        <span class="dbullet"><span class="dbp" style="width:${z.prog}%"></span><span class="dbr ${z.ev < 5 ? 'nd' : dshCol(z.r)}" style="width:${z.ok ? z.r : 0}%"></span><i style="left:${MPS}%"></i></span>
+        <b class="dtr-v ${z.ev < 5 ? 'nd' : dshCol(z.r)}">${z.ev < 5 ? '—' : z.r + '%'}</b><span class="dtr-s">${!z.ok ? '—' : z.stake ? '+' + z.stake.toFixed(1) : '✓'}</span></button><div class="dtd" id="dtd-${z.sj.id}" hidden></div></div>`).join('')}</div>
       <div class="text-xs text-slate-500 mt-2">Pale bar = completeness · thick bar = readiness · line = ${MPS}% · the label is the diagnosis of both · <b>+pts</b> = exam points gained by bringing the topic to ${MPS}% (gap × weight).</div></div>`,
     actions: `<div class="card"><h3 class="sec">Do this week</h3>
       ${A.length ? `<ol class="dact">${A.map((a, i) => `<li><span class="dact-i">${i + 1}</span><div class="flex-1 min-w-0"><div class="font-semibold text-sm">${a.href ? `<a class="link" href="${a.href}">${esc(a.t)}</a>` : `<button type="button" class="link text-left" data-dact="${a.act}">${esc(a.t)}</button>`}</div><div class="text-xs text-slate-500">${esc(a.why)}</div></div></li>`).join('')}</ol>` : '<div class="text-sm text-emerald-600">✓ Nothing urgent — keep your rhythm.</div>'}
@@ -10584,7 +10676,7 @@ async function dashboardView() {
       ${D.doneCp.length ? `<div class="text-xs font-semibold text-slate-500 mt-3">Checkpoints</div>${svgLine(cpSeries, { target: MPS, h: 140, label: 'Checkpoint scores' })}` : ''}
       <div class="text-xs text-slate-500 mt-2">${D.calOn ? 'Purple = raw · green = adjusted by your offsets. ' : ''}Many candidates find third-party mocks harder than the real exam — read the trend, not one score.</div></div>`,
     activity: `<div class="card"><h3 class="sec">Activity <span class="normal-case font-normal">· last 26 weeks</span></h3>${svgHeat(D.act)}
-      <div class="dwk"><div><b>${D.tw.n}</b><span>questions this week</span>${wkDelta(D.tw.n, D.lw.n)}</div><div><b>${D.tw.acc ?? '—'}${D.tw.acc != null ? '%' : ''}</b><span>accuracy incl. retries</span>${delta(D.tw.acc, D.lw.acc, ' pts')}</div><div><b>${D.tw.min}</b><span>minutes on questions</span>${wkDelta(D.tw.min, D.lw.min)}</div><div><b>${D.examR}%</b><span>readiness</span>${delta(D.examR, D.rdWeekAgo, ' pts')}</div></div></div>`,
+      <div class="dwk"><div><b>${D.tw.n}</b><span>questions this week</span>${wkDelta(D.tw.n, D.lw.n)}</div><div><b>${D.tw.acc ?? '—'}${D.tw.acc != null ? '%' : ''}</b><span>accuracy incl. retries</span>${delta(D.tw.acc, D.lw.acc, ' pts')}</div><div><b>${D.tw.min}</b><span>minutes on questions</span>${wkDelta(D.tw.min, D.lw.min)}</div><div><b>${D.examR == null ? '—' : D.examR + '%'}</b><span>readiness</span>${delta(D.examR, D.rdWeekAgo, ' pts')}</div></div></div>`,
     traps: `<div class="card"><h3 class="sec">Top traps <span class="normal-case font-normal">· LOS where you were Sure and wrong</span></h3>
       ${D.traps.length ? `<div class="space-y-1">${D.traps.slice(0, 10).map((z, i) => `<button type="button" class="dtrap" data-trap="${i}"><span class="chip">${esc(z.m.short)}${z.los ? ' · ' + esc(z.los) : ''}</span><span class="flex-1 min-w-0 truncate text-left">${esc(z.m.title)}</span><b>${z.n}</b></button>`).join('')}</div><div class="text-xs text-slate-500 mt-1">Click to practise that LOS's trap questions.</div>` : '<div class="text-sm text-slate-500">No traps yet — great, or tag your confidence when answering.</div>'}</div>`,
     sources: sourcesHTML(D),
@@ -10685,7 +10777,7 @@ async function dshExcel(D) {
   const acts = dshActions(D);
   const s1 = [[{ v: 'CFA Level I — Study Dashboard', s: 1 }], [{ v: `Generated ${dt.toLocaleString('en-GB')} · target ${MPS}%`, s: 2 }], [],
     H(['Key metric', 'Value', 'Note']),
-    k('Projected score', D.pred, D.pred == null ? 'Needs 15+ answered questions or a full mock' : `Range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% · topic readiness ${D.examR}% blended with first-attempt mocks`),
+    k('Projected score', D.pred, D.pred == null ? 'Needs about 5 answers in a topic, or a full mock' : `Range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% · based on ${D.covN}/10 topics${D.examR != null ? ` (readiness ${D.examR}%)` : ''}${D.mockAvg != null ? ' blended with first-attempt mocks' : ''}`),
     k('Exam pace (median s/question)', D.pace2 ? D.pace2.med : null, D.pace2 ? `${D.pace2.slow}% over 90 s · ${D.pace2.src}` : 'No timed answers yet'),
     k('Days to exam', D.days == null ? '—' : String(Math.max(0, D.days)), D.exam ? `Exam ${new Date(D.exam).toLocaleDateString('en-GB')}` : 'Set the exam date in Settings'),
     k('Completeness', D.complete, `${D.modsDone}/${D.nMods} modules fully complete (all steps + every question solved correctly)`),
@@ -10702,7 +10794,7 @@ async function dshExcel(D) {
   const T = D.subj.slice().sort((a, b) => b.stake - a.stake), tN = T.length;
   const s2 = [[{ v: 'Topics — readiness vs target', s: 1 }], [{ v: 'Sorted by exam points at stake (gap to target × topic weight)', s: 2 }], [],
     H(['Topic', 'Exam weight', 'Weight mid %', 'Readiness %', 'Target %', 'Completeness %', 'Latest accuracy %', 'Answered', 'Questions', 'Modules loaded', 'Points at stake', 'First-attempt %', 'First attempts']),
-    ...T.map(z => [{ v: z.sj.name, s: 4 }, { v: z.range, s: 6 }, { v: z.w, s: 6 }, P(z.r), { v: MPS, s: 5 }, { v: z.prog, s: 5 }, P(z.acc), { v: z.qa, s: 6 }, { v: z.qn, s: 6 }, { v: `${z.loaded}/${z.total}`, s: 6 }, { v: +z.stake.toFixed(1), s: 6 }, z.fa.n ? P(pct(z.fa.c, z.fa.n)) : { v: '—', s: 6 }, { v: z.fa.n, s: 6 }])];
+    ...T.map(z => [{ v: z.sj.name, s: 4 }, { v: z.range, s: 6 }, { v: z.w, s: 6 }, z.ok ? P(z.r) : { v: '—', s: 6 }, { v: MPS, s: 5 }, { v: z.prog, s: 5 }, P(z.acc), { v: z.qa, s: 6 }, { v: z.qn, s: 6 }, { v: `${z.loaded}/${z.total}`, s: 6 }, z.ok ? { v: +z.stake.toFixed(1), s: 6 } : { v: '—', s: 6 }, z.fa.n ? P(pct(z.fa.c, z.fa.n)) : { v: '—', s: 6 }, { v: z.fa.n, s: 6 }])];
   const s3 = [[{ v: 'Weekly progress', s: 1 }], [{ v: 'Last 12 weeks (Monday start)', s: 2 }], [], H(['Week of', 'Questions (all attempts)', 'Correct (all attempts)', 'First-attempt accuracy %', 'Target %', 'Minutes']),
     ...D.weeks.map(w => [{ v: new Date(w.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), s: 4 }, { v: w.n, s: 6 }, { v: w.c, s: 6 }, w.fac == null ? { v: '', s: 5 } : P(w.fac), { v: MPS, s: 5 }, { v: w.min, s: 6 }])];
   const ML = D.mocks;
@@ -10924,6 +11016,7 @@ async function fillSmartCard(id = 'smartCard') {
     const sub = el.querySelector('[data-smart-sub]'), go = el.querySelector('[data-b2="smart"]'), rn = el.querySelector('[data-rq-n]');
     sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — new questions come from modules whose lecture or reading is finished. Mark a module’s reading done, or use Custom practice to choose any module.';
     go.disabled = !r.n; if (!go.hasAttribute('data-keep')) go.textContent = `▶ Start (${r.n})`;
+    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } catch { } }
     rn.textContent = r.rq.due.length ? `${r.rq.due.length} due${r.rq.backlog ? ' (' + r.rq.backlog + ' backlog)' : ''}` : '0 due ✓';
   } catch (e) { const sub = el.querySelector('[data-smart-sub]'); if (sub) sub.textContent = 'Could not prepare the session'; console.warn(e); }
 }
@@ -11287,7 +11380,7 @@ function wzHTML(w) {
     <div class="flex gap-2 mt-4">${w.step > 1 ? '<button type="button" class="btn-ghost" data-wz="back">← Back</button>' : ''}<button type="button" class="btn-primary" data-wz="next" ${nextOk ? '' : 'disabled'}>${nextLbl}</button></div>`;
 }
 function wzBind(box) {
-  if (!box) return; const w = window.__wz = window.__wz || wzNew(box.dataset.exam || '');
+  if (!box) return; const w = window.__wz = window.__wz || (() => { const z = wzNew(box.dataset.exam || ''); if (z.exam && new Date(z.exam + 'T00:00:00') > new Date()) z.step = 2; return z; })();
   const draw = () => { box.innerHTML = wzHTML(w); };
   box.onclick = async e => {
     const dk = e.target.closest('[data-wzday]'); if (dk) { const d = +dk.dataset.wzday; w.days = w.days.includes(d) ? w.days.filter(x => x !== d) : [...w.days, d]; return draw(); }
@@ -11316,7 +11409,14 @@ async function home() {
   const plan = await kv.get('plan', null), V = plan ? await planVerdict(c) : { state: 'none' }, VL = verdictLine(V);
   const today = isoDay(new Date()), todays = plan ? planTasks(plan, c).filter(t => t.date <= today && !t.isDone) : [];
   const last = await kv.get('lastRead', null), lastFile = last && await db.get('files', last.fileId), lastMod = modInfo(await kv.get('lastModule', ''));
-  const mocks = mockSorted(await kv.get('mocks', [])), mres = await kv.get('mockRes', {}), nextMock = mocks.find(x => !mockScore(x, mres[x.id] || {}).done), MR = await mockRowsLite();
+  const mocks = mockSorted(await kv.get('mocks', [])), mres = await kv.get('mockRes', {}), MR = await mockRowsLite();
+  // v31 · suggest a checkpoint only when every module it tests is studied (lecture or reading done); a full mock when 80 % is complete or 12 weeks are left
+  const studiedM = id => { const m = modInfo(id); if (!m || !m.x) return false; const p = modProgress(m, c); return p.reading >= 100 || p.lecture >= 100; };
+  const allPct = (() => { const P = loaded.map(m => modProgress(m, c).complete); return mods.length ? P.reduce((a, b) => a + b, 0) / mods.length : 0; })();
+  let nextMock = null;
+  for (const x of mocks) { if (mockScore(x, mres[x.id] || {}).done) continue;
+    if (mockIsCp(x)) { const ms = [...new Set(((await kv.get('mockq:' + x.id, [])) || []).map(q => q.m).filter(Boolean))]; if (ms.length && ms.every(studiedM)) { nextMock = x; break; } }
+    else if (allPct >= 80 || (days != null && days <= 84)) { nextMock = x; break; } }
   const disputes = QA.filter(q => q.cr?.state === 'pending' && inScope(q, false)).length;
   const miniReady = SUBJECTS.flatMap(s => miniGroups(s.id).map(g => ({ s, g, st: miniState(g, c), r: MINIRES[g.key] }))).filter(z => z.st.ready && !z.r);
   const noData = !loaded.length, edit = sessionStorage.getItem('layEdit') === 'today';
@@ -13098,6 +13198,103 @@ async function dupImport(file) {
   toast(`Done · ${flags.length} duplicates flagged · ${fixes.length} answer keys corrected${re ? ` · ${re} earlier attempt${re === 1 ? '' : 's'} re-marked` : ''}`);
   await qRefreshPage();
 }
+// ================= v32 · optimise existing question pictures: PNG → lossless WebP (pixel-identical) =================
+// Step 1 Measure: works on packs already on this device (+ a small sample when few are cached) — nothing is uploaded or deleted.
+// Step 2 Optimise: one pack at a time · every picture is checked pixel by pixel · JPEG pictures are left as they are ·
+// a pack is kept unless it shrinks by 10 %+ · the NEW copy is uploaded first, the old one is deleted only after the switch is saved.
+let QVO = { run: false, stop: false };
+const qvoDecode = async url => { const im = new Image(); im.decoding = 'async'; im.src = url; await im.decode(); const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return { c, x, w: c.width, h: c.height }; };
+let qvoWebpOk = null;
+async function qvoCanWebp() { if (qvoWebpOk != null) return qvoWebpOk; try { const c = document.createElement('canvas'); c.width = c.height = 2; qvoWebpOk = c.toDataURL('image/webp', 1).startsWith('data:image/webp'); } catch { qvoWebpOk = false; } return qvoWebpOk; }
+async function qvoOne(url) {      // returns a smaller pixel-identical WebP, or the original
+  if (typeof url !== 'string' || !url.startsWith('data:image/png')) return url;
+  try {
+    const a = await qvoDecode(url), w = a.c.toDataURL('image/webp', 1);
+    if (!w.startsWith('data:image/webp') || w.length >= url.length * 0.97) return url;
+    const b = await qvoDecode(w); if (a.w !== b.w || a.h !== b.h) return url;
+    const da = a.x.getImageData(0, 0, a.w, a.h).data, db = b.x.getImageData(0, 0, b.w, b.h).data;
+    for (let i = 0; i < da.length; i++) if (da[i] !== db[i]) return url;          // any pixel differs → keep the PNG
+    return w;
+  } catch { return url; }
+}
+async function qvoPack(pack) {
+  const imgs = pack.imgs || {}, out = {}; let n = 0, conv = 0;
+  for (const [k, v] of Object.entries(imgs)) {
+    if (Array.isArray(v)) { const arr = []; for (const u of v) { const r = await qvoOne(u); n++; if (r !== u) conv++; arr.push(r); } out[k] = arr; }
+    else { const r = await qvoOne(v); n++; if (r !== v) conv++; out[k] = r; }
+    if (QVO.stop) return null;
+  }
+  return { pack: { ...pack, imgs: out }, n, conv };
+}
+async function qvoMeasure(set) {
+  if (!(await qvoCanWebp())) return set('This browser cannot write WebP pictures — use Chrome or Edge on a computer.');
+  const metas = await kv.get('qpacks', {}), all = Object.values(metas).filter(m => !m.localOnly && !m.opt);
+  if (!all.length) return set('Nothing to measure — every picture pack is already optimised.');
+  const cached = []; for (const m of all) if (await isCached(m.id)) cached.push(m);
+  let sample = cached.slice(); const extra = all.filter(m => !cached.includes(m)).sort(() => Math.random() - 0.5).slice(0, Math.max(0, 12 - cached.length));
+  sample = sample.concat(extra);
+  QVO = { run: true, stop: false }; let b0 = 0, b1 = 0, i = 0, png = 0, jpg = 0;
+  for (const m of sample) {
+    if (QVO.stop) break; i++; set(`Measuring ${i}/${sample.length}…`);
+    try {
+      const txt = await (await getBlob(m)).text(), pack = JSON.parse(txt);
+      for (const v of Object.values(pack.imgs || {})) for (const u of [].concat(v)) { if (String(u).startsWith('data:image/png')) png++; else jpg++; }
+      const r = await qvoPack(pack); if (!r) break;
+      b0 += txt.length; b1 += JSON.stringify(r.pack).length;
+    } catch (e) { console.warn('measure', m.id, e); }
+  }
+  QVO.run = false;
+  if (!b0) return set('Could not read any picture pack.');
+  const save = 1 - b1 / b0, tot = all.reduce((a, m) => a + (m.bytes || m.size || 0), 0), est = tot * save / 1048576, estT = est >= 10 ? Math.round(est) : est.toFixed(1);
+  await kv.set('qvoMeasure', { at: Date.now(), save, packs: i, total: all.length });
+  set(`<b>Measured ${i} of ${all.length} packs</b> (${(b0 / 1048576).toFixed(1)} MB → ${(b1 / 1048576).toFixed(1)} MB): <b>${Math.round(save * 100)} % smaller</b>. ${png} PNG and ${jpg} JPEG pictures (JPEG pictures are left as they are).<br>Estimate for all packs: about <b>${estT} MB</b> less in Supabase storage and in every download.${save < 0.3 ? '<br><b>Below 30 % — optimising is not worth it. Nothing was changed.</b>' : '<br>Nothing was changed. If you want the saving, download a full backup first, then press Optimise.'}`, save >= 0.3);
+}
+async function qvoRun(set) {
+  if (!cloud || !navigator.onLine) return set('Connect to the internet first.');
+  if (!(await qvoCanWebp())) return set('This browser cannot write WebP pictures — use Chrome or Edge on a computer.');
+  if (!confirm('Optimise all question pictures?\n\n• Every picture is checked pixel by pixel — nothing changes on screen\n• One pack at a time; the new copy is uploaded first and the old one is deleted only after that\n• You can stop at any time and continue later\n\nDownload a full backup first if you have not done so.')) return;
+  QVO = { run: true, stop: false }; let done = 0, skip = 0, fail = 0, b0 = 0, b1 = 0;
+  const ids = Object.keys(await kv.get('qpacks', {}));
+  for (let i = 0; i < ids.length; i++) {
+    if (QVO.stop) break;
+    let metas = await kv.get('qpacks', {}), m = metas[ids[i]];
+    if (!m || m.opt || m.localOnly) continue;
+    set(`Optimising pack ${i + 1}/${ids.length} · ${done} done · ${((b0 - b1) / 1048576).toFixed(1)} MB saved so far… <button type="button" class="btn-ghost text-xs ml-2" data-qvo="stop">Stop</button>`, false, true);
+    try {
+      const oldBlob = await getBlob(m), txt = await oldBlob.text(), r = await qvoPack(JSON.parse(txt)); if (!r) break;
+      const nb = new Blob([JSON.stringify(r.pack)], { type: 'application/json' });
+      if (nb.size > oldBlob.size * 0.9) { metas = await kv.get('qpacks', {}); if (metas[m.id]) { metas[m.id] = { ...metas[m.id], opt: 'kept' }; await kv.set('qpacks', metas); } skip++; continue; }
+      const sid = `${m.id}~w${Date.now().toString(36)}`, parts = await uploadBook(sid, nb);           // 1 · upload the new copy
+      metas = { ...(await kv.get('qpacks', {})) }; const cur = metas[m.id]; if (!cur) { try { await deleteBookFiles({ id: sid, parts }); } catch { } continue; }
+      metas[m.id] = { ...cur, sid, parts, bytes: nb.size, size: nb.size, opt: 'webp', optAt: Date.now() };
+      await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                     // 2 · switch to it
+      try { await deleteBookFiles({ id: stoId(cur), parts: cur.parts }); } catch (e) { console.warn('old copy kept', e); }   // 3 · delete the old copy
+      done++; b0 += oldBlob.size; b1 += nb.size;
+    } catch (e) { fail++; console.warn('optimise', m.id, e); if (!navigator.onLine) break; }
+  }
+  QVO.run = false;
+  const msg = `${QVO.stop ? '<b>Stopped.</b> Press Optimise again to continue where you stopped.<br>' : ''}<b>${done} pack${done === 1 ? '' : 's'} optimised</b> · ${((b0 - b1) / 1048576).toFixed(1)} MB saved${skip ? ` · ${skip} left as they are (saving under 10 %)` : ''}${fail ? ` · ${fail} could not be processed (left unchanged — try again later)` : ''}.`;
+  await kv.set('qvoLast', { at: Date.now(), done, skip, fail, saved: b0 - b1 }); set(msg);
+}
+async function qvoHTML() {
+  const metas = await kv.get('qpacks', {}), all = Object.values(metas); if (!all.length) return '';
+  const opt = all.filter(m => m.opt === 'webp').length, kept = all.filter(m => m.opt === 'kept').length, left = all.filter(m => !m.opt && !m.localOnly).length, M = await kv.get('qvoMeasure', null), L = await kv.get('qvoLast', null);
+  return `<div class="card mb-3" id="qvoCard"><h3 class="sec">🗜 Question pictures — size</h3>
+    <p class="text-sm text-slate-500 mb-2">Turns PNG pictures into lossless WebP: the picture stays <b>pixel-identical</b>, the file gets smaller in Supabase storage and in every download. JPEG pictures are left as they are.</p>
+    <div class="flex flex-wrap gap-2 text-sm mb-3"><span class="chip">Packs: <b>${all.length}</b></span><span class="chip">Optimised: <b>${opt}</b></span>${kept ? `<span class="chip">Left as they are: <b>${kept}</b></span>` : ''}<span class="chip">To do: <b>${left}</b></span></div>
+    <div class="flex flex-wrap gap-2"><button type="button" class="btn-primary text-sm" data-qvo="measure" ${left ? '' : 'disabled'}>🔍 Measure (changes nothing)</button><button type="button" class="btn-ghost text-sm" data-qvo="run" ${left && M && M.save >= 0.3 ? '' : 'disabled'} title="${M ? '' : 'Measure first'}">🗜 Optimise</button></div>
+    <div class="text-sm mt-3" id="qvoMsg" role="status" aria-live="polite">${L ? `Last run ${new Date(L.at).toLocaleDateString('en-GB')}: <b>${L.done} pack${L.done === 1 ? '' : 's'} optimised · ${(L.saved / 1048576).toFixed(1)} MB saved</b>${L.skip ? ` · ${L.skip} left as they are` : ''}${L.fail ? ` · ${L.fail} could not be processed` : ''}.${left ? ' Press Optimise to continue.' : ''}` : M ? `Last measurement: about ${Math.round(M.save * 100)} % smaller${M.save < 0.3 ? ' — below 30 %, not worth it' : ''}.` : 'Measure first: Optimise unlocks only when the saving is 30 % or more.'}</div></div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-qvo]'); if (!b) return;
+  const a = b.dataset.qvo, msg = document.getElementById('qvoMsg');
+  const set = (h, canRun, busy) => { if (!msg) return; msg.innerHTML = h; const rb = document.querySelector('[data-qvo="run"]'), mb = document.querySelector('[data-qvo="measure"]'); if (rb && canRun !== undefined) rb.disabled = !canRun; if (mb) mb.disabled = !!busy; };
+  if (a === 'stop') { QVO.stop = true; b.disabled = true; b.textContent = 'Stopping…'; return; }
+  if (QVO.run) return toast('Already running…');
+  b.disabled = true;
+  try { if (a === 'measure') await qvoMeasure(set); else if (a === 'run') { await qvoRun(set); setTimeout(() => qRefreshPage(), 2500); } }
+  finally { b.disabled = false; }
+});
 async function dupToolsHTML() {
   const vals = Object.values(QE || {}), nE = vals.filter(e => e.dup?.k === 'exact').length, nS = vals.filter(e => e.dup?.k === 'same').length, nNo = vals.filter(e => e.dup?.k === 'no').length;
   return `<div class="card mb-3" id="dupCard"><h3 class="sec">📑 Duplicate questions</h3>
@@ -13760,7 +13957,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
 
   function onRoute() {
     var on = location.hash.indexOf('#/qbank/run') === 0 && !document.body.classList.contains('auth');
-    if (fab) fab.hidden = !on;
+    if (fab) fab.hidden = !on; document.body.classList.toggle('calc-on', on);
     if (host && !on) host.hidden = true;
   }
   function build() {
