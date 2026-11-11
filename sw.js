@@ -15,7 +15,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v25';
+const VERSION = 'v26';
 const VENDOR = 'cfa-l1-vendor';                     // v24 · PDF engine lives in its own cache: a new VERSION no longer drops it
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
