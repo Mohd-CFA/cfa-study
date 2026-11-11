@@ -3526,7 +3526,7 @@ const kv = {
 // v22 · data epoch — bumped whenever stored study data changes (not on reads, not on volatile UI keys).
 // route() rebuilds packs, card decks, mini-exam config and question edits only when the epoch moved.
 var CTX_VER = 0; let DATA_EP = 1, _prepEp = 0;   // CTX_VER (P1) moves on every saved change, including answers
-const VOLATILE_KV = new Set(['vpos', 'vUI', 'subStyle', 'theme', 'lastRead', 'lastModule', 'qsetup', 'syncIdx', 'fsaCurLos', 'rdHist', 'rdHist2', 'kpiPrefs', 'modPeak', 'cmpHist', 'qsession', 'weekGoal', 'mockRes', 'feyn', 'kcVer', 'nav', 'navMobile', 'studySort', 'mockCal', 'calcDrill', 'ethLab', 'examChk', 'examTime', 'learnPath']);
+const VOLATILE_KV = new Set(['vpos', 'vUI', 'subStyle', 'theme', 'lastRead', 'lastModule', 'qsetup', 'syncIdx', 'fsaCurLos', 'rdHist', 'rdHist2', 'rdHist3', 'kpiPrefs', 'modPeak', 'cmpHist', 'cmpHist2', 'qsession', 'weekGoal', 'mockRes', 'feyn', 'kcVer', 'nav', 'navMobile', 'studySort', 'mockCal', 'calcDrill', 'ethLab', 'examChk', 'examTime', 'learnPath']);
 function dataBump(k) { if (k == null || !(VOLATILE_KV.has(k) || /^(qstats|curLos:|teach:|layout:)/.test(String(k)))) DATA_EP++; }
 { const _d = kvCache.delete.bind(kvCache), _c = kvCache.clear.bind(kvCache);
   kvCache.delete = k => { dataBump(k); CTX_VER++; return _d(k); };
@@ -6478,7 +6478,16 @@ const QMAX = 180, QCHIPS = [10, 20, 30, 50, 90, 180];
 const qCountOf = v => { const n = Math.round(+v); return v === 'all' || !Number.isFinite(n) || n < 1 ? QMAX : Math.min(QMAX, n); };
 const qCountHTML = (id, v) => { const n = qCountOf(v); return `<div class="qcount"><input type="number" id="${id}" class="inp" min="1" max="${QMAX}" step="1" inputmode="numeric" value="${n}" aria-describedby="${id}-h"><div class="qchips" role="group" aria-label="Quick choice">${QCHIPS.map(c => `<button type="button" class="qchip${c === n ? ' on' : ''}" data-qcset="${id}" data-n="${c}">${c}</button>`).join('')}</div><div id="${id}-h" class="text-[12px] text-slate-500">1–${QMAX} questions · ${QMAX} = a full exam day</div></div>`; };
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-qcset]'); if (!b) return; const i = document.getElementById(b.dataset.qcset); if (!i) return; i.value = b.dataset.n; b.parentElement.querySelectorAll('.qchip').forEach(x => x.classList.toggle('on', x === b)); i.dispatchEvent(new Event('change', { bubbles: true })); });
-document.addEventListener('change', e => { const i = e.target; if (!i || i.type !== 'number' || !i.closest || !i.closest('.qcount')) return; const n = qCountOf(i.value); if (String(n) !== i.value) i.value = n; i.closest('.qcount').querySelectorAll('.qchip').forEach(x => x.classList.toggle('on', +x.dataset.n === n)); }, true);
+document.addEventListener('change', e => { const i = e.target; if (!i || i.type !== 'number' || !i.closest || !i.closest('.qcount')) return;
+  // v35 · blank / 0 / negative / not a number no longer turns into the maximum: the last valid number is kept and the reason is shown
+  const raw = String(i.value).trim(), v = Math.round(+raw), last = qCountOf(i.dataset.last || i.defaultValue || 20), h = document.getElementById(i.id + '-h');
+  let n, warn = '';
+  if (raw === '' || !Number.isFinite(v) || v < 1) { n = last; warn = `Enter a number from 1 to ${QMAX} — kept ${n}.`; }
+  else if (v > QMAX) { n = QMAX; warn = `The maximum is ${QMAX} questions per session.`; }
+  else n = v;
+  if (String(n) !== i.value) i.value = n; i.dataset.last = String(n);
+  if (h) { if (!h.dataset.txt) h.dataset.txt = h.textContent; h.textContent = warn || h.dataset.txt; h.classList.toggle('text-rose-600', !!warn); if (warn) h.setAttribute('role', 'alert'); else h.removeAttribute('role'); }
+  i.closest('.qcount').querySelectorAll('.qchip').forEach(x => x.classList.toggle('on', +x.dataset.n === n)); }, true);
 async function startQSession(qs, mode, count, back, opts = {}) {
   qs = opts.keepOrder ? qs : shuffle(qs);
   const want = qCountOf(count), total = qs.length;
@@ -7432,9 +7441,12 @@ const rdOk = e => !!e && e.W >= RM.MIN;
 const rdNeed = e => Math.max(1, Math.ceil(RM.MIN - ((e && e.W) || 0)));
 const rdSe = (p, W) => Math.round(100 * Math.sqrt(Math.max(0.0001, p * (1 - p)) / (W + RM.PN)));
 const rdCol = (r, ok) => !ok ? '#94a3b8' : r >= 70 ? '#10b981' : r >= 50 ? '#f59e0b' : '#f43f5e';
-const rdRing = (r, ok, size, stroke) => ring(ok ? r : 0, size, stroke, rdCol(r, ok), ok ? r + '%' : '—');
+const rdRing = (r, ok, size, stroke) => ring(ok ? r : 0, size, stroke, rdCol(r, ok), ok ? (r <= Math.round(RM.FLOOR * 100) ? '≤' : '') + r + '%' : '—');   // v35 · "≤25%" = at the floor: real accuracy may be lower
 const rdI = () => `<button type="button" class="rd-i" data-kpi="rdy" aria-label="How readiness works">i</button>`;
-const rdSub = (r, W, ok) => ok ? `± ${rdSe(r / 100, W)}` : `${rdNeed({ W })} more`;
+// v35 · evidence strength instead of "± x" (the ± was not a calibrated interval). Based on how much the 40 % starting point still weighs:
+// Limited = it is still ≥ 30 % of the result (W < 15) · Moderate = 13–30 % (W 15–40) · Strong = under 13 % (W ≥ 40)
+const rdEv = W => W >= 40 ? 'Strong' : W >= 15 ? 'Moderate' : 'Limited';
+const rdSub = (r, W, ok) => ok ? `evidence: ${rdEv(W)}` : `${rdNeed({ W })} more`;
 function qEvidence(s, now) {
   const h = s && s.hist || []; let W = 0, V = 0, prev = null;
   for (const x of h) {
@@ -7462,11 +7474,22 @@ function modEstimate(m, c) {
   const r = rmEstimate(qs, c.st || {}); M.set(m.id, r); return r;
 }
 function modReadiness(m, p, c) { return Math.round(100 * modEstimate(m, c).p); }
+// v35 · readiness of a group of modules (topic / all). Modules with no or too few answers no longer pull the average to 40 %.
+//  1) modules with enough evidence (≈5 answers) → plain average of their readiness
+//  2) none yet, but some answers → the answered modules, weighted by their evidence
+//  3) nothing answered → 40 % (shown as "—" anyway)
+function rdAvg(ms, c) {
+  const es = ms.map(m => ({ m, e: modEstimate(m, c) })), ok = es.filter(z => rdOk(z.e));
+  if (ok.length) return { r: Math.round(100 * ok.reduce((a, z) => a + z.e.p, 0) / ok.length), used: ok.length, tot: ms.length };
+  const any = es.filter(z => z.e.W > 0), W = any.reduce((a, z) => a + z.e.W, 0);
+  if (W > 0) return { r: Math.round(100 * any.reduce((a, z) => a + z.e.W * z.e.p, 0) / W), used: 0, tot: ms.length };
+  return { r: Math.round(100 * RM.PRIOR), used: 0, tot: ms.length };
+}
 async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
     
     <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div>
     <div class="text-center hidden sm:block" data-tip="First try — share right the FIRST time you met each question of this module. Retries never count.">${ring(ft.n ? ftv : 0, 52, 6, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] text-slate-500 mt-0.5">first try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div>
@@ -7749,7 +7772,7 @@ function studyStats(c, lastBy, lastGlobal) {
     const tally = reasonTally(qs, st), top = tallyTop(tally)[0], counts = { must: 0, good: 0, exc: 0, few: 0 }, rated = [];
     for (const m of lm.filter(m => m.kind === 'pack')) for (const z of losRatings(m, c).list) { counts[z.rate]++; if (z.rate !== 'few') rated.push({ m, z }); }
     const weakList = rated.filter(r => r.z.rate !== 'exc').sort((a, b) => a.z.acc - b.z.acc || b.z.n - a.z.n);
-    const gs = miniGroups(sj.id), avgR = ms.length ? Math.round(ms.reduce((a, m) => a + rdy.get(m.id), 0) / ms.length) : 0;
+    const gs = miniGroups(sj.id), avgR = ms.length ? rdAvg(ms, c).r : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
     out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: part('reading'), extras: part('extras'), summary: part('summary'), questions: part('questions') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
       n: qs.length, a: ans.length, cor: cor.length, cov: pct(ans.length, qs.length), acc: ans.length ? pct(cor.length, ans.length) : null,
@@ -7797,7 +7820,7 @@ async function subjectHome(subj) {
   const sj = SUBJECTS.find(s => s.id === subj); if (!sj) return study();
   const c = await progressCtx(), ms = moduleList().filter(m => m.subject === subj);
   const ps = ms.map(m => modProgress(m, c)), avg = ps.length ? Math.round(ps.reduce((a, p) => a + p.overall, 0) / ps.length) : 0;
-  const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdyS = mixMini(subj, ms.length ? Math.round(ms.reduce((a, m) => a + modReadiness(m, null, c), 0) / ms.length) : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
+  const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdA = rdAvg(ms, c), rdyS = mixMini(subj, ms.length ? rdA.r : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
   const part = k => ps.length ? Math.round(ps.reduce((a, p) => a + p[k], 0) / ps.length) : 0;
   const loaded = ms.filter(m => m.x).length;
   const gs = miniGroups(subj), Qs = await allQs(), taken = gs.filter(g => MINIRES[g.key]), mAvg = taken.length ? Math.round(taken.reduce((a, g) => a + MINIRES[g.key].score, 0) / taken.length) : null;
@@ -7808,7 +7831,7 @@ async function subjectHome(subj) {
   const cells = ms.map((m, i) => (m.x ? moduleCard(m, ps[i], c) : notLoadedCard(m)) + (endOf.has(m.id) ? miniRowHTML(endOf.get(m.id), Qs, c) : '')).join('');
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name]]) + `
   <div class="card flex flex-wrap items-center gap-5 mb-4">
-    <div class="flex gap-3 text-center"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div></div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
+    <div class="flex gap-3 text-center"><div data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div>${evS >= RM.MIN && rdA.used ? `<div class="text-[12px] text-slate-500">${rdA.used}/${rdA.tot} modules</div>` : ''}</div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
     <div class="flex-1 min-w-[260px]"><h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2"><span class="sj-tile sj-sm sj-${sj.id}" aria-hidden="true">${sj.icon}</span>${sj.name}</h1><p class="text-sm text-slate-500">Exam weight ${W_RANGE[subj]} · ${loaded}/${ms.length} modules loaded · ${ps.filter(p => p.overall >= 100).length} complete</p>
       <div class="g6 mt-3 text-center text-xs">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div></div>
     <div class="flex flex-wrap gap-2 w-full"><a href="#/qbank/stats/${subj}" class="btn-primary text-xs">\uD83D\uDCCA Qbank stats</a><button class="btn-ghost text-xs text-rose-600" data-weak="${subj}">\uD83C\uDFAF Weakest LOS</button><a href="#/formulas/${subj}" class="btn-ghost text-xs">∑ Formulas</a><button class="btn-ghost text-xs" data-pack="${subj}">\uD83D\uDCE6 Final review pack</button><a href="#/summary/${subj}" class="btn-ghost text-xs">\uD83D\uDCC4 Full Mohd Summary</a><a href="#/library" class="btn-ghost text-xs">\uD83D\uDCC1 Books</a></div>
@@ -8155,7 +8178,7 @@ async function qbankStats(subj) {
   const rc = REASONS.map(([k]) => ({ k, n: Q.reduce((a, q) => a + allReasons(st[q.id]).filter(h => h.r === k).length, 0) })).filter(z => z.n).sort((a, b) => b.n - a.n);
   const rMax = Math.max(1, ...rc.map(z => z.n));
   const times = lasts.map(z => z.h.s).filter(Boolean), avgT = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
-  const readi0 = allMods.length ? Math.round(allMods.reduce((a, m) => a + modReadiness(m, null, c), 0) / allMods.length) : 0;
+  const readi0 = allMods.length ? rdAvg(allMods, c).r : 0;
   const readi = sj ? mixMini(sj.id, readi0) : readi0, readiW = allMods.reduce((a, m) => a + modEstimate(m, c).W, 0), readiK = readiW >= RM.MIN;
   const prog = allMods.map(m => modProgress(m, c)), part = k => prog.length ? Math.round(prog.reduce((a, p) => a + p[k], 0) / prog.length) : 0;
   view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ...(sj ? [['Qbank stats', '#/qbank/stats'], [sj.name]] : [['Qbank stats']])]) + `
@@ -8304,7 +8327,7 @@ async function settings() {
     <div class="card md:col-span-2" id="cleanBox" style="min-width:0"></div>
     <div class="card"><h3 class="sec">💾 Backup & restore</h3>
       <p class="text-sm text-slate-600 dark:text-slate-300">One file with everything you created: Mohd Summary, highlights, extras, answers, times, confidence, mistake reasons, notes on questions, flashcards, AI summaries, imported questions, module files, study plan and settings. <b>Download backup</b> is light and fast; question pictures that exist only on this device are included. <b>Full backup</b> adds every question-picture pack. Books themselves are not included — before a big change, make sure no book in Library is “on this device only”.</p>
-      <div class="flex flex-wrap gap-2 mt-3"><button id="exp" class="btn-primary" title="Progress, notes, settings, flashcards… (pictures that exist only on this device are included)">⬇️ Download backup</button><button id="expFull" class="btn-ghost" title="Also includes every question-picture pack — bigger and slower">⬇️ Full backup (with all pictures)</button>
+      <div class="flex flex-wrap gap-2 mt-3"><button id="exp" class="btn-primary" title="Progress, notes, settings, flashcards… (pictures that exist only on this device are included)">⬇️ Download backup</button><button id="expFull" class="btn-ghost" title="Also includes every question-picture pack and the books saved on this device only (not uploaded) — bigger and slower. Uploaded books stay in your account and are not copied.">⬇️ Full backup (all pictures + device-only books)</button>
       <label class="btn-ghost cursor-pointer">⬆️ Restore from backup<input type="file" id="imp" accept=".json" class="hidden"></label></div>
       <div class="text-xs text-slate-500 mt-2">${lastB ? 'Last backup: ' + new Date(lastB).toLocaleString('en-GB') : 'No backup downloaded yet.'} Tip: keep a copy on OneDrive once a week.</div>
       <div id="impMsg" class="text-sm mt-2"></div></div>
@@ -8354,13 +8377,30 @@ async function settings() {
     const f = e.target.files[0]; if (!f) return; const msg = document.getElementById('impMsg');
     try {
       const d = JSON.parse(await f.text()); if (d.app !== 'cfa-l1') throw new Error('Not a CFA backup file');
-      if (!confirm(`Restore the backup from ${d.at ? new Date(d.at).toLocaleString('en-GB') : 'file'}?\n\n${(d.notes || []).length} notes · ${(d.highlights || []).length} highlights · ${Object.keys(d.kv || {}).length} settings/progress items.\n\nItems in the backup replace the same items here; anything newer that is not in the backup is kept.`)) return;
+      if (!confirm(`Restore the backup from ${d.at ? new Date(d.at).toLocaleString('en-GB') : 'file'}?\n\n${(d.notes || []).length} notes · ${(d.highlights || []).length} highlights · ${Object.keys(d.kv || {}).length} settings/progress items.${Object.keys(d.books || {}).length ? ` · ${Object.keys(d.books).length} device-only book(s)` : ''}\n\nQuestion answers are MERGED: your attempts from the backup and from this device are both kept.\nSettings, plan and other items in the backup replace the same items here; items not in the backup are kept.\nA restore point of the current data is saved first.`)) return;
+      msg.textContent = 'Saving a restore point of the current data…';
+      { // v35 · restore point first (Settings → Restore points), like every other replace/delete on the site
+        const oldNotes = []; for (const n of d.notes || []) { const o = n && n.id != null ? await db.get('notes', n.id) : null; if (o) oldNotes.push(o); }
+        const sid = await undoSnap('Before restoring backup' + (d.at ? ' from ' + new Date(d.at).toLocaleDateString('en-GB') : ''), Object.keys(d.kv || {}), { notes: oldNotes });
+        if (!sid && !confirm('A restore point of your current data could not be saved on this device.\n\nRestore the backup anyway?')) { msg.textContent = 'Restore cancelled — nothing was changed.'; return; }
+      }
       msg.textContent = 'Restoring…';
       for (const n of d.notes || []) await db.put('notes', n);
       for (const h of d.highlights || []) await db.put('highlights', h);
       for (const fm of d.files || []) if (!(await db.get('files', fm.id))) await db.put('files', fm);
-      for (const [k, v] of Object.entries(d.kv || {})) await db.put('kv', v, k);
-      kvCache.clear(); await restoreQvPacks(d.qv); await flush();
+      for (const [k, v] of Object.entries(d.kv || {})) {
+        // v35 · question statistics & question edits are MERGED question by question: attempt history from both is kept,
+        // the earliest first attempt is kept, the newer state wins. Everything else (settings, plan, ticks…) is replaced by the backup.
+        const cur = await local.get('kv', k);
+        if (String(k).startsWith('qstats:') && v && typeof v === 'object' && cur && typeof cur === 'object') {
+          const out = { ...cur }; for (const [id, e] of Object.entries(v)) out[id] = qsMergeEntry(cur[id], e); await db.put('kv', out, k);
+        } else if (MERGE_KV.has(String(k)) && v && typeof v === 'object' && cur && typeof cur === 'object') await db.put('kv', objMerge3({}, cur, v), k);
+        else await db.put('kv', v, k);
+      }
+      for (const [id, b64] of Object.entries(d.books || {})) {   // v35 · device-only books inside a full backup
+        try { if (!(await isCached(id))) { const r = await fetch(b64); await cacheBlob(id, await r.blob()); } } catch (e2) { console.warn('restore book', id, e2); }
+      }
+      kvCache.clear(); _qsP = null; await restoreQvPacks(d.qv); await flush();
       msg.textContent = `✅ Restored. Reloading…`; setTimeout(() => location.reload(), 1200);
     } catch (err) { msg.textContent = '❌ ' + err.message; }
   };
@@ -8505,6 +8545,7 @@ function modProgress(m, c) {
   else rDone = m.x.m.los.filter(l => c.fl[`${m.id}:${l.id}`]?.done).length;
   const qs = modQs(m, c).filter(inStat);
   const ans = qs.filter(q => c.st[q.id]?.n), cor = ans.filter(q => c.st[q.id].last);
+  const everOk = ans.filter(q => { const z = c.st[q.id]; return z.last || (z.c || 0) > 0; });   // v35 · solved correctly at least once (a later miss lowers Readiness, not Completeness)
   const nNotes = c.notes.filter(n => n.moduleId === m.id && (n.kind || 'mohd') === 'mohd').length;
   const t = c.track[m.id] || {};
   const vds = t.videos || [], lecture = t.lec ? 100 : vds.length ? pct(vds.filter(z => z.done).length, vds.length) : 0, reading = pct(rDone, rTot), summary = t.sum ? 100 : nNotes ? 50 : 0, questions = pct(ans.length, qs.length);
@@ -8519,8 +8560,9 @@ function modProgress(m, c) {
   }
   const CSm = c.CS?.[m.id] || { tot: 0, mast: 0, flag: 0 };
   return { lecture, reading, extras, summary, questions, xAuto, xTot, xDone, cards: pct(CSm.mast, CSm.tot), cTot: CSm.tot, cMas: CSm.mast, cFlag: CSm.flag, overall: Math.round((lecture + reading + extras + summary + questions) / 5),
-    // completeness: the same five steps, but the question step counts only questions whose latest answer is correct
-    solved: qs.length ? pct(cor.length, qs.length) : 100, complete: (() => { const sv = qs.length ? cor.length / qs.length * 100 : 100, v = (lecture + reading + extras + summary + sv) / 5; return v >= 99.95 && cor.length === qs.length ? 100 : Math.min(99, Math.floor(v)); })(), rDone, rTot, nNotes, qTot: qs.length, qAns: ans.length, qCor: cor.length,
+    // completeness (v35): the same five steps; the question step counts questions answered correctly AT LEAST ONCE.
+    // A module with no questions loaded gets 0 % for that step (it used to get 100 %), so missing content never looks finished.
+    solved: qs.length ? pct(everOk.length, qs.length) : 0, noQ: !qs.length, complete: (() => { const sv = qs.length ? everOk.length / qs.length * 100 : 0, v = (lecture + reading + extras + summary + sv) / 5; return qs.length && v >= 99.95 && everOk.length === qs.length ? 100 : Math.min(99, Math.floor(v)); })(), rDone, rTot, nNotes, qTot: qs.length, qAns: ans.length, qCor: cor.length,
     acc: ans.length ? pct(cor.length, ans.length) : null, sumDone: !!t.sum, lecDone: !!t.lec, xtraDone: xAuto ? (xTot ? xDone >= xTot : true) : !!t.xtra, nVid: (t.videos || []).length };
 }
 function trackRows(p, modId, compact) {
@@ -8541,7 +8583,7 @@ function trackRows(p, modId, compact) {
     ${p.xAuto ? row('➕', 'Extras', p.extras, p.xTot ? `${p.xDone}/${p.xTot} LOS with extras reviewed — calculated automatically from the ticks in the Extras tab` : 'This module has no extras, so the step counts as complete', p.xTot ? `<a class="link text-[11px]" href="${modInfo(modId)?.href}/xtra" data-tip="Open the Extras tab and tick each LOS when you finish its extras">${p.xDone}/${p.xTot} LOS</a>` : '<span class="text-[11px] text-slate-400">none</span>')
       : row('➕', 'Extras', p.extras, p.xtraDone ? 'Curriculum extras read' : 'Read the extras listed for this module, then mark done', tg('xtra', p.xtraDone, 'extras'))}
     ${row('✍', 'Summary', p.summary, p.sumDone ? 'Summary marked as complete' : p.nNotes ? `${p.nNotes} notes so far — mark done when finished` : 'No summary notes yet', tg('sum', p.sumDone, 'summary'))}
-    ${row('🎯', 'Practice', p.questions, `Answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`)}
+    ${row('🎯', 'Practice', p.questions, p.noQ ? 'No questions loaded for this module yet' : `Answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`)}
     ${p.cTot || !compact ? row('🃏', 'Flashcards', p.cards, p.cTot ? `${p.cMas}/${p.cTot} cards mastered${p.cFlag ? ` · ${p.cFlag} flagged` : ''} (shown here, not part of the 5-step total)` : 'No flashcards yet', p.cTot ? `<a class="link text-[11px]" href="${modInfo(modId)?.href}/cards">${p.cMas}/${p.cTot}${p.cFlag ? ' · ⚑' + p.cFlag : ''}</a>` : '') : ''}
   </div>`;
 }
@@ -9087,7 +9129,7 @@ function moduleCard(m, p, c) {
   return `<div class="card hover:border-indigo-400 relative">
     <a href="${m.href}" class="absolute inset-0" aria-label="${esc(m.title)}"></a>
     <div class="flex items-start gap-3">
-      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div><div class="relative z-10" data-tip="${ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet'}">${ring(ft.n ? ftv : 0, 46, 5, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div></div>
+      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div><div class="relative z-10" data-tip="${ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet'}">${ring(ft.n ? ftv : 0, 46, 5, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div></div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1 min-w-0" style="overflow-wrap:anywhere">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
@@ -9993,8 +10035,26 @@ async function backupBlob(onStep, opt = {}) {
   await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker));
   parts.push(',"qv":{'); first = true;
   ids.forEach((id, i) => { if (got[i] == null) return; parts.push((first ? '' : ',') + JSON.stringify(String(id)) + ':' + JSON.stringify(got[i])); first = false; });
-  parts.push('}}');
-  const blob = new Blob(parts, { type: 'application/json' }); blob.skipped = skipped; return blob;
+  parts.push('}');
+  // v35 · full backup: books that exist ONLY on this device (not uploaded) are included, so the backup alone can bring them back
+  const bookMiss = []; let bookN = 0, bookTot = 0;
+  if (full) {
+    const lo = (await db.all('files')).filter(f => f && f.localOnly); bookTot = lo.length;
+    parts.push(',"books":{'); let fb = true;
+    for (const f of lo) {
+      step(`Device-only books ${bookN + bookMiss.length + 1}/${lo.length}…`);
+      try { const b = (await local.get('blobs', f.id))?.blob; if (!b) throw new Error('not on this device');
+        const u = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+        parts.push((fb ? '' : ',') + JSON.stringify(String(f.id)) + ':' + JSON.stringify(u)); fb = false; bookN++;
+      } catch (e) { bookMiss.push(f.id); console.warn('backup: book skipped', f.id, e); }
+    }
+    parts.push('}');
+  }
+  // v35 · manifest: what was expected, what is inside, what is missing (restore ignores this field)
+  const missing = ids.filter((_, i) => got[i] == null);
+  skipped += bookMiss.length;
+  parts.push(',"manifest":' + JSON.stringify({ status: missing.length || bookMiss.length ? 'partial' : 'complete', picturePacks: { expected: ids.length, exported: ids.length - missing.length, missing }, deviceOnlyBooks: { expected: bookTot, exported: bookN, missing: bookMiss } }) + '}');
+  const blob = new Blob(parts, { type: 'application/json' }); blob.skipped = skipped; blob.expected = ids.length + bookTot; blob.missing = missing.concat(bookMiss); return blob;
 }
 async function backupData() { return JSON.parse(await (await backupBlob(null, { full: true })).text()); }   // kept for older callers
 function bkProgress() {
@@ -10019,8 +10079,15 @@ async function downloadBackupNow(opt = {}) {
     P.set('⏳ Preparing backup…');
     const blob = await backupBlob(t => P.set('⏳ ' + t), opt);
     if (fh) { const w = await fh.createWritable(); await w.write(blob); await w.close(); } else downloadBlob(name, blob);
-    await kv.set('lastBackup', Date.now()); if (opt.full) await kv.set('lastFullBackup', Date.now());
-    P.done(`✅ Backup ready · ${(blob.size / 1048576).toFixed(1)} MB${blob.skipped ? ` · ${blob.skipped} picture pack(s) could not be read` : ''}`, blob.skipped ? 'warn' : 'ok');
+    // v35 · a backup with missing picture packs is PARTIAL: it never counts as the last good backup, and a warning stays on screen until a complete one is made
+    if (blob.skipped) {
+      await kv.set('lastBackupPartial', { at: Date.now(), kind: opt.full ? 'full' : 'light', expected: blob.expected || 0, missing: blob.skipped });
+      P.done(`⚠️ PARTIAL backup · ${(blob.size / 1048576).toFixed(1)} MB · ${blob.skipped} of ${blob.expected} item(s) (picture packs / device-only books) could not be read and are NOT inside. Not counted as a complete backup — try again with a steady connection.`, 'warn');
+    } else {
+      await kv.set('lastBackup', Date.now()); if (opt.full) await kv.set('lastFullBackup', Date.now());
+      await kv.set('lastBackupPartial', null);
+      P.done(`✅ Backup ready · ${(blob.size / 1048576).toFixed(1)} MB${blob.expected ? ` · ${blob.expected} picture pack(s) / device-only book(s) included` : ''}`, 'ok');
+    }
     return blob;
   } catch (err) {
     console.error('backup failed', err);
@@ -10033,7 +10100,7 @@ async function restoreQvPacks(qv) {
   const metas = { ...(await kv.get('qpacks', {})) }; let ch = false;
   for (const [id, txt] of Object.entries(qv)) {
     const blob = new Blob([txt], { type: 'application/json' }); await cacheBlob(id, blob);
-    if (metas[id] && cloud && navigator.onLine) { const old = metas[id]; try { const parts = await uploadBook(id, blob); metas[id] = { ...old, parts, localOnly: false, bytes: blob.size, size: blob.size }; delete metas[id].sid; delete metas[id].opt; if (old.sid) { try { await deleteBookFiles({ id: old.sid, parts: old.parts }); } catch { } } } catch { metas[id] = { ...old, localOnly: true }; } ch = true; }
+    if (metas[id] && cloud && navigator.onLine) { const old = metas[id]; try { const parts = await uploadBook(id, blob); metas[id] = { ...old, parts, localOnly: false, bytes: blob.size, size: blob.size }; delete metas[id].sid; delete metas[id].opt; if (old.sid) await qvRetain(id, old); } catch { metas[id] = { ...old, localOnly: true }; } ch = true; }
   }
   if (ch) await kv.set('qpacks', metas);
 }
@@ -10326,10 +10393,13 @@ async function noticeBannersHTML() {
     const has = (await db.keys('notes')).length || Object.keys(await kv.get('qstats', {})).length || (await kv.get('packIds', [])).length;
     if (has) parts.push(`<div class="notice" role="status">💾 <b>${last ? 'Last backup ' + Math.floor((Date.now() - last) / DAYMS) + ' days ago.' : 'No backup downloaded yet.'}</b> It is your only safety copy. <button type="button" class="btn-primary text-xs ml-2" data-bk="now">Download backup</button> <button type="button" class="link text-xs ml-1" data-bk="later">Remind me tomorrow</button></div>`);
   }
+  // v35 · the last backup attempt was partial: keep saying so until a complete backup is made
+  { const pb = await kv.get('lastBackupPartial', null);
+    if (pb && pb.at) parts.push(`<div class="notice notice-warn" role="alert">⚠️ <b>Your last ${pb.kind === 'full' ? 'full ' : ''}backup (${esc(new Date(pb.at).toLocaleDateString('en-GB'))}) is PARTIAL</b> — ${pb.missing} of ${pb.expected} item(s) (picture packs / device-only books) could not be read and are not inside it. <button type="button" class="btn-primary text-xs ml-2" data-bk="${pb.kind === 'full' ? 'full' : 'now'}">Try again</button></div>`); }
   // v31 · the full backup (with question pictures) is the only copy of the pictures outside Supabase: remind every 30 days
   { const lf = await kv.get('lastFullBackup', null); let sz = 0; try { sz = +(localStorage.getItem('fullBkSnooze') || 0); } catch { }
     if (Date.now() > sz && Object.keys((await kv.get('qpacks', {})) || {}).length && (!lf || Date.now() - lf > 30 * DAYMS))
-      parts.push(`<div class="notice" role="status">\uD83D\uDDC2 <b>${lf ? 'Last full backup ' + Math.floor((Date.now() - lf) / DAYMS) + ' days ago.' : 'No full backup yet.'}</b> The full backup also keeps your question pictures. <button type="button" class="btn-primary text-xs ml-2" data-bk="full">Download full backup</button><button type="button" class="btn-ghost text-xs ml-1" data-bk="fullLater">Remind me in a week</button></div>`); }
+      parts.push(`<div class="notice" role="status">\uD83D\uDDC2 <b>${lf ? 'Last full backup ' + Math.floor((Date.now() - lf) / DAYMS) + ' days ago.' : 'No full backup yet.'}</b> The full backup also keeps your question pictures and device-only books. <button type="button" class="btn-primary text-xs ml-2" data-bk="full">Download full backup</button><button type="button" class="btn-ghost text-xs ml-1" data-bk="fullLater">Remind me in a week</button></div>`); }
   return parts.join('');
 }
 async function showNotices() {
@@ -10349,6 +10419,7 @@ document.addEventListener('click', async e => {
   else if (b.dataset.bk === 'fullLater') { try { localStorage.setItem('fullBkSnooze', String(Date.now() + 7 * DAYMS)); } catch { } }
   else { try { localStorage.setItem('backupSnoozeUntil', String(Date.now() + DAYMS)); } catch { } }
   document.getElementById('notices')?.remove();
+  if (b.dataset.bk === 'now' || b.dataset.bk === 'full') setTimeout(() => { try { showNotices(); } catch { } }, 300);   // v35 · a partial backup shows its warning again at once
 });
 // optional: a GitHub Action that touches the database every 3 days so the free project is not paused for inactivity
 function keepAliveYml() {
@@ -10510,8 +10581,9 @@ async function perfExtra(D) {
   const sta = ((await kv.get('stamina', [])) || []).slice(-5);
   K.stamina = sta.length ? { v: Math.round(sta.reduce((a, z) => a + z.d, 0) / sta.length), n: sta.length } : null;
   // completeness history → finish-date forecast (speed of the last 28 days)
-  const ch2 = (await kv.get('cmpHist', {})) || {}, today = dshDay(now);
-  if (ch2[today] !== D.complete) { ch2[today] = D.complete; const ks = Object.keys(ch2).sort(); while (ks.length > 200) delete ch2[ks.shift()]; await kv.set('cmpHist', ch2); }
+  // v35 · Completeness changed meaning (solved at least once; modules without questions no longer 100 %) → new series 'cmpHist2'; 'cmpHist' is kept
+  const ch2 = (await kv.get('cmpHist2', {})) || {}, today = dshDay(now);
+  if (ch2[today] !== D.complete) { ch2[today] = D.complete; const ks = Object.keys(ch2).sort(); while (ks.length > 200) delete ch2[ks.shift()]; await kv.set('cmpHist2', ch2); }
   const ks = Object.keys(ch2).sort(), old = ks.filter(k => k <= dshDay(now - 28 * DAYMS)).pop() || ks[0];
   const spanD = old ? Math.max(1, Math.round((now - new Date(old).getTime()) / DAYMS)) : 0, gain = old ? D.complete - ch2[old] : 0;
   if (D.complete >= 100) K.finish = { done: true };
@@ -10530,21 +10602,21 @@ async function perfExtra(D) {
 // every KPI: what it is for, how it is measured, how to read it, minimum data, limits
 const KPI_INFO = {
   ready: { t: 'Exam-ready', goal: 'One clear answer to “am I ready to sit the exam?” — instead of reading twenty numbers.', how: 'Five checks must all pass: (1) the whole curriculum is complete · (2) your last 2 full mocks are both 70 % or more (mocks you took outside the site count — add them on the Mocks page) · (3) every topic has a readiness of 60 % or more · (4) first-attempt accuracy is 70 % or more on 100+ questions · (5) retention is 75 % or more.', f: 'Exam-ready = all 5 checks passed', read: [['5/5', 'g', 'ready — keep it warm with mocks and the review pack'], ['3–4/5', 'a', 'close — fix the failed checks first'], ['0–2/5', 'r', 'keep building']], min: 'None — the card always shows which checks are still open.', lim: 'A rule of thumb used by review courses, not a guarantee. The 70 % line is a working target, not the official pass mark.' },
-  rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'Your chance of answering a NEW exam question on this module or topic correctly today. It measures how well you know what you studied — not how much you finished (that is Completeness).',
+  rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'An estimated study-readiness index for this module or topic, based on your recorded practice — roughly how likely you are to answer a new question on it correctly today. It is a study guide built on fixed assumptions, NOT a validated exam score or a chance of passing. It measures how well you know what you studied — not how much you finished (that is Completeness).',
     plain: 'Think of a restaurant you have never tried. Asked “out of 10?”, you would not say 10 or 0 — you would guess about 4. After one good meal you might say 5 (once can be luck). After ten good meals you can say 8 with confidence. Readiness works the same way: before you answer anything the site assumes 40 % — a little above blind guessing on three options (33 %). Each real answer pulls the number towards your true level, and the starting guess matters less and less.',
     how: 'The site behaves as if you had already answered 6 imaginary questions at 40 %, then adds your real answers. First attempts and retries after 5+ days count fully, a next-day retry counts half, a same-day retry hardly counts (you remember the answer, not the idea). Old answers fade (half weight after 60 days). A right guess counts half; a wrong answer marked Sure counts against you.',
     f: 'Readiness = (weighted correct answers + 6 × 0.40) ÷ (weighted answers + 6)',
     ex: [['Nothing answered', '(0 + 2.4) ÷ 6', '40 % → shown as “—”'], ['1 right', '(1 + 2.4) ÷ 7', '49 % → still “—”'], ['10 of 10 right', '(10 + 2.4) ÷ 16', '78 %'], ['35 of 50 right', '(35 + 2.4) ÷ 56', '67 %'], ['30 of 30 right', '(30 + 2.4) ÷ 36', '90 %']],
     read: [['≥ 70 %', 'g', 'ready'], ['50–69 %', 'a', 'getting there'], ['< 50 %', 'r', 'needs work'], ['—', '', 'not enough answers yet (about 5 needed)']],
-    min: 'About 5 fully-weighted answers. Until then the 40 % is used only in the background and the screen shows “—”. The ± number is the uncertainty — it shrinks as you answer more.',
+    min: 'About 5 fully-weighted answers. Until then the 40 % is used only in the background and the screen shows “—”. Under the number, “evidence” tells how much it rests on your own answers: Limited (under ~15 weighted answers — the 40 % start still weighs 30 % or more), Moderate (15–40), Strong (40+). For a topic, only modules with enough answers are averaged (“3/8 modules”); untouched modules are left out instead of counting as 40 %. The lowest value shown is 25 % (“≤25%”): your real accuracy may be lower — check Accuracy and First-try.',
     lim: 'Why not “first-time correct ÷ all questions in the bank”? That number falls whenever you add a new bank, and it cannot tell “not studied yet” from “studied but weak”. Completeness answers “how much is done”; Readiness answers “how well do I know what I studied”.' },
-  pred: { t: 'Projected score', goal: 'Your most likely score if the exam were today.', how: 'Readiness of the topics you have practised (about 5 answers or more), weighted by the 2027 topic weights, blended with your first-attempt full mocks (each mock adds 20 % weight, up to 60 %). Topics you have not touched are left out — they never count as 40 %.', f: 'Projected = w·Mock + (1 − w)·Σ(weight × topic readiness),   w = min(60 %, 20 % × mocks)', read: [['≥ 70 %', 'g', 'on track'], ['50–69 %', 'a', 'gap to close'], ['< 50 %', 'r', 'far from target']], min: 'About 5 answers in one topic, or one full mock.', lim: 'Early on it describes only the topics you have started — check “based on X/10 topics”. Not calibrated against real CFA results. Read the range, not the single number.' },
+  pred: { t: 'Projected score', goal: 'A rough projection of your score if the exam were today, built from your practice and first-attempt mocks. It is not calibrated against real CFA results and is not a chance of passing — follow its trend rather than the single number.', how: 'Readiness of the topics you have practised (about 5 answers or more), weighted by the 2027 topic weights, blended with your first-attempt full mocks (each mock adds 20 % weight, up to 60 %). Topics you have not touched are left out — they never count as 40 %.', f: 'Projected = w·Mock + (1 − w)·Σ(weight × topic readiness),   w = min(60 %, 20 % × mocks)', read: [['≥ 70 %', 'g', 'on track'], ['50–69 %', 'a', 'gap to close'], ['< 50 %', 'r', 'far from target']], min: 'About 5 answers in one topic, or one full mock.', lim: 'Early on it describes only the topics you have started — check “based on X/10 topics”. Not calibrated against real CFA results. Read the range, not the single number.' },
   margin: { t: 'Safety margin', goal: 'Shows whether you pass even on a bad day.', how: 'The LOW end of the projected range minus the 70 % target.', f: 'Margin = (Projected − range) − 70', read: [['≥ 0', 'g', 'safe'], ['0 to −5', 'a', 'on the edge'], ['< −5', 'r', 'at risk']], min: 'Same as Projected score.', lim: 'The 70 % target is a working assumption — CFA Institute does not publish the pass mark.' },
   floor: { t: 'Topic floor', goal: 'Finds the big topic that drags your score down most.', how: 'Lowest readiness among the topics weighing 10 % or more (Ethics, Quant, FSA, Equity, Fixed Income, Portfolio Mgmt).', f: 'Floor = min(readiness of topics with weight ≥ 10 %)', read: [['≥ 60 %', 'g', 'fine'], ['50–59 %', 'a', 'watch'], ['< 50 %', 'r', 'start with this topic']], min: 'About 5 answers in at least one big topic.', lim: 'Topics without enough answers are left out, so the floor can move when you start a new topic.' },
   mock: { t: 'Mock average', goal: 'Your score under exam conditions.', how: 'Average of your last 3 full mocks, first attempts only, adjusted by your provider offsets if you entered any.', f: 'Mock avg = mean(last 3 first-attempt full mocks)', read: [['≥ 70 %', 'g', 'exam-ready'], ['60–69 %', 'a', 'close'], ['< 60 %', 'r', 'more work needed']], min: 'One full mock.', lim: 'Providers differ in difficulty; retakes never count.' },
   trend: { t: 'Mock trend', goal: 'Tells you whether your mocks are improving.', how: 'Average change per mock across your last three full mocks.', f: 'Trend = (Mock n − Mock n−2) ÷ 2', read: [['≥ +2', 'g', 'improving'], ['0 to +2', 'a', 'flat'], ['< 0', 'r', 'going down — check fatigue and method']], min: 'Three full mocks (same provider if possible).', lim: 'Different providers can fake a trend; compare like with like.' },
   gap: { t: 'Mock–Qbank gap', goal: 'Detects scores inflated by familiar questions.', how: 'First-attempt Qbank accuracy (topic-weighted) minus your mock average.', f: 'Gap = First-attempt Qbank − Mock average', read: [['≤ 5', 'g', 'honest'], ['5–10', 'a', 'some familiarity'], ['> 10', 'r', 'Qbank flatters you — more new questions and mocks']], min: 'One full mock and 10+ first attempts in a topic.', lim: 'Provider difficulty also creates a gap — use the offsets in Mock calibration.' },
-  cmp: { t: 'Completeness', goal: 'Shows whether anything is left undone.', how: 'The five study steps of every module, but the question step counts only questions whose latest answer is correct. 100 % only when everything is done.', f: 'Module = (lecture + reading + extras + summary + solved %) ÷ 5;  total = average of modules', read: [['100 %', 'g', 'all done'], ['80–99 %', 'a', 'nearly'], ['< 80 %', '', 'in progress']], min: 'None.', lim: 'Says nothing about memory — pair it with Readiness.' },
+  cmp: { t: 'Completeness', goal: 'Shows whether anything is left undone.', how: 'The five study steps of every module; the question step counts questions you have answered correctly at least once. A later miss does not lower it (that shows in Readiness). A module whose questions are not loaded yet gets 0 % for that step, so missing content never looks finished. 100 % only when everything is done.', f: 'Module = (lecture + reading + extras + summary + solved-at-least-once %) ÷ 5;  total = average of modules', read: [['100 %', 'g', 'all done'], ['80–99 %', 'a', 'nearly'], ['< 80 %', '', 'in progress']], min: 'None.', lim: 'Says nothing about memory — pair it with Readiness.' },
   days: { t: 'Days to exam', goal: 'Compares the work done with the time used.', how: 'Days left to your exam date; below it, completeness compared with the share of your study calendar already used.', f: 'Pace = completeness vs (today − plan start) ÷ (exam − plan start)', read: [['done ≥ time used', 'g', 'on schedule'], ['up to 10 pts behind', 'a', 'slightly behind'], ['> 10 pts behind', 'r', 'behind']], min: 'Exam date (and a plan for the pace line).', lim: '' },
   finish: { t: 'Finish forecast', goal: 'Tells you when you will finish everything at your current speed.', how: 'Completeness gained over the last 28 days, projected forward until 100 %.', f: 'Finish = today + (100 − completeness) ÷ (gain per day)', read: [['≥ 42 days before exam', 'g', '6 weeks of review left'], ['21–41 days', 'a', 'compressed review'], ['< 21 days', 'r', 'decide: more time or trim low-weight topics']], min: 'Two weeks of history (it starts recording now).', lim: 'Assumes your recent speed continues.' },
   plan: { t: 'Plan adherence', goal: 'Checks whether your plan is realistic.', how: 'Minutes of plan tasks done ÷ minutes planned, last 14 days.', f: 'Adherence = minutes done ÷ minutes planned', read: [['≥ 85 %', 'g', 'realistic plan'], ['65–84 %', 'a', 'slipping'], ['< 65 %', 'r', 'plan too heavy — lower the daily minutes']], min: 'A study plan with tasks in the last 14 days.', lim: 'Work done outside the plan does not count here.' },
@@ -10666,7 +10738,7 @@ async function dshData() {
   const exam = await kv.get('examDate', null), now = Date.now();
   const days = exam ? Math.ceil((new Date(exam) - new Date()) / 864e5) : null;
   const c = await progressCtx(), mods = moduleList(), ps = mods.map(m => { const p = modProgress(m, c); return { m, p, r: modReadiness(m, p, c) }; });
-  const avgR = zs => zs.length ? Math.round(zs.reduce((a, z) => a + z.r, 0) / zs.length) : 0;
+  const avgR = zs => zs.length ? rdAvg(zs.map(z => z.m), c).r : 0;   // v35 · only modules with evidence
   const QA = await allQs(), Q = QA.filter(inStat), st = c.st;
   const faOf = (qs, st) => { let n = 0, c = 0, r30 = 0, r30c = 0, u = 0; for (const q of qs) { const f = firstAtt(st[q.id]); if (!f) { if (st[q.id] && st[q.id].n) u++; continue; } n++; if (f.ok) c++; if (f.t > now - 30 * 864e5) { r30++; if (f.ok) r30c++; } } return { n, c, r30, r30c, u }; };
   const subj = SUBJECTS.map(sj => {
@@ -10714,8 +10786,9 @@ async function dshData() {
   const covN = subj.filter(z => z.ev >= RM.MIN).length, covW = Math.round(subj.filter(z => z.ev >= RM.MIN).reduce((a, z) => a + z.w, 0));
   const pred = examR != null ? Math.round((mockAvg != null ? wM * mockAvg : 0) + (mockAvg != null ? 1 - wM : 1) * examR) : mockAvg != null ? mockAvg : null;
   const band = pred == null ? null : Math.round(Math.min(15, Math.max(4, (examR == null ? 0 : (1 - wM) * 28 / Math.sqrt(1 + evW / 40)) + (mockAvg != null ? 6 / Math.sqrt(last3.length) : 0))));
-  const rdHist = await kv.get('rdHist2', {}); const today = dshDay(now);
-  if (pred != null && rdHist[today] !== pred) { rdHist[today] = pred; const ks = Object.keys(rdHist).sort(); while (ks.length > 120) delete rdHist[ks.shift()]; await kv.set('rdHist2', rdHist); }
+  // v35 · the topic average changed (untouched modules no longer count as 40 %), so the trend starts a new series 'rdHist3'; 'rdHist2' is kept as it was
+  const rdHist = (await kv.get('rdHist3', {})) || {}; const today = dshDay(now);
+  if (pred != null && rdHist[today] !== pred) { rdHist[today] = pred; const ks = Object.keys(rdHist).sort(); while (ks.length > 120) delete rdHist[ks.shift()]; await kv.set('rdHist3', rdHist); }
   const rdAt = t => { const k = Object.keys(rdHist).filter(d => d <= dshDay(t)).sort().pop(); return k ? rdHist[k] : null; };
   const rdWeekAgo = rdAt(now - WEEK);
   const cardsDue = await dueCardCount(mods.filter(m => m.x).map(m => m.id));
@@ -11422,7 +11495,7 @@ async function orderedSubjectsFor(page) {
   if (sort === 'weight') return SUBJECTS.slice().sort((a, b) => CFA_W[b.id] - CFA_W[a.id]);
   if (sort !== 'weak') return SUBJECTS.slice();
   const c = await progressCtx(), mods = moduleList(), r = {};
-  for (const sj of SUBJECTS) { const zs = mods.filter(m => m.subject === sj.id); r[sj.id] = mixMini(sj.id, zs.length ? Math.round(zs.reduce((a, m) => a + modReadiness(m, modProgress(m, c), c), 0) / zs.length) : 0); }
+  for (const sj of SUBJECTS) { const zs = mods.filter(m => m.subject === sj.id); r[sj.id] = mixMini(sj.id, zs.length ? rdAvg(zs, c).r : 0); }
   return SUBJECTS.slice().sort((a, b) => r[a.id] - r[b.id]);
 }
 
@@ -11607,7 +11680,7 @@ function studyRows(c, lastBy, lastGlobal) {
   const mods = moduleList(), ps = new Map(mods.map(m => [m.id, modProgress(m, c)])), rdy = new Map(mods.map(m => [m.id, modReadiness(m, ps.get(m.id), c)])), out = {};
   for (const sj of SUBJECTS) {
     const ms = mods.filter(m => m.subject === sj.id), lm = ms.filter(m => m.x), P = ms.map(m => ps.get(m.id));
-    const avgR = ms.length ? Math.round(ms.reduce((a, m) => a + rdy.get(m.id), 0) / ms.length) : 0;
+    const avgR = ms.length ? rdAvg(ms, c).r : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
     out[sj.id] = { sj, avg: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, ready: mixMini(sj.id, avgR), ev: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), loaded: lm.length, total: ms.length, done: P.filter(p => p.complete >= 100).length, tgt };
   }
@@ -11618,7 +11691,7 @@ function studyRowHTML(z) {
   return `<section class="card st-row" aria-labelledby="st-${sj.id}"><div class="flex items-center gap-3 flex-wrap"><span class="sj-tile sj-${sj.id}" aria-hidden="true">${sj.icon}</span>
     <div class="flex-1 min-w-[200px]"><h2 id="st-${sj.id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2>
       <div class="text-xs text-slate-500">Exam weight ${W_RANGE[sj.id]} · ${z.loaded}/${z.total} modules loaded · ${z.done} complete</div>
-      <div class="st-m mt-2"><div class="st-mi" data-tip="Completeness — every study step done and every question solved correctly"><span>Complete</span><div role="progressbar" aria-label="${esc(sj.name)} completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.avg}">${bar(z.avg, 'bg-indigo-500')}</div><b>${z.avg}%</b></div>
+      <div class="st-m mt-2"><div class="st-mi" data-tip="Completeness — every study step done and every question solved correctly at least once"><span>Complete</span><div role="progressbar" aria-label="${esc(sj.name)} completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.avg}">${bar(z.avg, 'bg-indigo-500')}</div><b>${z.avg}%</b></div>
         <div class="st-mi" data-tip="Readiness — the share of exam questions on this topic you would most likely get right today (shown after about 5 answers)"><span>Readiness ${rdI()}</span><div role="progressbar" aria-label="${esc(sj.name)} readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.ev < RM.MIN ? 0 : z.ready}">${bar(z.ev < RM.MIN ? 0 : z.ready, z.ev < 5 ? 'bg-slate-400' : z.ready >= MPS ? 'bg-emerald-500' : z.ready >= 50 ? 'bg-amber-500' : 'bg-rose-500')}</div><b>${z.ev < 5 ? '—' : z.ready + '%'}</b></div>
         <div>${z.ev < 5 && z.avg < 5 ? `<span class="dg dg-new">${DIAG.new.icon} ${DIAG.new.name}</span>` : diagChip(z.ready, z.avg)}</div></div>
       ${t ? `<div class="text-xs text-slate-500 mt-1 truncate">Next: LM${t.num} · ${esc(t.title)}</div>` : ''}</div>
@@ -12927,6 +13000,7 @@ async function undoSnap(label, keys, extra = {}) {
 async function undoRestore(id) {
   const rec = await undoTx('readonly', s => req(s.get(id))); if (!rec) return false;
   for (const [k, v] of Object.entries(rec.kv || {})) { if (v && v.__absent) { kvCache.delete(k); await db.del('kv', k); } else await kv.set(k, v); }
+  if (Object.keys(rec.kv || {}).some(k => String(k).startsWith('qstats:'))) { kvCache.delete('qstats'); _qsP = null; CTX_VER++; }   // v35 · reload question statistics from the restored shards
   for (const n of rec.notes || []) { await db.put('notes', n); notify(n.moduleId); }
   await loadPacks(); return true;
 }
@@ -13433,7 +13507,7 @@ function qvjPill(html, done) {
   if (!e) { e = document.createElement('div'); e.id = 'qvjPill'; e.setAttribute('role', 'status'); e.setAttribute('aria-live', 'polite'); document.body.appendChild(e); }
   e.innerHTML = `<span class="qvj-t">${html}</span><span class="qvj-b">${done ? '<button type="button" data-qvj="hide" aria-label="Close">✕</button>' : QVJ.run ? `<button type="button" data-qvj="pause"${QVJ.stop ? ' disabled' : ''}>${QVJ.stop ? 'Pausing…' : '⏸ Pause'}</button>` : '<button type="button" data-qvj="resume">▶ Resume</button>'}<a href="#/settings" data-qvj="open">Details</a></span>`;
 }
-async function qvjCounts() { const all = Object.values((await kv.get('qpacks', {})) || {}); return { all: all.length, opt: all.filter(m => m.opt === 'webp').length, kept: all.filter(m => m.opt === 'kept').length, left: all.filter(m => !m.opt && !m.localOnly).length }; }
+async function qvjCounts() { const all = Object.values((await kv.get('qpacks', {})) || {}); return { all: all.length, opt: all.filter(m => m.opt === 'webp').length, kept: all.filter(m => m.opt === 'kept').length, left: all.filter(m => !m.opt && !m.localOnly).length, local: all.filter(m => !m.opt && m.localOnly).length }; }
 async function qvjShow(note) {
   const j = qvjLoad() || {}, C = await qvjCounts(), doneN = C.opt + C.kept, pctN = C.all ? Math.round(100 * doneN / C.all) : 0, mb = ((j.saved || 0) / 1048576).toFixed(1);
   const head = `🗜 Pictures ${doneN}/${C.all} · ${mb} MB saved`;
@@ -13476,6 +13550,27 @@ async function qvoMeasure(set) {
   qvjButtons(); const rb = document.querySelector('[data-qvo="run"]'); if (rb) rb.disabled = save < 0.3;
 }
 
+// ---- v35 · replaced picture-pack copies are KEPT in cloud storage for 30 days before they are deleted ----
+// (they used to be deleted at once). The list is part of your synced data, so every device knows about them.
+// A copy is deleted only when it is older than 30 days AND no pack points to it any more.
+const QV_KEEP_DAYS = 30;
+async function qvRetain(packId, meta) {
+  if (!meta) return;
+  const t = (await kv.get('qvoTrash', [])) || [], sid = stoId(meta);
+  if (!t.some(x => x.sid === sid)) t.push({ pack: packId, sid, parts: meta.parts || 1, at: Date.now() });
+  await kv.set('qvoTrash', t);
+}
+async function qvPurge() {
+  if (!cloud || !navigator.onLine) return;
+  const t = (await kv.get('qvoTrash', [])) || []; if (!t.length) return;
+  const metas = (await kv.get('qpacks', {})) || {}, used = new Set(Object.values(metas).map(m => stoId(m))), now = Date.now(), keep = [];
+  for (const x of t) {
+    if (used.has(x.sid) || now - (x.at || now) < QV_KEEP_DAYS * DAYMS) { keep.push(x); continue; }
+    try { await deleteBookFiles({ id: x.sid, parts: x.parts }); } catch { keep.push(x); }
+  }
+  if (keep.length !== t.length) await kv.set('qvoTrash', keep);
+}
+
 // ---- the job ----
 async function qvjCleanup(j) {            // leftovers from an interrupted run: a half-uploaded new copy, or an old copy that could not be deleted
   const metas = await kv.get('qpacks', {});
@@ -13514,7 +13609,7 @@ async function qvjRun() {
           metas[m.id] = { ...cur, sid, parts, bytes: nb.size, size: nb.size, opt: 'webp', optAt: Date.now() };
           await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                         // 2 · switch to it
           j.pend = null; j.done++; j.saved += oldBlob.size - nb.size; qvjSave(j);
-          try { await deleteBookFiles({ id: stoId(cur), parts: cur.parts }); } catch (e) { (j.orph = j.orph || []).push({ id: stoId(cur), parts: cur.parts }); qvjSave(j); }   // 3 · delete the old copy
+          await qvRetain(m.id, cur); try { await flush(); } catch { }                                              // 3 · v35 · keep the old copy 30 days (no delete now) and sync the switch
           j.streak = 0;
         } catch (e) { j.fail++; j.streak = (j.streak || 0) + 1; j.err = String(e && (e.message || e) || 'unknown error').slice(0, 160); qvjSave(j); console.warn('optimise', id, e); if (!navigator.onLine) break; if (j.streak >= 3) { j.stopErr = true; break; } }
       }
@@ -13526,7 +13621,7 @@ async function qvjRun() {
       else if (!navigator.onLine) { j.want = 'run'; qvjSave(j); await qvjShow('waiting for the internet'); }
       else if (j.stopErr) { j.stopErr = false; j.streak = 0; j.want = 'paused'; qvjSave(j); await qvjShow(`stopped after 3 errors in a row: ${j.err}`); }
       else if (C.left && j.fail) { j.want = 'paused'; qvjSave(j); await qvjShow(`${j.fail} pack${j.fail === 1 ? '' : 's'} could not be processed — press Resume to retry`); }
-      else { j.want = 'done'; j.end = Date.now(); qvjSave(j); await qvjShow('finished'); qvjPill(`✅ Picture optimisation finished · ${C.opt} packs optimised · ${((j.saved || 0) / 1048576).toFixed(1)} MB saved`, true); }
+      else { j.want = 'done'; j.end = Date.now(); qvjSave(j); await qvjShow('finished'); qvjPill(`✅ Picture optimisation finished · ${C.opt} packs optimised · ${((j.saved || 0) / 1048576).toFixed(1)} MB saved${C.local ? ` · ${C.local} device-only pack(s) not included` : ''}`, true); }
       QVJ.stop = false; qvjButtons();
     }
   };
@@ -13544,10 +13639,12 @@ async function qvoHTML() {
   const C = await qvjCounts(); if (!C.all) return '';
   const M = await kv.get('qvoMeasure', null), j = qvjLoad() || {}, doneN = C.opt + C.kept, pctN = Math.round(100 * doneN / C.all);
   const canRun = C.left && M && M.save >= 0.3;
-  const status = QVJ.run ? 'Running in the background…' : j.want === 'done' ? `Finished ${j.end ? new Date(j.end).toLocaleDateString('en-GB') : ''}.` : j.want === 'paused' ? 'Paused — press Resume to continue where it stopped.' : j.want === 'run' ? 'Interrupted — it continues by itself, or press Resume.' : M ? `Last measurement: about ${Math.round(M.save * 100)} % smaller${M.save < 0.3 ? ' — below 30 %, not worth it' : ''}.` : 'Measure first: the optimisation unlocks only when the saving is 30 % or more.';
+  const status = QVJ.run ? 'Running — keep the site open…' : j.want === 'done' ? `Finished ${j.end ? new Date(j.end).toLocaleDateString('en-GB') : ''}.` : j.want === 'paused' ? 'Paused — press Resume to continue where it stopped.' : j.want === 'run' ? 'Interrupted — it continues by itself, or press Resume.' : M ? `Last measurement: about ${Math.round(M.save * 100)} % smaller${M.save < 0.3 ? ' — below 30 %, not worth it' : ''}.` : 'Measure first: the optimisation unlocks only when the saving is 30 % or more.';
   return `<div class="card md:col-span-2" id="qvoCard"><h3 class="sec">🗜 Question pictures — size</h3>
     <p class="text-sm text-slate-600 dark:text-slate-300 mb-2">Turns PNG pictures into lossless WebP: every picture stays <b>pixel-identical</b>, the files get smaller in Supabase storage and in every download. JPEG pictures are left as they are.</p>
-    <p class="text-sm text-slate-600 dark:text-slate-300 mb-3"><b>Runs in the background:</b> keep using any page — a small bar at the bottom shows the progress. If you close the site it pauses safely and continues by itself the next time you open it on this device. Best on a computer with a steady connection.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-300 mb-3"><b>Keeps running while the site is open</b> — you can use any other page; a small bar at the bottom shows the progress. It stops if you close the tab or the browser, or when a phone puts the browser to sleep, and continues by itself the next time you open the site on this device. Best on a computer with a steady connection.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-300 mb-3"><b>Originals are kept for ${QV_KEEP_DAYS} days</b> in your cloud storage after each pack is replaced, then deleted automatically.</p>
+    ${C.local ? `<p class="text-sm text-amber-700 dark:text-amber-300 mb-3">${C.local} pack${C.local === 1 ? ' is' : 's are'} saved on this device only (not uploaded) — ${C.local === 1 ? 'it is' : 'they are'} not optimised and not counted in “To do”.</p>` : ''}
     <div class="flex flex-wrap gap-2 text-sm mb-2"><span class="chip">Packs: <b>${C.all}</b></span><span class="chip">Optimised: <b>${C.opt}</b></span>${C.kept ? `<span class="chip">Left as they are: <b>${C.kept}</b></span>` : ''}<span class="chip">To do: <b>${C.left}</b></span>${j.saved ? `<span class="chip">Saved: <b>${(j.saved / 1048576).toFixed(1)} MB</b></span>` : ''}</div>
     <div class="qvo-track" role="progressbar" aria-label="Pictures handled" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pctN}"><div id="qvoBar" style="width:${pctN}%"></div></div>
     <div class="flex flex-wrap gap-2 mt-3"><button type="button" class="btn-ghost text-sm" data-qvo="measure" ${C.left ? '' : 'disabled'} ${QVJ.run ? 'hidden' : ''}>🔍 Measure (changes nothing)</button><button type="button" class="btn-primary text-sm" data-qvo="run" ${canRun ? '' : 'disabled'} ${QVJ.run ? 'hidden' : ''} title="${M ? '' : 'Measure first'}">${j.done || j.skip ? '▶ Resume in background' : '▶ Start in background'}</button><button type="button" class="btn-ghost text-sm" data-qvo="pause" ${QVJ.run ? '' : 'hidden'}>⏸ Pause</button></div>
@@ -13858,7 +13955,8 @@ async function startSession(session) {
   if (/access_token|type=recovery/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/');
   if (location.search.includes('code=')) history.replaceState(null, '', location.pathname + location.hash);
   route(); __boot.set('first_route_ms');
-  setTimeout(() => { try { qvjAuto(); } catch { } }, 8000);      // v33 · resume an interrupted picture optimisation
+  setTimeout(() => { try { qvjAuto(); } catch { } }, 8000);
+  setTimeout(() => { if (!QVJ.run) qvPurge().catch(() => { }); }, 20000);   // v35 · delete replaced picture copies older than 30 days      // v33 · resume an interrupted picture optimisation
   if (quick) pull().then(n => { lastPull = Date.now(); __boot.set('synced_ms'); if (n) afterPullChanged(); }).catch(e => setStatus('error', e.message || String(e)));
 }
 
