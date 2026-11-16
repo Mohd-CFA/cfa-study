@@ -2358,7 +2358,7 @@ body.rd-fs main#view { padding: 0 !important; max-width: none !important; }
 .ai-fsbar { display: none; }
 body.ai-fs .topbar, body.ai-fs .bottomnav { display: none !important; }
 body.ai-fs main#view { padding: 0 !important; max-width: none !important; }
-body.ai-fs #view > div > :not(#tabBody) { display: none !important; }
+body.ai-fs #view .lp-main > :not(#tabBody) { display: none !important; }
 body.ai-fs #tabBody { margin-top: 0 !important; }
 body.ai-fs #aiBox > .card { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 body.ai-fs #aiBox > .card > :not(.ai-fsbar):not(#aiDoc) { display: none !important; }
@@ -3141,14 +3141,167 @@ h1.h1>.ic:first-child:not([class*="ic-"]),h3.sec>.ic:first-child:not([class*="ic
 /* v36 · icons are decoration: the click always lands on the button/link around them */
 .ic,.ic *,button svg,button svg *,a svg,a svg *,[role=button] svg,summary svg,.qchip *,.sess-ic,.sess-ic *{pointer-events:none}
 </style>
+<style id="shell-css">
+/* ================= v37 · app shell: sidebar · lesson outline · financial calculator ================= */
+body.has-side { --side-w: 248px; }
+body.has-side.side-rail { --side-w: 64px; }
+
+/* ---- sidebar ---- */
+#appSide { position: fixed; top: 0; left: 0; bottom: 0; width: 248px; z-index: 45; display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e2e8f0; transform: translateX(-102%); transition: transform .2s ease, width .2s ease; overscroll-behavior: contain; }
+.dark #appSide { background: #0f172a; border-color: #1e293b; }
+#appSide .as-head { display: flex; align-items: center; gap: .5rem; height: 48px; flex: none; padding: 0 .9rem; border-bottom: 1px solid #e2e8f0; }
+.dark #appSide .as-head { border-color: #1e293b; }
+#appSide .as-brand { display: flex; align-items: center; gap: .5rem; font-weight: 800; letter-spacing: -.01em; color: inherit; text-decoration: none; min-width: 0; }
+#appSide .as-nav { flex: 1; min-height: 0; overflow-y: auto; padding: .5rem 0; }
+#appSide .as-foot { flex: none; padding: .4rem 0 .6rem; border-top: 1px solid #e2e8f0; }
+.dark #appSide .as-foot { border-color: #1e293b; }
+.as-item { display: flex; align-items: center; gap: .75rem; width: calc(100% - 1rem); min-height: 44px; margin: 2px .5rem; padding: .35rem .75rem; border: 0; border-radius: .75rem; background: none; color: #334155; font: inherit; font-size: 14px; font-weight: 600; text-align: left; text-decoration: none; cursor: pointer; }
+.dark .as-item { color: #cbd5e1; }
+.as-item:hover { background: #f1f5f9; }
+.dark .as-item:hover { background: #1e293b; }
+.as-item.on { background: #eef2ff; color: #4338ca; }
+.dark .as-item.on { background: #1e1b4b; color: #a5b4fc; }
+.as-item:focus-visible, .as-sub a:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+.as-item svg { width: 20px; height: 20px; flex: none; }
+.as-item .as-lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.as-chev { transition: transform .15s; width: 16px !important; height: 16px !important; opacity: .6; }
+.as-item[aria-expanded="true"] .as-chev { transform: rotate(180deg); }
+.as-sub { padding: 0 0 .25rem; }
+.as-sub[hidden] { display: none; }
+.as-sec { margin: .7rem .5rem .15rem 2.55rem; padding-left: .75rem; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748b; }
+.dark .as-sec { color: #94a3b8; }
+.as-sub a { display: flex; align-items: center; min-height: 36px; margin: 1px .5rem 1px 2.55rem; padding: .2rem .75rem; border-radius: .6rem; font-size: 14px; color: #475569; text-decoration: none; border-left: 2px solid #e2e8f0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.dark .as-sub a { color: #cbd5e1; border-color: #334155; }
+.as-sub a:hover { background: #f1f5f9; }
+.dark .as-sub a:hover { background: #1e293b; }
+.as-sub a.on { background: #eef2ff; color: #4338ca; font-weight: 600; border-color: #4f46e5; }
+.dark .as-sub a.on { background: #1e1b4b; color: #a5b4fc; border-color: #818cf8; }
+#asCol svg { transition: transform .2s; }
+body.side-rail:not(.side-peek) #asCol svg { transform: rotate(180deg); }
+#sideBack { display: none; position: fixed; inset: 0; z-index: 44; background: rgba(15, 23, 42, .45); }
+body.side-open #sideBack { display: block; }
+body.side-open #appSide { transform: none; box-shadow: 0 0 40px rgba(0, 0, 0, .35); }
+
+@media (min-width: 900px) {
+  #appSide { transform: none; width: var(--side-w); }
+  body.has-side { padding-left: var(--side-w); transition: padding-left .2s ease; }
+  #sideBack { display: none !important; }
+  body.side-peek #appSide { width: 248px; box-shadow: 8px 0 40px rgba(0, 0, 0, .25); }
+  /* collapsed = icons only */
+  body.side-rail:not(.side-peek) #appSide .as-lbl, body.side-rail:not(.side-peek) #appSide .as-t, body.side-rail:not(.side-peek) #appSide .as-chev, body.side-rail:not(.side-peek) #appSide .as-sub { display: none !important; }
+  body.side-rail:not(.side-peek) #appSide .as-item { justify-content: center; padding-inline: 0; }
+  body.side-rail:not(.side-peek) #appSide .as-head { justify-content: center; padding: 0; }
+  .topbar .brand-link { display: none !important; }
+}
+@media (max-width: 899px) { #asCol { display: none; } }
+body.auth #appSide, body.auth #sideBack, body.auth #sideBtn, body.auth #calcBtn { display: none !important; }
+body.auth.has-side { padding-left: 0; }
+body.rd-fs #appSide, body.ai-fs #appSide, body.rd-fs #sideBack, body.ai-fs #sideBack { display: none !important; }
+body.rd-fs.has-side, body.ai-fs.has-side { padding-left: 0 !important; }
+@media print { #appSide, #sideBack { display: none !important; } body.has-side { padding-left: 0 !important; } }
+
+/* ---- lesson outline (left panel inside a module; the horizontal tabs stay on phones) ---- */
+.lp-panel { display: none; }
+.lp-hb { display: inline-flex; align-items: center; gap: .35rem; margin-left: auto; flex: none; }
+.lp-tgl { display: none !important; }
+.lp-hdone { white-space: nowrap; }
+.lp-hdone.is-done, .lp-cta.is-done { background: #ecfdf5; color: #047857; border: 1px solid #6ee7b7; }
+.dark .lp-hdone.is-done, .dark .lp-cta.is-done { background: #064e3b; color: #a7f3d0; border-color: #047857; }
+.tabs a.lp-tick::after { content: " \2713"; color: #059669; font-weight: 700; }
+.lp-main { min-width: 0; }
+@media (min-width: 900px) {
+  .lp-tgl { display: inline-flex !important; }
+  .lp-shell { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .lp-shell.lp-closed { grid-template-columns: minmax(0, 1fr); }
+  .lp-shell.lp-closed .lp-panel { display: none; }
+  .lp-shell .lp-main .tabs { display: none; }
+  .lp-panel { display: flex; flex-direction: column; gap: .55rem; position: sticky; top: 60px; max-height: calc(100dvh - 72px); overflow-y: auto; padding: 1rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; }
+  .dark .lp-panel { background: #0f172a; border-color: #1e293b; }
+  .lp-shell.lp-reading { gap: 0; }
+  .lp-shell.lp-reading .lp-panel { top: 48px; height: calc(100dvh - 48px); max-height: none; border-radius: 0; border-width: 0 1px 0 0; }
+}
+body.rd-fs .lp-shell, body.ai-fs .lp-shell { display: block !important; }
+body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
+.lp-back { font-size: 14px; font-weight: 600; color: #4338ca; text-decoration: none; }
+.dark .lp-back { color: #a5b4fc; }
+.lp-back:hover { text-decoration: underline; }
+.lp-ttl { display: flex; align-items: flex-start; gap: .6rem; font-size: 15px; line-height: 1.3; }
+.lp-ttl b { min-width: 0; overflow-wrap: anywhere; }
+.lp-num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: .6rem; background: #4f46e5; color: #fff; font-weight: 700; font-size: 14px; }
+.lp-bar { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+.dark .lp-bar { background: #1e293b; }
+.lp-bar i { display: block; height: 100%; background: linear-gradient(90deg, #14b8a6, #0d9488); transition: width .3s; }
+.lp-pct { font-size: 14px; color: #0f766e; }
+.dark .lp-pct { color: #5eead4; }
+.lp-list { list-style: none; margin: .25rem 0 0; padding: 0; }
+.lp-grp { margin: .8rem 0 .2rem; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748b; }
+.lp-row { display: flex; align-items: center; gap: .6rem; border-top: 1px solid #f1f5f9; padding: 2px 0; border-radius: .5rem; }
+.dark .lp-row { border-color: #1e293b; }
+.lp-row.on { background: #eef2ff; border-top-color: transparent; }
+.dark .lp-row.on { background: #1e1b4b; }
+.lp-dot { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: 4px 0 4px 4px; border-radius: 99px; border: 2px solid #94a3b8; background: transparent; color: transparent; cursor: pointer; padding: 0; }
+.lp-dot:hover { border-color: #4f46e5; }
+.lp-dot:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+.lp-row.done .lp-dot { background: #10b981; border-color: #10b981; color: #fff; }
+.lp-lbl { flex: 1; min-width: 0; display: block; padding: .55rem .4rem .55rem 0; font-size: 14px; font-weight: 600; color: #1e293b; text-decoration: none; }
+.dark .lp-lbl { color: #e2e8f0; }
+.lp-row.on .lp-lbl { color: #4338ca; }
+.dark .lp-row.on .lp-lbl { color: #a5b4fc; }
+.lp-row.done:not(.on) .lp-lbl { color: #64748b; }
+.lp-cta { position: sticky; bottom: 0; margin-top: auto; width: 100%; box-shadow: 0 -10px 12px -6px #fff; }
+.dark .lp-cta { box-shadow: 0 -10px 12px -6px #0f172a; }
+.lp-list { margin-bottom: .75rem; }
+.lp-main h1 { min-width: 0; }
+@media (max-width: 639px) { .lp-hdone .lp-bl { display: none; } .lp-hdone { min-width: 44px; padding-inline: .6rem; } }
+
+/* ---- financial calculator (look only; the engine plugs into window.FinCalc) ---- */
+.fc { position: fixed; z-index: 70; width: min(384px, calc(100vw - 16px)); padding: 10px 14px 12px; border-radius: 20px; color: #fff; background: linear-gradient(180deg, #2b3273, #202658); box-shadow: 0 24px 60px rgba(8, 10, 40, .55), inset 0 1px 0 rgba(255, 255, 255, .08); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.fc[hidden] { display: none; }
+.fc:focus { outline: none; }
+.fc-head { display: flex; align-items: center; gap: 6px; padding: 2px 2px 8px; cursor: move; user-select: none; touch-action: none; }
+.fc-brand { flex: 1; font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; color: #c9cffc; }
+.fc-brand b { color: #ff9a3d; }
+.fc-hb { height: 32px; min-width: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, .1); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.fc-hb:hover { background: rgba(255, 255, 255, .22); }
+.fc-lcd { margin-bottom: 12px; padding: 6px 12px 8px; min-height: 86px; border-radius: 10px; color: #1b2410; background: linear-gradient(#d3dfb3, #bdcc98); box-shadow: inset 0 2px 7px rgba(0, 0, 0, .35); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.fc-ind { display: flex; gap: 10px; height: 16px; font-size: 12px; font-weight: 700; }
+.fc-ind span { opacity: .16; }
+.fc-ind span.on { opacity: 1; }
+.fc-lbl { min-height: 16px; font-size: 12px; font-weight: 600; opacity: .8; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fc-num { font-size: 38px; line-height: 1.15; font-weight: 700; text-align: right; overflow: hidden; white-space: nowrap; }
+.fc-pad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 8px; row-gap: 4px; }
+.fc-c { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+.fc-c.eq { grid-row: span 2; }
+.fc-s { height: 16px; font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; white-space: nowrap; color: #aab2f0; letter-spacing: -.02em; }
+.fc.on2 .fc-s { color: #ffb45e; }
+.fc-k { height: 38px; padding: 0; border: 0; border-radius: 9px; color: #fff; font: 700 14px/1 system-ui, sans-serif; cursor: pointer; background: linear-gradient(#4f5ab6, #3c4693); box-shadow: 0 2px 0 #181d4e, 0 4px 8px rgba(0, 0, 0, .3); }
+.fc-k:hover { filter: brightness(1.1); }
+.fc-k:active { transform: translateY(2px); box-shadow: 0 0 0 #181d4e; }
+.fc-k:focus-visible { outline: 2px solid #ffd08a; outline-offset: 2px; }
+.fc-k.num { color: #1b2255; background: linear-gradient(#fff, #e4e8f6); box-shadow: 0 2px 0 #959cc6, 0 4px 8px rgba(0, 0, 0, .25); }
+.fc-k.sec, .fc-k.eq { background: linear-gradient(#ff9d42, #ee7810); box-shadow: 0 2px 0 #9a4a08, 0 4px 8px rgba(0, 0, 0, .3); }
+.fc.on2 .fc-k.sec { box-shadow: 0 0 0 3px #fff3, 0 2px 0 #9a4a08; filter: brightness(1.15); }
+.fc-c.eq .fc-k { height: auto; flex: 1; font-size: 22px; }
+.fc-note { margin-top: 10px; font-size: 12px; line-height: 1.4; text-align: center; color: #aab2f0; }
+@media (max-width: 639px) {
+  .fc { left: 50% !important; top: auto !important; right: auto !important; bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; transform: translateX(-50%); padding: 8px 10px 10px; }
+  .fc-k { height: 34px; font-size: 13px; }
+  .fc-num { font-size: 32px; }
+  .fc-lcd { min-height: 76px; margin-bottom: 8px; }
+  .fc-head { cursor: default; }
+}
+
+</style>
 </head>
-<body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<body class="has-side bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<aside id="appSide" aria-label="Sidebar"></aside><div id="sideBack" aria-hidden="true"></div>
 <header class="topbar sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
   <div class="max-w-6xl mx-auto flex items-center gap-2 px-3 h-12">
-    <a href="#/" class="flex items-center gap-2 font-extrabold tracking-tight"><span class="logo">L1</span><span class="brand-t">CFA Study</span></a>
-    <nav id="mainNav" class="hidden sm:flex items-center gap-1 ml-6 text-sm" aria-label="Main"></nav>
+    <button id="sideBtn" class="ib" type="button" title="Show / hide the menu" aria-label="Show or hide the menu" aria-controls="appSide" style="font-size:18px">☰</button>
+    <a href="#/progress" class="brand-link flex items-center gap-2 font-extrabold tracking-tight"><span class="logo">L1</span><span class="brand-t">CFA Study</span></a>
+    <nav id="mainNav" class="hidden" aria-label="Main (top bar, replaced by the sidebar)"></nav>
     <span id="sync" class="ml-auto text-sm cursor-help" title="Saved to cloud">☁️</span>
-    <button id="cmdBtn" class="ib" title="Command palette (Ctrl+K)" aria-label="Command palette" style="font-weight:700;font-size:15px">⌘</button><a href="#/search" class="ib" title="Search everything" aria-label="Search everything">🔍</a><button id="fsBtn" class="ib" title="Text size" aria-label="Text size" aria-expanded="false" style="font-weight:700;font-size:13px">Aa</button><button id="themeBtn" class="ib" title="Dark / light" aria-label="Dark / light mode">🌓</button>
+    <button id="calcBtn" class="ib" type="button" title="Financial calculator" aria-label="Financial calculator" aria-haspopup="dialog">🧮</button><button id="cmdBtn" class="ib" title="Command palette (Ctrl+K)" aria-label="Command palette" style="font-weight:700;font-size:15px">⌘</button><a href="#/search" class="ib" title="Search everything" aria-label="Search everything">🔍</a><button id="fsBtn" class="ib" title="Text size" aria-label="Text size" aria-expanded="false" style="font-weight:700;font-size:13px">Aa</button><button id="themeBtn" class="ib" title="Dark / light" aria-label="Dark / light mode">🌓</button>
   </div>
 </header>
 <main id="view" class="max-w-6xl mx-auto p-3 sm:p-5 pb-24"></main>
@@ -5006,6 +5159,61 @@ async function fsaCommonClick(e, x) {
 }
 
 
+// ---------- v37 · lesson outline: a left panel inside every module (replaces the tab strip on wide screens) ----------
+// Each step has a circle: tick it (or press "Mark complete & next") and the lesson moves on to the next step.
+// Saved under kv "lessonSteps" = { [moduleId]: { [step]: timestamp } }. Nothing else in the site reads or changes it.
+const LP_GROUP = { map: 'Learn', schweser: 'Learn', curriculum: 'Learn', diff: 'Learn', xtra: 'Learn', conf: 'Learn', cards: 'Consolidate', ai: 'Consolidate', mohd: 'Consolidate', qbank: 'Practice', mistakes: 'Practice' };
+const LP_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+async function lpDone(modId) { const all = (await kv.get('lessonSteps', {})) || {}; return { ...(all[modId] || {}) }; }
+const lpClosedNow = () => { try { return localStorage.getItem('lpClosed') === '1'; } catch (e) { return false; } };
+const lpHeadBtns = () => `<span class="lp-hb"><button type="button" class="ib lp-tgl" data-lpa="panel" title="Show / hide the lesson outline" aria-label="Show or hide the lesson outline">☰</button><button type="button" class="btn-primary text-xs lp-hdone" data-lpa="done"></button></span>`;
+function lpHTML(o) {
+  const { tabs, tab, hrefOf, st } = o, n = tabs.filter(([k]) => st[k]).length, pct = Math.round(100 * n / tabs.length);
+  let last = '';
+  const rows = tabs.map(([k, l]) => {
+    const g = LP_GROUP[k] || '', head = g !== last ? `<li class="lp-grp" role="presentation">${g}</li>` : ''; last = g;
+    return head + `<li class="lp-row${k === tab ? ' on' : ''}${st[k] ? ' done' : ''}" data-k="${k}"><button type="button" class="lp-dot" data-lpa="dot" data-k="${k}" aria-pressed="${!!st[k]}" aria-label="${esc(l)}: mark as complete">${LP_CHECK}</button><a class="lp-lbl" href="${hrefOf(k)}"${k === tab ? ' aria-current="step"' : ''}>${esc(l)}</a></li>`;
+  }).join('');
+  return `<aside class="lp-panel" aria-label="Lesson outline"><a class="lp-back" href="${esc(o.back[0])}">← ${esc(o.back[1])}</a>
+    <div class="lp-ttl"><span class="lp-num">${esc(String(o.num))}</span><b>${o.titleHTML}</b></div>
+    <div class="lp-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+    <div class="lp-pct"><b data-lp-pct>${pct}%</b> complete · <span data-lp-n>${n}</span>/${tabs.length} steps</div>
+    <ol class="lp-list">${rows}</ol>
+    <button type="button" class="btn-primary lp-cta" data-lpa="done"></button></aside>`;
+}
+function lpBind(root, o) {
+  if (!root) return;
+  const tabs = o.tabs, idx = tabs.findIndex(([k]) => k === o.tab), st = { ...o.st };
+  const paint = () => {
+    const n = tabs.filter(([k]) => st[k]).length, pct = Math.round(100 * n / tabs.length);
+    root.querySelectorAll('.lp-row').forEach(r => { const d = !!st[r.dataset.k]; r.classList.toggle('done', d); r.querySelector('.lp-dot').setAttribute('aria-pressed', String(d)); });
+    root.querySelectorAll('.tabs a').forEach((a, i) => { if (tabs[i]) a.classList.toggle('lp-tick', !!st[tabs[i][0]]); });
+    const bar = root.querySelector('.lp-bar'); if (bar) { bar.firstElementChild.style.width = pct + '%'; bar.setAttribute('aria-valuenow', String(pct)); }
+    const p = root.querySelector('[data-lp-pct]'); if (p) p.textContent = pct + '%';
+    const c = root.querySelector('[data-lp-n]'); if (c) c.textContent = String(n);
+    const cur = !!st[o.tab], lastStep = idx === tabs.length - 1;
+    root.querySelectorAll('[data-lpa="done"]').forEach(b => {
+      b.classList.toggle('is-done', cur);
+      b.innerHTML = '<span class="lp-ck">✓</span><span class="lp-bl"> ' + (cur ? 'Completed' : lastStep ? 'Mark complete' : 'Mark complete &amp; next') + '</span>'; b.setAttribute('aria-label', cur ? 'Completed — click to undo' : 'Mark this step complete' + (lastStep ? '' : ' and open the next one'));
+      b.title = cur ? 'Click to undo' : lastStep ? 'Mark this step complete' : 'Mark this step complete and open the next one';
+    });
+  };
+  const save = async () => { const all = { ...((await kv.get('lessonSteps', {})) || {}) }; all[o.x.id] = { ...st }; await kv.set('lessonSteps', all); };
+  root.addEventListener('click', async e => {
+    const b = e.target.closest('[data-lpa]'); if (!b || !root.contains(b)) return;
+    const a = b.dataset.lpa;
+    if (a === 'panel') { const closed = root.classList.toggle('lp-closed'); try { localStorage.setItem('lpClosed', closed ? '1' : '0'); } catch (x) { } return; }
+    if (a === 'dot') { e.preventDefault(); const k = b.dataset.k; if (st[k]) delete st[k]; else st[k] = Date.now(); paint(); await save(); return; }
+    if (a === 'done') {
+      if (st[o.tab]) { delete st[o.tab]; paint(); await save(); return; }
+      st[o.tab] = Date.now(); paint(); await save();
+      const nx = tabs[idx + 1];
+      if (nx) location.hash = o.hrefOf(nx[0]); else toast('🎉 Every step of this lesson is complete');
+    }
+  });
+  paint();
+}
+
 const FSA_TABS = [['map', 'Study Map'], ['schweser', 'Schweser Notes'], ['curriculum', 'Curriculum'], ['xtra', 'Extras'], ['conf', 'Conflicts'], ['cards', 'Flashcards'], ['ai', 'AI Summary'], ['mohd', 'Mohd Summary'], ['qbank', 'Questions'], ['mistakes', 'Mistakes']];
 async function fsaModule(subj, num, tab = 'map') {
   const x = packX(`${subj}-${+num}`); if (!x) return subjectHome(subj);
@@ -5013,18 +5221,21 @@ async function fsaModule(subj, num, tab = 'map') {
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   if (tab === 'print') return fsaPrint(x);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
-  view.innerHTML = `
-  <div class="${reading ? 'mod-reading flex flex-col' : ''}">
+  const lpo = { x, tabs: FSA_TABS, tab, hrefOf: k => `${x.href}/${k}`, back: ['#/study/' + subj, sj.name], num: m.id, titleHTML: esc(m.title), st: await lpDone(x.id) };
+  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}">${lpHTML(lpo)}
+  <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Module ' + m.id]])}
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
       ${reading ? `<a href="${esc(backHref(`${x.href}/map`))}" class="ib" data-back="1" title="Back to where you came from">←</a>` : ''}
       <div class="mod-num ${reading ? 'scale-75' : ''}">${m.id}</div>
       <h1 class="${reading ? 'font-semibold text-sm sm:text-base' : 'text-xl sm:text-2xl font-bold'} truncate">${esc(m.title)}</h1>
+      ${lpHeadBtns()}
     </div>
     ${reading ? '' : '<div id="mTrack"></div>'}
-    <div class="tabs ${reading ? 'px-2' : ''}">${FSA_TABS.map(([k, l]) => `<a href="${x.href}/${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</div>
+    <div class="tabs ${reading ? 'px-2' : ''}">${FSA_TABS.map(([k, l]) => `<a href="${x.href}/${k}" class="${k === tab ? 'on' : ''}${lpo.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('')}</div>
     <div id="tabBody" class="${reading ? 'flex-1 min-h-0' : 'mt-4'}"></div>
-  </div>`;
+  </div></div>`;
+  lpBind(view.querySelector('.lp-shell'), lpo);
   const body = document.getElementById('tabBody');
   if (!reading) moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
   if (reading) return bookTab(body, x, tab, tab === 'aipdf' ? {} : { extraTab: fsaExtraPanel(x, tab), losAt: async pg => losForPage(await losStartPages(x.id, tab), pg) });
@@ -8075,7 +8286,7 @@ async function qbankSetup() {
   }).join('');
   const subjQ = SUBJECTS.map(sj => ({ sj, qs: Q.filter(q => inScope(q, false) && subjOf(q) === sj.id) })).filter(z => z.qs.length);
   view.innerHTML = crumbs([['Today', '#/'], ['Practice']]) + `
-  <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h1 class="h1 mb-0">\uD83C\uDFAF Practice</h1><div class="flex flex-wrap gap-2"><a href="#/cards" class="btn-ghost">\uD83C\uDCCF Flashcards</a></div></div>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h1 class="h1 mb-0">\uD83C\uDFAF Question bank</h1><div class="flex flex-wrap gap-2"><a href="#/cards" class="btn-ghost">\uD83C\uDCCF Flashcards</a></div></div>
   <div class="qbtabs" role="tablist"><button type="button" role="tab" data-qbt="p">\uD83C\uDFAF Sessions</button><button type="button" role="tab" data-qbt="ex">\uD83D\uDCDD Exams &amp; mocks</button><a href="#/errors" role="tab">\uD83D\uDCD2 Error log</a></div>
   <div class="space-y-4" id="qbgrid">
       <div data-qt="p">${smartCardHTML()}</div>
@@ -8189,7 +8400,7 @@ async function qbankStats(subj) {
   const readi0 = allMods.length ? rdAvg(allMods, c).r : 0;
   const readi = sj ? mixMini(sj.id, readi0) : readi0, readiW = allMods.reduce((a, m) => a + modEstimate(m, c).W, 0), readiK = readiW >= RM.MIN;
   const prog = allMods.map(m => modProgress(m, c)), part = k => prog.length ? Math.round(prog.reduce((a, p) => a + p[k], 0) / prog.length) : 0;
-  view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ...(sj ? [['Qbank stats', '#/qbank/stats'], [sj.name]] : [['Qbank stats']])]) + `
+  view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ...(sj ? [['Qbank stats', '#/qbank/stats'], [sj.name]] : [['Qbank stats']])]) + `
   <div class="flex flex-wrap gap-1 mb-3"><a class="chip ${!sj ? 'chip-on' : ''}" href="#/qbank/stats">All topics</a>${SUBJECTS.map(s => `<a class="chip ${sj?.id === s.id ? 'chip-on' : ''}" href="#/qbank/stats/${s.id}">${s.icon} ${s.name}</a>`).join('')}</div>
   <h1 class="h1">${sj ? `${sj.icon} ${sj.name} — Performance` : '📊 Performance'}</h1>
   ${sj ? `<div class="card flex flex-wrap items-center gap-5 mb-4">
@@ -8828,7 +9039,7 @@ async function mocksView() {
   const trend = (list, label) => { const d = list.filter(x => ST[x.id].S.done); if (!d.length) return '';
     return `<div class="mb-3"><div class="text-xs font-semibold text-slate-500 mb-1">${label}</div>${d.map(x => { const sc = ST[x.id].S.sc; return `<div class="flex items-center gap-2 text-sm py-1"><span class="w-44 truncate">${esc(x.name)}</span><div class="flex-1 mk-bar"><div style="width:${sc}%" class="${sc >= 70 ? 'bg-emerald-500' : sc >= 60 ? 'bg-amber-500' : 'bg-rose-500'}"></div><i style="left:70%" title="70% target"></i></div><span class="w-10 text-right tabular-nums">${sc}%</span></div>`; }).join('')}</div>`; };
   const tr = trend(cps, 'Checkpoints') + trend(full, 'Mock exams');
-  view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Mocks']]) + `
+  view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Mocks']]) + `
   <div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCDD Mocks</h1><a class="btn-ghost text-xs" href="#/library?mocks">\uD83D\uDCC1 Manage mock files</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Qbank stats</a></div>
   ${upNext ? `<div class="card mb-4 mk-hero flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px]"><div class="text-xs uppercase tracking-wide opacity-80">Next step</div><div class="font-bold text-lg">${esc(upNext.name)}</div><div class="text-xs opacity-90">${ST[upNext.id].started ? `Continue with session ${ST[upNext.id].next}` : `${upNext.n} questions · ${mockIsCp(upNext) ? 'checkpoint' : 'full mock'}`}</div></div><button class="btn-primary" data-mk="${upNext.id}" data-part="${ST[upNext.id].next || 1}">▶ ${ST[upNext.id].started ? 'Continue' : 'Start'}</button></div>` : ''}
   <p class="text-xs text-slate-500 mb-4">Checkpoints: one session, 90 seconds per question. Full mocks: 2 sessions of 90 questions, 135 minutes each, with an optional break. Exam conditions: the clock cannot be paused and keeps running if you leave the tab. Mock files are kept apart from module Qbanks, Weakest LOS, mini-exams and practice mocks. If a provider also put the same question in its practice bank, that copy is flagged “Duplicate” (it is not hidden). Your mock results update LOS mastery and readiness.</p>
@@ -10914,8 +11125,8 @@ async function dashboardView() {
     finalplan: PROTO ? protocolHTML(D, PROTO) : F ? `<div class="card"><h3 class="sec">Final weeks plan</h3><div class="dfp">${F.map(w => `<div><b>Week ${w.wk}</b><span class="text-xs text-slate-500">${w.from.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span><div class="text-sm">${w.mock ? `\uD83D\uDCDD ${esc(w.mock)}` : w.wk === F.length ? '\uD83E\uDDD8 Exam week' : w.wk % 2 ? '\uD83C\uDFDB Practice exam day (Qbank, 180 Q)' : '\uD83D\uDCDD Retake your weakest mock'}</div><div class="text-xs text-slate-500">${esc(w.focus)}</div></div>`).join('')}</div></div>` : '',
   };
   const defs = [{ id: 'verdict', label: 'Plan status', full: true }, { id: 'final', label: 'Final review banner', full: true }, { id: 'kpis', label: 'Key numbers', full: true }, { id: 'topics', label: 'Topics' }, { id: 'actions', label: 'Do this week & confidence' }, { id: 'weekly', label: 'Weekly first-attempt accuracy' }, { id: 'mocks', label: 'Mock scores' }, { id: 'activity', label: 'Activity' }, { id: 'traps', label: 'Top traps' }, { id: 'sources', label: 'Sources & mock calibration', full: true }, { id: 'learnpath', label: 'How you learn best' }, { id: 'finalplan', label: 'Final weeks plan', full: true }];
-  view.innerHTML = crumbs([['Today', '#/'], ['Performance']]) + `
-  <div class="flex flex-wrap items-center gap-2 mb-4 relative"><h1 class="h1 mb-0 mr-auto">📊 Performance</h1>
+  view.innerHTML = crumbs([['Today', '#/'], ['Dashboard']]) + `
+  <div class="flex flex-wrap items-center gap-2 mb-4 relative"><h1 class="h1 mb-0 mr-auto">📊 Dashboard</h1>
     <button type="button" class="btn-ghost dsh-more" data-dshmore aria-expanded="false" aria-label="More actions">⋯</button><div class="dsh-acts" id="dshActs">
     <a class="btn-ghost text-xs" href="#/weekly">\uD83D\uDCC5 Weekly report</a><a class="btn-ghost text-xs" href="#/errors">\uD83D\uDCD2 Error log</a><a class="btn-ghost text-xs" href="#/qbank/stats">\uD83D\uDCCA Topic &amp; LOS detail</a>
     <button class="btn-ghost text-xs" id="dshGoal" data-tip="Questions you aim to answer each week">\uD83C\uDFAF Weekly goal: ${D.goal}</button>${layBtn('progress', edit)}
@@ -11306,7 +11517,7 @@ async function errorsView() {
         <div class="flex flex-wrap gap-2"><button type="button" class="btn-ghost text-xs" data-elp="${esc(q.id)}">\uD83C\uDFAF Practise this question</button>${m ? `<a class="btn-ghost text-xs" href="#/qbank/m/${encodeURIComponent(m.id)}">Open module Qbank</a>` : ''}</div></div></details>`; };
   const draw = () => {
     const ls = list(), part = ls.slice(0, shown);
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Error log']]) + `<div class="flex flex-wrap items-center gap-2 mb-3"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCD2 Error log</h1><button class="btn-primary text-xs" data-elgo="1" ${ls.length ? '' : 'disabled'}>\uD83C\uDFAF Practise these ${Math.min(ls.length, 30)}</button></div>
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Error log']]) + `<div class="flex flex-wrap items-center gap-2 mb-3"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCD2 Error log</h1><button class="btn-primary text-xs" data-elgo="1" ${ls.length ? '' : 'disabled'}>\uD83C\uDFAF Practise these ${Math.min(ls.length, 30)}</button></div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-center text-xs"><div class="dk"><div class="dk-v">${Qall.length}</div>questions ever missed</div><div class="dk r"><div class="dk-v">${stillWrong}</div>still wrong</div><div class="dk r"><div class="dk-v">${swN}</div>Sure but wrong</div><div class="dk a"><div class="dk-v">${noFix}</div>without a written fix</div></div>
     ${Qall.length ? `<div class="card mb-4"><h3 class="sec">Why you miss questions</h3>${REASONS.some(([k]) => counts[k]) ? `<div class="space-y-1">${REASONS.filter(([k]) => counts[k]).map(([k, n, i]) => `<div class="flex items-center gap-2 text-sm"><span class="w-44 truncate">${i} ${n}</span><div class="flex-1 elog-bar"><div style="width:${(counts[k] || 0) / mx * 100}%"></div></div><b class="w-8 text-right tabular-nums">${counts[k] || 0}</b></div>`).join('')}
       <div class="flex items-center gap-2 text-sm"><span class="w-44 truncate text-slate-500">— no reason given</span><div class="flex-1 elog-bar"><div class="alt" style="width:${noReason / mx * 100}%"></div></div><b class="w-8 text-right tabular-nums">${noReason}</b></div></div>
@@ -11393,7 +11604,7 @@ async function weeklyView(off) {
   const label = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const dl = (v, p, u = '') => v == null || p == null ? '' : `<span class="dk-d ${v - p >= 0 ? 'up' : 'dn'}">${v - p >= 0 ? '▲' : '▼'} ${Math.abs(v - p)}${u}</span>`;
   const txt = () => [`CFA L1 — week ${label(a0)} – ${label(b0 - 864e5)}`, `Questions ${T.n}/${D.goal} · first-attempt accuracy ${fa(T) ?? '—'}% · ${T.min} min · ${T.days} study days`, ...wins.map(w => '+ ' + w), ...watch.map(w => '! ' + w), 'Next week:', ...next.map((n, i) => `${i + 1}. ${n.t}`)].join('\n');
-  view.innerHTML = crumbs([['Today', '#/'], ['Performance', '#/progress'], ['Weekly report']]) + `<div class="flex flex-wrap items-center gap-2 mb-3"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCC5 Weekly report</h1>
+  view.innerHTML = crumbs([['Today', '#/'], ['Dashboard', '#/progress'], ['Weekly report']]) + `<div class="flex flex-wrap items-center gap-2 mb-3"><h1 class="h1 mb-0 mr-auto">\uD83D\uDCC5 Weekly report</h1>
     <a class="btn-ghost text-xs" href="#/weekly/${off - 1}" aria-label="Previous week">← Previous</a><span class="chip">${label(a0)} – ${label(b0 - 864e5)}${off === 0 ? ' · this week' : ''}</span><a class="btn-ghost text-xs" href="#/weekly/${Math.min(0, off + 1)}" ${off >= 0 ? 'aria-disabled="true"' : ''}>Next →</a><button class="btn-ghost text-xs" id="wkCopy">\uD83D\uDCCB Copy as text</button></div>
   <div class="dk-grid"><div class="dk"><div class="dk-l">Questions</div><div class="dk-v">${T.n}<span class="dk-u">/${D.goal}</span></div><div class="dk-s">${off === 0 && new Date().getDay() !== 0 ? `week in progress · last week ${P.n}` : `${dl(T.n, P.n)} vs previous week`}</div></div>
     <div class="dk ${dshCol(fa(T))}"><div class="dk-l">First-attempt accuracy</div><div class="dk-v">${fa(T) ?? '—'}${fa(T) != null ? '%' : ''}</div><div class="dk-s">${T.fn} new questions · ${dl(fa(T), fa(P), ' pts')}</div></div>
@@ -11421,15 +11632,15 @@ const NAV_SVG = {
   more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
 };
 const navIcon = k => `<svg class="bn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_SVG[k]}</svg>`;
-const NAV_PAGES = { today: { label: 'Today', href: '#/' }, study: { label: 'Study', href: '#/study' }, practice: { label: 'Practice', href: '#/qbank' }, progress: { label: 'Performance', short: 'Perform.', href: '#/progress' }, plan: { label: 'Plan', href: '#/plan' }, library: { label: 'Library', href: '#/library' }, settings: { label: 'Settings', href: '#/settings' } };
-const NAV_MAIN = ['today', 'study', 'practice', 'progress'], NAV_ALL = Object.keys(NAV_PAGES), NAV_MANAGE = ['plan', 'library', 'settings'];
-const NAV_EXTRA = [['Lecture notes', '#/lecnotes'], ['Things to remember', '#/remember'], ['Weekly report', '#/weekly'], ['Error log', '#/errors'], ['Ethics lab', '#/ethics'], ['Calculator drill', '#/calc'], ['Exam-day checklist', '#/examday'], ['Trap library', '#/traps'], ['Explorers', '#/explore'], ['Flashcards', '#/cards'], ['Search', '#/search'], ['Data health', '#/health']];
-const NAV_DEF = { order: NAV_MAIN.slice(), hidden: [], start: 'today', same: false };
+const NAV_PAGES = { progress: { label: 'Dashboard', href: '#/progress' }, today: { label: 'Today', href: '#/' }, study: { label: 'Study', href: '#/study' }, practice: { label: 'Question bank', short: 'Q-bank', href: '#/qbank' }, plan: { label: 'Plan', href: '#/plan' }, library: { label: 'Library', href: '#/library' }, settings: { label: 'Settings', href: '#/settings' } };
+const NAV_MAIN = ['progress', 'today', 'study', 'practice'], NAV_ALL = Object.keys(NAV_PAGES), NAV_MANAGE = ['plan', 'library', 'settings'];
+const NAV_EXTRA = [['Mock exams', '#/qbank/mocks'], ['10-minute session', '#/quick'], ['Formulas', '#/formulas'], ['Full summary', '#/summary'], ['Lecture notes', '#/lecnotes'], ['Things to remember', '#/remember'], ['Weekly report', '#/weekly'], ['Error log', '#/errors'], ['Ethics lab', '#/ethics'], ['Calculator drill', '#/calc'], ['Exam-day checklist', '#/examday'], ['Trap library', '#/traps'], ['Explorers', '#/explore'], ['Flashcards', '#/cards'], ['Search', '#/search'], ['Data health', '#/health']];
+const NAV_DEF = { order: NAV_MAIN.slice(), hidden: [], start: 'progress', same: false };
 let NAVP = { ...NAV_DEF, order: NAV_MAIN.slice(), hidden: [] }, NAVM = NAV_MAIN.slice(), _navSig = '';
 function navClean(p) {
   p = p || {};
   const order = [...new Set((Array.isArray(p.order) ? p.order : []).filter(id => NAV_MAIN.includes(id)))]; NAV_MAIN.forEach(id => { if (!order.includes(id)) order.push(id); });
-  return { order, hidden: (Array.isArray(p.hidden) ? p.hidden : []).filter(id => id !== 'today' && NAV_MAIN.includes(id)), start: NAV_MAIN.includes(p.start) ? p.start : 'today', same: !!p.same };
+  return { order, hidden: (Array.isArray(p.hidden) ? p.hidden : []).filter(id => id !== 'today' && NAV_MAIN.includes(id)), start: NAV_MAIN.includes(p.start) ? p.start : 'progress', same: !!p.same };
 }
 function navMobClean(m) {
   const out = (Array.isArray(m) ? m : []).filter((x, i, a) => NAV_PAGES[x] && a.indexOf(x) === i).slice(0, 4);
@@ -11445,6 +11656,7 @@ const navKeyOf = h => {
   return '';
 };
 function setNavActive(h) {
+  try { window.__sideSync && window.__sideSync(h); } catch (e) { }
   const k = navKeyOf(h);
   document.querySelectorAll('[data-nav]').forEach(a => { const id = a.dataset.nav, on = id === k || (id === 'manage' && (NAV_MANAGE.includes(k) || NAVP.hidden.includes(k))); a.classList.toggle('on', on); if (a.tagName === 'A') { if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); } });
 }
@@ -11464,6 +11676,7 @@ function renderNav() {
   setNavActive(location.hash || '#/');
 }
 async function navLoad() {
+  if (!(await kv.get('navSideV1', false))) { const c0 = navClean(await kv.get('nav', null)); c0.start = 'progress'; c0.order = NAV_MAIN.slice(); await kv.set('nav', c0); await kv.set('navMobile', null); await kv.set('navSideV1', true); }
   LEARN_PATH = (await kv.get('learnPath', 'standard')) === 'qfirst' ? 'qfirst' : 'standard';
   const p = navClean(await kv.get('nav', null)), m = navMobClean(await kv.get('navMobile', null)), sig = JSON.stringify([p, m]);
   if (sig !== _navSig) { _navSig = sig; NAVP = p; NAVM = m; renderNav(); }
@@ -11932,7 +12145,7 @@ async function examdayView() {
   let chk = await kv.get('examChk', {});
   const total = EXD.reduce((a, g) => a + g.items.length, 0), cnt = () => Object.values(chk).filter(Boolean).length;
   const draw = () => {
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Exam-day checklist']]) + `
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Exam-day checklist']]) + `
     <div class="flex flex-wrap items-center gap-2 mb-2"><h1 class="h1 mb-0 mr-auto">✅ Exam-day checklist</h1><button class="btn-ghost text-xs" id="exdPrint">\uD83D\uDDA8 Print</button><button class="btn-ghost text-xs" id="exdReset">Reset</button></div>
     <div class="card mb-3"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 mw12"><div class="text-2xl font-bold tabular-nums">${cnt()}<span class="text-base text-slate-500">/${total}</span></div><div class="text-xs text-slate-500">${days == null ? '<a class="link" href="#/settings">Set your exam date</a> to see the countdown' : days > 0 ? `${days} day${days === 1 ? '' : 's'} to the exam` : days === 0 ? 'Exam day — good luck' : 'Exam date has passed'}</div>${bar(pct(cnt(), total), 'bg-emerald-500')}</div>
       <div class="text-xs text-slate-500 flex-1 mw14"><b>Checked against CFA Institute pages dated Jan–Mar 2026.</b> Rules can change — open these two days before the exam: <a class="link" href="${CFAI.calc}" target="_blank" rel="noopener">calculator policy</a> · <a class="link" href="${CFAI.belongings}" target="_blank" rel="noopener">personal belongings</a> · <a class="link" href="${CFAI.guide}" target="_blank" rel="noopener">exam-day guide</a> · <a class="link" href="${CFAI.l1}" target="_blank" rel="noopener">Level I exam page</a>. Where this list and the official pages differ, follow the official pages.</div></div></div>
@@ -11986,7 +12199,7 @@ async function calcView() {
   const stats = () => CALC_TYPES.map(t => { const h = H.filter(x => x[1] === t.id).slice(-20), ok = h.filter(x => x[2]), at = ok.length ? Math.round(ok.reduce((a, x) => a + x[3], 0) / ok.length) : null; return { t, n: h.length, acc: h.length ? pct(ok.length, h.length) : null, at }; });
   const drawHome = () => {
     const st = stats(), tot = H.length;
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Calculator drill']]) + `
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Calculator drill']]) + `
     <h1 class="h1 mb-1">\uD83E\uDDEE Calculator drill</h1>
     <p class="text-sm text-slate-600 dark:text-slate-300 mb-3">Timed problems for the TI BA II Plus. Work them on your real calculator and type the answer. The exam gives about ${CALC_BUDGET} seconds per question including reading, so a calculation should take well under that. The numbers below are generated fresh each time; the keystrokes are for the BA II Plus (the answers are the same on an HP 12C).</p>
     <details class="card mb-3"><summary class="cust-sum"><span class="font-bold">One-time calculator set-up</span><span class="text-xs text-slate-500">check it on your own device</span></summary><div class="mt-2 space-y-1">${CALC_SETUP.map(([a, b]) => `<div class="text-sm"><b>${esc(a)}</b> — <span class="font-mono text-xs">${esc(b)}</span></div>`).join('')}</div></details>
@@ -11997,7 +12210,7 @@ async function calcView() {
   const stop = () => { clearInterval(tmr); tmr = null; };
   const drawQ = () => {
     const p = S.items[S.i];
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Calculator drill']]) + `
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Calculator drill']]) + `
     <div class="flex items-center gap-2 mb-2"><button class="ib" id="cdQuit" aria-label="Stop the round">✕</button><span class="text-sm font-semibold flex-1">Problem ${S.i + 1} of ${S.items.length} · ${esc(p.name)}</span><span id="cdClock" class="font-mono text-sm px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40" role="timer" aria-live="off">0:00</span></div>
     <div class="card"><p class="text-base leading-relaxed" id="cdQ">${esc(p.q)}</p>
       <form id="cdForm" class="flex flex-wrap items-end gap-2 mt-3"><label class="text-xs flex-1 mw10">Your answer${esc(p.unit)}<input id="cdAns" class="inp mt-1" inputmode="decimal" autocomplete="off" autofocus></label><button class="btn-primary" id="cdCheck">Check</button><button type="button" class="btn-ghost" id="cdSkip">Skip</button></form>
@@ -12008,7 +12221,7 @@ async function calcView() {
   const record = async (p, ok, secs) => { S.res.push({ p, ok, secs }); H.push([Date.now(), p.type, ok ? 1 : 0, secs]); if (H.length > 300) H.splice(0, H.length - 300); await kv.set('calcDrill', { h: H }); };
   const drawEnd = () => {
     stop(); const ok = S.res.filter(x => x.ok), at = ok.length ? Math.round(ok.reduce((a, x) => a + x.secs, 0) / ok.length) : null;
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Calculator drill']]) + `<div class="card text-center"><div class="text-4xl font-extrabold">${ok.length}/${S.res.length}</div><div class="text-sm text-slate-500">correct${at != null ? ` · ${at} s average on the correct ones` : ''}</div>
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Calculator drill']]) + `<div class="card text-center"><div class="text-4xl font-extrabold">${ok.length}/${S.res.length}</div><div class="text-sm text-slate-500">correct${at != null ? ` · ${at} s average on the correct ones` : ''}</div>
       <div class="text-left mt-4 space-y-1">${S.res.map((x, i) => `<div class="dsrc"><b class="dsrc-n">${i + 1}. ${esc(x.p.name)}</b><span class="${x.ok ? 'text-emerald-600' : 'text-rose-600'}">${x.ok ? '✓' : '✗'} ${x.secs} s</span><span class="text-xs text-slate-500">answer ${calcFmt(Math.round(x.p.a * 1e4) / 1e4)}${esc(x.p.unit)}</span></div>`).join('')}</div>
       <div class="flex flex-wrap gap-2 justify-center mt-4"><button class="btn-primary" id="cdAgain">Another round</button><button type="button" class="btn-ghost" id="cdHome">Results &amp; set-up</button><a class="btn-ghost" href="#/qbank">Practice</a></div></div>`;
   };
@@ -12121,7 +12334,7 @@ async function ethicsView() {
   const sname = id => ETH_STD.find(s => s.id === id);
   const drawHome = () => {
     const rows = ETH_STD.map(s => ({ s, z: lab[s.id] })).filter(x => x.z && x.z.n >= 2).sort((a, b) => a.z.c / a.z.n - b.z.c / b.z.n);
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Ethics lab']]) + `
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Ethics lab']]) + `
     <h1 class="h1 mb-1">⚖️ Ethics lab</h1>
     <p class="text-sm text-slate-600 dark:text-slate-300 mb-3">Ethics questions are won in two steps: <b>spot the Standard</b> from the situation, then <b>pick the action</b> that follows it. This lab trains the first step with the cue words, and keeps the second step on one page. It is a revision aid built from the CFA Institute Code and Standards — your Curriculum reading (Standards of Practice Handbook, v12 for 2027) is the authority.</p>
     <div class="card mb-3"><h3 class="sec">Spot the Standard</h3><div class="flex flex-wrap items-end gap-2"><label class="text-xs lab-fit">Practise<select id="elG" class="inp mt-1 w-auto"><option value="all">All Standards (weakest first)</option>${Object.entries(ETH_GROUPS).map(([k, v]) => `<option value="${k}">Standard ${k} · ${esc(ETH_SHORT[k])}</option>`).join('')}</select></label><button type="button" class="btn-primary" id="elGo">▶ Start a round</button></div>
@@ -12134,12 +12347,12 @@ async function ethicsView() {
   };
   const drawQ = () => {
     const it = R.items[R.i];
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Ethics lab']]) + `<div class="flex items-center gap-2 mb-2"><button class="ib" id="elQuit" aria-label="Stop the round">✕</button><span class="text-sm font-semibold flex-1">Situation ${R.i + 1} of ${R.items.length}</span></div>
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Ethics lab']]) + `<div class="flex items-center gap-2 mb-2"><button class="ib" id="elQuit" aria-label="Stop the round">✕</button><span class="text-sm font-semibold flex-1">Situation ${R.i + 1} of ${R.items.length}</span></div>
       <div class="card"><div class="text-xs uppercase tracking-wide text-slate-500">Which Standard applies?</div><p class="text-lg leading-relaxed mt-1" id="elQ">${esc(it.c)}</p><div class="space-y-2 mt-3" role="group" aria-label="Choose the Standard">${it.opts.map((id, k) => `<button type="button" class="eth-opt" data-pick="${id}"><b>${'ABC'[k]}.</b> <span><b>${sname(id).code}</b> ${esc(sname(id).name)}</span></button>`).join('')}</div><div id="elFb" aria-live="polite" class="mt-3"></div></div>`;
   };
   const drawEnd = () => {
     const ok = R.res.filter(x => x.ok).length;
-    view.innerHTML = crumbs([['Today', '#/'], ['Practice', '#/qbank'], ['Ethics lab']]) + `<div class="card text-center"><div class="text-4xl font-extrabold">${ok}/${R.res.length}</div><div class="text-sm text-slate-500">Standards spotted</div>
+    view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ['Ethics lab']]) + `<div class="card text-center"><div class="text-4xl font-extrabold">${ok}/${R.res.length}</div><div class="text-sm text-slate-500">Standards spotted</div>
       <div class="text-left mt-4 space-y-1">${R.res.map(x => `<div class="dsrc"><b class="dsrc-n ${x.ok ? '' : 'text-rose-600'}">${x.ok ? '✓' : '✗'} ${sname(x.s).code} ${esc(sname(x.s).name)}</b><span class="text-xs text-slate-500">${esc(x.c)}</span></div>`).join('')}</div>
       <div class="flex flex-wrap gap-2 justify-center mt-4"><button class="btn-primary" id="elAgain">Another round</button><button type="button" class="btn-ghost" id="elHome">Back to the lab</button></div></div>`;
   };
@@ -12613,22 +12826,24 @@ async function moduleView(num, tab = 'ai') {
   const m = x.m;
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
-  view.innerHTML = `
-  <div class="${reading ? 'mod-reading flex flex-col' : ''}">
+  const lpo = { x, tabs: TABS, tab, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id, titleHTML: m.title, st: await lpDone(x.id) };
+  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}">${lpHTML(lpo)}
+  <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], ['Economics', '#/study/econ'], ['Module ' + m.id]])}
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
       ${reading ? `<a href="${esc(backHref('#/study/econ'))}" class="ib" data-back="1" title="Back to where you came from">←</a>` : ''}
       <div class="mod-num ${reading ? 'scale-75' : ''}">${m.id}</div>
       <h1 class="${reading ? 'font-semibold text-sm sm:text-base' : 'text-xl sm:text-2xl font-bold'} truncate">${m.title}</h1>
-      <div class="ml-auto flex gap-1">
+      <div class="ml-auto flex gap-1 items-center">${lpHeadBtns()}
         ${m.id > 12 ? `<a class="ib" title="Previous module" href="#/study/econ/${m.id - 1}/${tab}">‹</a>` : ''}
         ${m.id < 19 ? `<a class="ib" title="Next module" href="#/study/econ/${m.id + 1}/${tab}">›</a>` : ''}
       </div>
     </div>
     ${reading ? '' : '<div id="mTrack"></div>'}
-    <div class="tabs ${reading ? 'px-2' : ''}">${TABS.map(([k, l]) => `<a href="#/study/econ/${m.id}/${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</div>
+    <div class="tabs ${reading ? 'px-2' : ''}">${TABS.map(([k, l]) => `<a href="#/study/econ/${m.id}/${k}" class="${k === tab ? 'on' : ''}${lpo.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('')}</div>
     <div id="tabBody" class="${reading ? 'flex-1 min-h-0' : 'mt-4'}"></div>
-  </div>`;
+  </div></div>`;
+  lpBind(view.querySelector('.lp-shell'), lpo);
   const body = document.getElementById('tabBody');
   if (!reading) moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
   if (reading) return bookTab(body, x, tab);
@@ -13174,7 +13389,7 @@ async function signOutGuard() {
 let cmdOpen = false;
 function cmdItems() {
   const I = [], add = (label, hint, run, kw = '') => I.push({ label, hint, run, kw }), go = h => () => { location.hash = h; };
-  [['Today', '#/'], ['Study — all topics', '#/study'], ['Plan', '#/plan'], ['Practice', '#/qbank'], ['Performance', '#/progress'], ['Library', '#/library'], ['Settings', '#/settings'], ['Search everything', '#/search'], ['Flashcards — all modules', '#/cards'], ['Mock exams', '#/qbank/mocks'], ['Qbank stats — all topics', '#/qbank/stats'], ['Formulas', '#/formulas'], ['Mohd Summary — all topics', '#/summary']].forEach(([l, h]) => add(l, 'Go to', go(h)));
+  [['Today', '#/'], ['Study — all topics', '#/study'], ['Plan', '#/plan'], ['Question bank', '#/qbank'], ['Dashboard', '#/progress'], ['Library', '#/library'], ['Settings', '#/settings'], ['Search everything', '#/search'], ['Flashcards — all modules', '#/cards'], ['Mock exams', '#/qbank/mocks'], ['Qbank stats — all topics', '#/qbank/stats'], ['Formulas', '#/formulas'], ['Mohd Summary — all topics', '#/summary']].forEach(([l, h]) => add(l, 'Go to', go(h)));
   SUBJECTS.forEach(s => { add(`${s.icon} ${s.name}`, 'Topic', go('#/study/' + s.id)); add(`${s.icon} ${s.name} — Qbank stats`, 'Qbank stats', go('#/qbank/stats/' + s.id)); });
   for (const m of moduleList()) {
     const nm = `${m.short} · ${m.title}`; add(nm, m.x ? 'Module' : 'Module · not loaded', go(m.href));
@@ -14474,6 +14689,969 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
   }
   if (!addDock()) { var mo = new MutationObserver(function () { if (addDock()) mo.disconnect(); }); mo.observe(document.body, { childList: true }); }
 })();
+</script>
+<script id="shell-js">
+/* v37 · left sidebar (Dashboard · Today · Study · Flashcards · Things to remember · Question bank · Manage).
+   Desktop: open / icons-only (one click, remembered). Inside a lesson it shows icons only so the lesson outline has room.
+   Phones and narrow windows: a drawer opened from the ☰ button. */
+(function () {
+  'use strict';
+  var el = document.getElementById('appSide'); if (!el) return;
+  var body = document.body, BIG = '(min-width:900px)';
+  var ICON = {
+    dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+    today: '<rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
+    study: '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+    cards: '<rect x="3" y="7" width="14" height="14" rx="2.5"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/>',
+    mark: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+    qb: '<path d="M9 6h12M9 12h12M9 18h12"/><path d="M3 6l1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/>',
+    mg: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    calc: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18.5h.01M12 18.5h.01M15.5 18.5h.01"/>',
+    col: '<path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>',
+    chev: '<path d="M6 9l6 6 6-6"/>'
+  };
+  var svg = function (k, c) { return '<svg' + (c ? ' class="' + c + '"' : '') + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>'; };
+  var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  var MAIN = [
+    ['dashboard', 'Dashboard', '#/progress', /^#\/(progress|dashboard)(\/|\?|$)/, 'dash'],
+    ['today', 'Today', '#/', /^(#\/?|#\/today.*)$/, 'today'],
+    ['study', 'Study', '#/study', /^#\/(study|read|video|teach)(\/|\?|$)/, 'study'],
+    ['cards', 'Flashcards', '#/cards', /^#\/cards/, 'cards'],
+    ['remember', 'Things to remember', '#/remember', /^#\/remember/, 'mark'],
+    ['qbank', 'Question bank', '#/qbank', /^#\/(qbank|practice)(\/|\?|$)/, 'qb']
+  ];
+  var MORE = [
+    ['Plan & review', [['Plan', '#/plan', /^#\/plan/], ['Weekly report', '#/weekly', /^#\/weekly/], ['Error log', '#/errors', /^#\/errors/], ['Lecture notes', '#/lecnotes', /^#\/lecnotes/], ['Trap library', '#/traps', /^#\/traps/], ['Exam-day checklist', '#/examday', /^#\/examday/]]],
+    ['Practice tools', [['Mock exams', '#/qbank/mocks', /^#\/qbank\/mocks/], ['10-minute session', '#/quick', /^#\/quick/], ['Formulas', '#/formulas', /^#\/formulas/], ['Full summary', '#/summary', /^#\/summary/], ['Calculator drill', '#/calc', /^#\/calc/], ['Ethics lab', '#/ethics', /^#\/ethics/], ['Explorers', '#/explore', /^#\/explore/]]],
+    ['Library & system', [['Library', '#/library', /^#\/library/], ['Search', '#/search', /^#\/search/], ['Settings', '#/settings', /^#\/settings/], ['Data health', '#/health', /^#\/health/], ['Customize menu & layout', '#/layout', /^#\/layout/]]]
+  ];
+  var LESSON = /^#\/study\/\w+\/\d+(\/|\?|$)/;
+
+  function build() {
+    var h = '<div class="as-head"><a class="as-brand" href="#/progress" title="Dashboard"><span class="logo">L1</span><span class="as-t">CFA Study</span></a></div><nav class="as-nav" aria-label="Main">';
+    MAIN.forEach(function (m) { h += '<a class="as-item" data-id="' + m[0] + '" href="' + m[2] + '" title="' + esc(m[1]) + '">' + svg(m[4]) + '<span class="as-lbl">' + esc(m[1]) + '</span></a>'; });
+    h += '<button type="button" class="as-item" id="asMg" aria-expanded="false" aria-controls="asSub" title="Manage">' + svg('mg') + '<span class="as-lbl">Manage</span>' + svg('chev', 'as-chev') + '</button><div class="as-sub" id="asSub" hidden>';
+    MORE.forEach(function (g) { h += '<div class="as-sec">' + esc(g[0]) + '</div>'; g[1].forEach(function (c) { h += '<a href="' + c[1] + '" data-h="' + c[1] + '">' + esc(c[0]) + '</a>'; }); });
+    h += '</div></nav><div class="as-foot"><button type="button" class="as-item" id="asCalc" title="Financial calculator">' + svg('calc') + '<span class="as-lbl">Calculator</span></button><button type="button" class="as-item" id="asCol" title="Collapse / expand the sidebar">' + svg('col') + '<span class="as-lbl">Collapse</span></button></div>';
+    el.innerHTML = h;
+  }
+  var get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  var put = function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } };
+  var big = function () { return window.matchMedia(BIG).matches; };
+  function apply() { body.classList.toggle('side-rail', get('sideCollapsed') === '1' || body.classList.contains('in-lesson')); }
+  function setMg(open) { var b = document.getElementById('asMg'), s = document.getElementById('asSub'); if (!b || !s) return; s.hidden = !open; b.setAttribute('aria-expanded', String(open)); try { sessionStorage.setItem('asMg', open ? '1' : '0'); } catch (e) { } }
+  function mark(h) {
+    var onId = null, childOn = false;
+    el.querySelectorAll('.as-sub a').forEach(function (a) { a.classList.remove('on'); a.removeAttribute('aria-current'); });
+    MORE.forEach(function (g) { g[1].forEach(function (c) { if (!onId && c[2].test(h)) { onId = c[1]; childOn = true; } }); });
+    if (!onId) MAIN.forEach(function (m) { if (!onId && m[3].test(h)) onId = m[0]; });
+    el.querySelectorAll('.as-item[data-id]').forEach(function (a) { var on = a.dataset.id === onId; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (childOn) { var a = el.querySelector('.as-sub a[data-h="' + onId + '"]'); if (a) { a.classList.add('on'); a.setAttribute('aria-current', 'page'); } setMg(true); }
+    var mg = document.getElementById('asMg'); if (mg) mg.classList.toggle('on', childOn);
+  }
+  window.__sideSync = function (h) {
+    h = h || location.hash || '#/';
+    body.classList.toggle('in-lesson', LESSON.test(h));
+    body.classList.remove('side-peek', 'side-open');
+    apply(); mark(h);
+  };
+  function toggle() {
+    if (!big()) { body.classList.toggle('side-open'); return; }
+    if (body.classList.contains('in-lesson')) { body.classList.toggle('side-peek'); return; }
+    put('sideCollapsed', get('sideCollapsed') === '1' ? '0' : '1'); apply();
+  }
+  build();
+  var mgOpen = false; try { mgOpen = sessionStorage.getItem('asMg') === '1'; } catch (e) { }
+  setMg(mgOpen); window.__sideSync(location.hash);
+
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t.closest) return;
+    if (t.closest('#sideBtn') || t.closest('#asCol')) { toggle(); return; }
+    if (t.closest('#sideBack')) { body.classList.remove('side-open'); return; }
+    if (t.closest('#asMg')) {
+      if (big() && body.classList.contains('side-rail') && !body.classList.contains('side-peek')) {     // icons only: open the sidebar first
+        if (body.classList.contains('in-lesson')) body.classList.add('side-peek'); else { put('sideCollapsed', '0'); apply(); }
+        setMg(true); return;
+      }
+      setMg(document.getElementById('asSub').hidden); return;
+    }
+    if (t.closest('#asCalc')) { body.classList.remove('side-open', 'side-peek'); if (window.FinCalc) window.FinCalc.toggle(); return; }
+    if (t.closest('#appSide a')) { body.classList.remove('side-open', 'side-peek'); return; }
+    if (body.classList.contains('side-peek') && !t.closest('#appSide') && !t.closest('#sideBtn')) body.classList.remove('side-peek');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && (body.classList.contains('side-open') || body.classList.contains('side-peek'))) { body.classList.remove('side-open', 'side-peek'); }
+  });
+  window.matchMedia(BIG).addEventListener('change', function () { body.classList.remove('side-open', 'side-peek'); apply(); });
+})();
+
+</script>
+<script id="fincalc-js">
+/* v37 · Financial calculator — LOOK ONLY (BA II Plus layout, 2ND labels, LCD).
+   The maths engine is a separate job: it plugs in through window.FinCalc (see the contract below).
+   Until an engine is attached, a tiny placeholder handles digits, + − × ÷ =, √x, x², 1/x, %, +|−, CE|C so the keys are not dead.
+
+   CONTRACT
+     FinCalc.open() / close() / toggle()
+     FinCalc.display(main, label)        main = text on the LCD, label = small line above it (e.g. "N =", "CF0 =")
+     FinCalc.indicator(name, on)         name: '2ND' | 'INV' | 'BGN' | 'CPT'
+     FinCalc.attach({ press(fn, ctx) })  fn = key id, or the 2ND-function id when 2ND was pressed first (null if that key has no 2ND function)
+                                         ctx = { key, second, secondId }
+     DOM event 'fincalc:key' (detail = ctx + fn) fires for every key, whatever engine is attached.
+   Key ids  (face → id): CPT ENTER UP DOWN ONOFF 2ND CF NPV IRR BKSP N IY PV PMT FV PCT SQRT SQ RECIP DIV INV LP RP POW MUL LN
+                         7 8 9 SUB STO 4 5 6 ADD RCL 1 2 3 EQ CEC 0 DOT NEG
+   2ND ids: QUIT SET DEL INS xPY PY AMORT BGN CLRTVM ROUND RAND HYP SIN COS YROOTX FACT EX DATA STAT BOND NPR DEPR DELTAPCT BRKEVN NCR DATE ICONV PROFIT ANS CLRWORK MEM FORMAT RESET */
+(function () {
+  'use strict';
+  // [face, id, 2ND label, 2ND id, kind]
+  var ROWS = [
+    [['CPT', 'CPT', 'QUIT', 'QUIT', 'fn'], ['ENTER', 'ENTER', 'SET', 'SET', 'fn'], ['↑', 'UP', 'DEL', 'DEL', 'fn'], ['↓', 'DOWN', 'INS', 'INS', 'fn'], ['ON|OFF', 'ONOFF', '', '', 'fn']],
+    [['2ND', '2ND', '', '', 'sec'], ['CF', 'CF', '', '', 'fn'], ['NPV', 'NPV', '', '', 'fn'], ['IRR', 'IRR', '', '', 'fn'], ['→', 'BKSP', '', '', 'fn']],
+    [['N', 'N', 'xP/Y', 'xPY', 'fn'], ['I/Y', 'IY', 'P/Y', 'PY', 'fn'], ['PV', 'PV', 'AMORT', 'AMORT', 'fn'], ['PMT', 'PMT', 'BGN', 'BGN', 'fn'], ['FV', 'FV', 'CLR TVM', 'CLRTVM', 'fn']],
+    [['%', 'PCT', '', '', 'fn'], ['√x', 'SQRT', 'ROUND', 'ROUND', 'fn'], ['x²', 'SQ', '', '', 'fn'], ['1/x', 'RECIP', '', '', 'fn'], ['÷', 'DIV', 'RAND', 'RAND', 'fn']],
+    [['INV', 'INV', 'HYP', 'HYP', 'fn'], ['(', 'LP', 'SIN', 'SIN', 'fn'], [')', 'RP', 'COS', 'COS', 'fn'], ['yˣ', 'POW', 'ʸ√x', 'YROOTX', 'fn'], ['×', 'MUL', 'x!', 'FACT', 'fn']],
+    [['LN', 'LN', 'eˣ', 'EX', 'fn'], ['7', '7', 'DATA', 'DATA', 'num'], ['8', '8', 'STAT', 'STAT', 'num'], ['9', '9', 'BOND', 'BOND', 'num'], ['−', 'SUB', 'nPr', 'NPR', 'fn']],
+    [['STO', 'STO', '', '', 'fn'], ['4', '4', 'DEPR', 'DEPR', 'num'], ['5', '5', 'Δ%', 'DELTAPCT', 'num'], ['6', '6', 'BRKEVN', 'BRKEVN', 'num'], ['+', 'ADD', 'nCr', 'NCR', 'fn']],
+    [['RCL', 'RCL', '', '', 'fn'], ['1', '1', 'DATE', 'DATE', 'num'], ['2', '2', 'ICONV', 'ICONV', 'num'], ['3', '3', 'PROFIT', 'PROFIT', 'num'], ['=', 'EQ', 'ANS', 'ANS', 'eq']],
+    [['CE|C', 'CEC', 'CLR WORK', 'CLRWORK', 'fn'], ['0', '0', 'MEM', 'MEM', 'num'], ['.', 'DOT', 'FORMAT', 'FORMAT', 'num'], ['+|−', 'NEG', 'RESET', 'RESET', 'num']]
+  ];
+  var SEC = {}; ROWS.forEach(function (r) { r.forEach(function (k) { SEC[k[1]] = k[3] || null; }); });
+  var KEYMAP = { '.': 'DOT', ',': 'DOT', '+': 'ADD', '-': 'SUB', '*': 'MUL', 'x': 'MUL', 'X': 'MUL', '/': 'DIV', '=': 'EQ', 'Enter': 'ENTER', 'Backspace': 'BKSP', 'Delete': 'CEC', 'ArrowUp': 'UP', 'ArrowDown': 'DOWN', '%': 'PCT', '(': 'LP', ')': 'RP', '^': 'POW' };
+
+  var host = null, st = { second: false, engine: null }, nodes = {};
+  function $(s, r) { return (r || host).querySelector(s); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function build() {
+    host = document.createElement('div'); host.className = 'fc'; host.hidden = true; host.tabIndex = -1;
+    host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Financial calculator');
+    var pad = '';
+    ROWS.forEach(function (r) {
+      r.forEach(function (k) {
+        pad += '<div class="fc-c' + (k[4] === 'eq' ? ' eq' : '') + '"><span class="fc-s" aria-hidden="true">' + esc(k[2]) + '</span><button type="button" class="fc-k ' + k[4] + '" data-key="' + k[1] + '"' + (k[3] ? ' data-sec="' + k[3] + '"' : '') + ' aria-label="' + esc(k[0] + (k[2] ? ', 2ND ' + k[2] : '')) + '">' + esc(k[0]) + '</button></div>';
+      });
+    });
+    host.innerHTML = '<div class="fc-head"><div class="fc-brand"><b>CFA</b> FINANCIAL CALCULATOR</div><button type="button" class="fc-hb" data-act="classic" title="Open the classic Calc · TVM · Cash flow panel">Classic</button><button type="button" class="fc-hb" data-act="close" aria-label="Close calculator">✕</button></div>' +
+      '<div class="fc-lcd" aria-live="polite"><div class="fc-ind"><span data-ind="2ND">2ND</span><span data-ind="INV">INV</span><span data-ind="BGN">BGN</span><span data-ind="CPT">CPT</span></div><div class="fc-lbl" data-lbl></div><div class="fc-num" data-num>0.00</div></div>' +
+      '<div class="fc-pad">' + pad + '</div><div class="fc-note">Press 2ND, then a key, for the function printed above it · the keyboard works too</div>';
+    document.body.appendChild(host);
+    nodes.num = $('[data-num]'); nodes.lbl = $('[data-lbl]');
+    host.addEventListener('click', onClick);
+    host.addEventListener('keydown', onKey);
+    drag();
+  }
+
+  /* ---------- public API ---------- */
+  var FC = window.FinCalc = {
+    open: function () { if (!host) build(); place(); host.hidden = false; if (st.engine && st.engine.refresh) st.engine.refresh(); host.focus({ preventScroll: true }); },
+    close: function () { if (host) host.hidden = true; var b = document.getElementById('calcBtn'); if (b) b.setAttribute('aria-expanded', 'false'); },
+    toggle: function () { if (!host || host.hidden) FC.open(); else FC.close(); var b = document.getElementById('calcBtn'); if (b) b.setAttribute('aria-expanded', String(!host.hidden)); },
+    display: function (main, label) {
+      if (!host) return; var t = String(main == null ? '' : main); nodes.num.textContent = t;
+      nodes.num.style.fontSize = t.length > 17 ? '22px' : t.length > 13 ? '28px' : t.length > 10 ? '33px' : '';
+      if (label !== undefined) nodes.lbl.textContent = label || '';
+    },
+    indicator: function (name, on) { var n = host && $('[data-ind="' + name + '"]'); if (n) n.classList.toggle('on', !!on); },
+    attach: function (engine) { st.engine = engine || null; },
+    get second() { return st.second; }
+  };
+
+  /* ---------- keys ---------- */
+  function setSecond(v) { st.second = !!v; host.classList.toggle('on2', st.second); FC.indicator('2ND', st.second); }
+  function press(key) {
+    if (key === '2ND') { setSecond(!st.second); return; }
+    var second = st.second, secId = SEC[key] || null, ctx = { key: key, second: second, secondId: secId }, fn = second ? secId : key;
+    if (second) setSecond(false);
+    try { window.dispatchEvent(new CustomEvent('fincalc:key', { detail: { key: key, second: second, secondId: secId, fn: fn } })); } catch (e) { }
+    if (fn == null) return;
+    if (st.engine && typeof st.engine.press === 'function') st.engine.press(fn, ctx); else placeholder(fn);
+  }
+  function onClick(e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.act === 'close') return FC.close();
+    if (b.dataset.act === 'classic') { var f = document.querySelector('.bc-fab'); FC.close(); if (f) f.click(); return; }
+    if (b.dataset.key) { press(b.dataset.key); if (e.detail > 0) host.focus({ preventScroll: true }); }
+  }
+  function onKey(e) {
+    e.stopPropagation();
+    if (e.key === 'Escape') { FC.close(); var cb = document.getElementById('calcBtn'); if (cb) cb.focus(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return;     // let the focused key click itself
+    var k = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
+    if (k) { e.preventDefault(); press(k); }
+  }
+
+  /* ---------- position / drag ---------- */
+  function place() {
+    if (window.innerWidth < 640) { host.style.left = host.style.top = ''; return; }
+    var p = null; try { p = JSON.parse(localStorage.getItem('fcPos') || 'null'); } catch (e) { }
+    var w = host.offsetWidth || 384, h = host.offsetHeight || 520;
+    var l = p ? Math.max(4, Math.min(window.innerWidth - w - 4, p.l)) : Math.max(4, window.innerWidth - w - 20);
+    var t = p ? Math.max(4, Math.min(window.innerHeight - 60, p.t)) : 64;
+    host.style.left = l + 'px'; host.style.top = t + 'px'; host.style.right = 'auto'; host.style.bottom = 'auto';
+  }
+  function drag() {
+    var head = $('.fc-head'), d = null;
+    head.addEventListener('pointerdown', function (e) { if (e.target.closest('button') || window.innerWidth < 640) return; var r = host.getBoundingClientRect(); d = { dx: e.clientX - r.left, dy: e.clientY - r.top }; head.setPointerCapture(e.pointerId); });
+    head.addEventListener('pointermove', function (e) {
+      if (!d) return; host.style.left = Math.max(4, Math.min(window.innerWidth - host.offsetWidth - 4, e.clientX - d.dx)) + 'px'; host.style.top = Math.max(4, Math.min(window.innerHeight - 60, e.clientY - d.dy)) + 'px';
+    });
+    head.addEventListener('pointerup', function () { if (!d) return; d = null; try { localStorage.setItem('fcPos', JSON.stringify({ l: parseInt(host.style.left, 10), t: parseInt(host.style.top, 10) })); } catch (e) { } });
+  }
+
+  /* ---------- placeholder engine (replaced when a real one is attached) ---------- */
+  var P = { cur: '', acc: null, op: null, fresh: true };
+  function fmt(n) { return isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Error'; }
+  function val() { return P.cur === '' || P.cur === '-' ? 0 : parseFloat(P.cur); }
+  function apply(a, op, b) { return op === 'ADD' ? a + b : op === 'SUB' ? a - b : op === 'MUL' ? a * b : op === 'DIV' ? (b === 0 ? NaN : a / b) : b; }
+  function show(n, label) { FC.display(fmt(n), label || ''); }
+  function placeholder(fn) {
+    if (/^[0-9]$/.test(fn) || fn === 'DOT') {
+      if (P.fresh) { P.cur = ''; P.fresh = false; }
+      if (fn === 'DOT') { if (P.cur.indexOf('.') < 0) P.cur += P.cur === '' ? '0.' : '.'; } else if (P.cur.replace(/[-.]/g, '').length < 12) P.cur += fn;
+      FC.display(P.cur === '' ? '0' : P.cur, ''); return;
+    }
+    if (fn === 'NEG') { if (P.fresh) { P.cur = String(-(P.acc || 0)); P.fresh = false; } else P.cur = P.cur.charAt(0) === '-' ? P.cur.slice(1) : '-' + P.cur; FC.display(P.cur || '0', ''); return; }
+    if (fn === 'BKSP') { if (!P.fresh) { P.cur = P.cur.slice(0, -1); FC.display(P.cur || '0', ''); } return; }
+    if (fn === 'CEC') { P = { cur: '', acc: null, op: null, fresh: true }; FC.display('0.00', ''); return; }
+    if (fn === 'ADD' || fn === 'SUB' || fn === 'MUL' || fn === 'DIV' || fn === 'EQ' || fn === 'ENTER') {
+      var x = val();
+      if (P.op && !P.fresh) P.acc = apply(P.acc, P.op, x);
+      else if (!P.op && (!P.fresh || P.acc == null)) P.acc = x;
+      P.op = (fn === 'EQ' || fn === 'ENTER') ? null : fn; P.fresh = true; P.cur = ''; show(P.acc, ''); return;
+    }
+    if (fn === 'SQRT' || fn === 'SQ' || fn === 'RECIP' || fn === 'PCT') {
+      var x = P.fresh && P.acc != null ? P.acc : val(), y = fn === 'SQRT' ? Math.sqrt(x) : fn === 'SQ' ? x * x : fn === 'RECIP' ? 1 / x : x / 100;
+      P.acc = y; P.fresh = true; P.cur = ''; show(y, ''); return;
+    }
+    FC.display(nodes.num.textContent, 'Look only — engine not connected');
+  }
+
+  /* ==FINCALC ENGINE START== */
+  /* BA II Plus / BA II Plus Professional engine — original code (no third-party code copied).
+     Behaviour follows the TI BA II Plus guidebook. Study aid only: the CFA exam allows only the
+     physical TI BA II Plus (incl. Professional) and HP 12C.
+     createEngine(io)  io = { display(main,label), indicator(name,on), storage (localStorage-like, optional) } */
+  function createEngine(io) {
+    'use strict';
+    var KEY = 'fcState', MAXCF = 32, MAXDATA = 50;
+    var ERR = { OVERFLOW: 1, ARG: 2, PEND: 3, RANGE: 4, NOSOL: 5, MEM: 6, ITER: 7 };
+    function E(code) { var e = new Error('Error ' + code); e.fcCode = code; return e; }
+
+    /* ---------- defaults ---------- */
+    function defaults() {
+      return {
+        fmt: { dec: 2, deg: true, us: true, sepUS: true, chn: true },
+        mem: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ans: 0,
+        tvm: { N: 0, IY: 0, PV: 0, PMT: 0, FV: 0, PY: 12, CY: 12, bgn: false },
+        cf: { cf0: 0, c: [], f: [] }, npv: { I: 0 }, irr: { RI: 0 },
+        amort: { P1: 1, P2: 1 },
+        bond: { CPN: 0, RV: 100, act: true, m: 2, YLD: 0, PRI: 0 }, _d: {},
+        depr: { meth: 0, LIF: 1, M01: 1, DB: 200, CST: 0, SAL: 0, YR: 1 },
+        brk: { FC: 0, VC: 0, P: 0, PFT: 0, Q: 0 },
+        prof: { CST: 0, SEL: 0, MAR: 0 },
+        date: { DT1: 12.319, DT2: 12.319, DBD: 0, act: true },
+        iconv: { NOM: 0, EFF: 0, CY: 1 },
+        dlt: { OLD: 0, NEW: 0, PCH: 0, PD: 1 },
+        data: { x: [], y: [] }, stat: { meth: 0, XP: 0, YP: 0 }
+      };
+    }
+
+    var S = load();
+    var T;      // transient state (not saved)
+    resetTransient();
+
+    function load() {
+      var d = defaults(), s = null;
+      try { s = io.storage && JSON.parse(io.storage.getItem(KEY) || 'null'); } catch (e) { s = null; }
+      if (s && typeof s === 'object') {
+        Object.keys(d).forEach(function (k) {
+          if (s[k] == null) return;
+          if (Array.isArray(d[k])) { if (Array.isArray(s[k]) && s[k].length === d[k].length) d[k] = s[k].map(Number); }
+          else if (typeof d[k] === 'object') { Object.keys(s[k]).forEach(function (j) { d[k][j] = s[k][j]; }); }
+          else d[k] = s[k];
+        });
+      }
+      return d;
+    }
+    function save() { try { if (io.storage) io.storage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
+    function resetTransient() {
+      T = { x: 0, entry: null, frames: [{ v: [], o: [] }], opJust: false, ws: null, idx: 0, label: '', star: false,
+        err: 0, off: false, cpt: false, inv: false, hyp: false, sto: null, rcl: false, rst: false, lastLabel: '' };
+    }
+
+    /* ---------- dates (stored as entered: MM.DDYY or DD.MMYY plus 4-digit year cache) ---------- */
+    // internal date objects are day numbers (UTC days); stored as {y,m,d}
+    function decodeDate(v, us) {
+      var a = Math.abs(v), hi = Math.floor(a + 1e-9), r = Math.round((a - hi) * 10000);
+      var mid = Math.floor(r / 100), yy = r % 100, m = us ? hi : mid, d = us ? mid : hi;
+      var y = yy < 50 ? 2000 + yy : 1900 + yy;
+      if (m < 1 || m > 12 || d < 1 || d > dim(y, m)) throw E(ERR.ARG);
+      return { y: y, m: m, d: d };
+    }
+    function encodeDate(o, us) { return (us ? o.m : o.d) + ((us ? o.d : o.m) * 100 + (o.y % 100)) / 10000; }
+    function dim(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+    function dnum(o) { return Math.round(Date.UTC(o.y, o.m - 1, o.d) / 864e5); }
+    function fromDnum(n) { var t = new Date(n * 864e5); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() }; }
+    function d360(a, b) {
+      var d1 = a.d, d2 = b.d;
+      if (d1 === 31) d1 = 30;
+      if (d2 === 31 && d1 >= 30) d2 = 30;
+      return (b.y - a.y) * 360 + (b.m - a.m) * 30 + (d2 - d1);
+    }
+    function addMonths(o, k) {
+      var t = o.y * 12 + (o.m - 1) + k, y = Math.floor(t / 12), m = t - y * 12 + 1;
+      return { y: y, m: m, d: Math.min(o.d, dim(y, m)) };
+    }
+    // dates are kept internally as {y,m,d} objects in S (dt1,dt2,sdt,rdt)
+    function getDate(slot) { return S._d && S._d[slot] ? S._d[slot] : ({ dt1: { y: 1990, m: 12, d: 31 }, dt2: { y: 1990, m: 12, d: 31 }, sdt: { y: 1990, m: 12, d: 31 }, rdt: { y: 2000, m: 12, d: 31 } })[slot]; }
+    function setDate(slot, o) { if (!S._d) S._d = {}; S._d[slot] = o; }
+    function fmtDate(o) {
+      var p = function (n) { return (n < 10 ? '0' : '') + n; };
+      var wd = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][new Date(Date.UTC(o.y, o.m - 1, o.d)).getUTCDay()];
+      return (S.fmt.us ? p(o.m) + '-' + p(o.d) : p(o.d) + '-' + p(o.m)) + '-' + o.y + ' ' + wd;
+    }
+
+    /* ---------- number formatting ---------- */
+    function r13(v) { return isFinite(v) && v !== 0 ? +v.toPrecision(13) : v; }
+    function groupInt(s) {
+      var sep = S.fmt.sepUS ? ',' : '.';
+      return s.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+    }
+    function joinNum(neg, ip, fp) {
+      return (neg ? '-' : '') + groupInt(ip) + (fp != null ? (S.fmt.sepUS ? '.' : ',') + fp : '');
+    }
+    function fmtNum(v) {
+      if (typeof v === 'string') return v;
+      if (!isFinite(v)) return 'Error ' + ERR.OVERFLOW;
+      v = r13(v); if (Object.is(v, -0)) v = 0;
+      var dec = S.fmt.dec, a = Math.abs(v), neg = v < 0;
+      if (a !== 0 && (a >= 9999999999.5 || (dec === 9 && a < 1e-9))) {
+        var m = a.toExponential(dec === 9 ? 7 : Math.min(dec, 7)).split('e'), mm = m[0];
+        if (dec === 9) mm = mm.replace(/\.?0+$/, '');
+        var mp = mm.split('.');
+        return (neg ? '-' : '') + mp[0] + (mp[1] != null ? (S.fmt.sepUS ? '.' : ',') + mp[1] : '') + 'E' + (+m[1]);
+      }
+      var s;
+      if (dec === 9) { s = (+a.toPrecision(10)).toString(); if (/e/.test(s)) s = a.toFixed(10).replace(/\.?0+$/, ''); }
+      else {
+        var intDigits = a < 1 ? 1 : Math.floor(Math.log10(a)) + 1, d = Math.max(0, Math.min(dec, 10 - intDigits));
+        s = a.toFixed(d);
+      }
+      var parts = s.split('.');
+      if (+s === 0) neg = false;
+      return joinNum(neg, parts[0], dec === 9 ? (parts[1] || null) : (parts[1] != null ? parts[1] : null)) + (dec === 9 && parts[1] == null ? (S.fmt.sepUS ? '.' : ',') : '');
+    }
+    function fmtEntry(e) {
+      if (e === '' || e === '-') return '0' + (e === '-' ? '' : '');
+      var neg = e.charAt(0) === '-', b = neg ? e.slice(1) : e, p = b.split('.');
+      return joinNum(neg, p[0] === '' ? '0' : p[0], p.length > 1 ? p[1] : null);
+    }
+    function roundDisp(v) {
+      if (S.fmt.dec === 9 || !isFinite(v)) return v;
+      return +(+v.toPrecision(13)).toFixed(S.fmt.dec);
+    }
+
+    /* ---------- render ---------- */
+    function render() {
+      io.indicator('INV', T.inv); io.indicator('BGN', S.tvm.bgn); io.indicator('CPT', T.cpt);
+      if (T.off) { io.display('', ''); return; }
+      if (T.err) { io.display('Error ' + T.err, T.label || ''); return; }
+      if (T.rst) { io.display('RST ?', 'ENTER to reset · CE|C to cancel'); return; }
+      if (T.ws) {
+        var it = curItem();
+        if (!it) { io.display(fmtNum(T.x), ''); return; }
+        var lab = it.label + (it.kind === 'set' ? '' : ' =') + (T.star && T.entry === null ? ' *' : '');
+        if (T.entry !== null) { io.display(fmtEntry(T.entry), lab); return; }
+        if (T.frames.length > 1 || T.frames[0].o.length) { io.display(fmtNum(T.x), lab); return; }
+        if (it.kind === 'set') { io.display(it.label, ''); return; }
+        var v;
+        try { v = T.star && !it.date ? T.x : it.show ? it.show() : it.get ? it.get() : 0; } catch (e) { io.display('Error ' + (e.fcCode || ERR.ARG), lab); return; }
+        io.display(typeof v === 'string' ? v : fmtNum(v), lab);
+        return;
+      }
+      io.display(T.entry !== null ? fmtEntry(T.entry) : fmtNum(T.x), T.entry !== null ? '' : (T.label ? T.label + (T.star ? ' *' : '') : ''));
+    }
+
+    /* ---------- arithmetic (Chn / AOS) ---------- */
+    var PREC = { ADD: 1, SUB: 1, MUL: 2, DIV: 2, POW: 3, YROOTX: 3, NPR: 4, NCR: 4 };
+    function fact(n) { if (n < 0 || n !== Math.floor(n) || n > 69) throw E(ERR.ARG); var r = 1; for (var i = 2; i <= n; i++) r *= i; return r; }
+    function binop(a, op, b) {
+      var r;
+      switch (op) {
+        case 'ADD': r = a + b; break;
+        case 'SUB': r = a - b; break;
+        case 'MUL': r = a * b; break;
+        case 'DIV': if (b === 0) throw E(ERR.ARG); r = a / b; break;
+        case 'POW':
+          if (a < 0 && b !== Math.floor(b)) throw E(ERR.ARG);
+          if (a === 0 && b < 0) throw E(ERR.ARG);
+          r = Math.pow(a, b); break;
+        case 'YROOTX':
+          if (b === 0) throw E(ERR.ARG);
+          if (a < 0) { var ib = 1 / b; if (Math.abs(b) % 2 === 1) r = -Math.pow(-a, ib); else throw E(ERR.ARG); }
+          else r = Math.pow(a, 1 / b); break;
+        case 'NPR': if (b > a || b < 0) throw E(ERR.ARG); r = fact(a) / fact(a - b); break;
+        case 'NCR': if (b > a || b < 0) throw E(ERR.ARG); r = fact(a) / (fact(b) * fact(a - b)); break;
+        default: r = b;
+      }
+      return chk(r);
+    }
+    function chk(r) { if (!isFinite(r) || Math.abs(r) >= 1e100) throw E(ERR.OVERFLOW); return r13(r); }
+    function top() { return T.frames[T.frames.length - 1]; }
+    function reduce(fr, minPrec) {
+      while (fr.o.length && (S.fmt.chn || PREC[fr.o[fr.o.length - 1]] >= minPrec)) {
+        var op = fr.o.pop(), b = fr.v.pop(), a = fr.v.pop();
+        fr.v.push(binop(a, op, b));
+      }
+    }
+    function commitEntry() { if (T.entry !== null) { T.x = T.entry === '' || T.entry === '-' ? 0 : +T.entry; T.entry = null; } }
+    function binary(op) {
+      commitEntry();
+      var fr = top();
+      if (T.opJust && fr.o.length) { fr.o[fr.o.length - 1] = op; return; }
+      if (T.frames.reduce(function (n, f) { return n + f.o.length; }, 0) >= 8) throw E(ERR.PEND);
+      fr.v.push(T.x); reduce(fr, PREC[op]);
+      T.x = fr.v[fr.v.length - 1]; fr.o.push(op); T.opJust = true; T.label = '';
+    }
+    function equals() {
+      commitEntry();
+      while (T.frames.length) {
+        var fr = top();
+        if (T.opJust && fr.o.length && fr.v.length === fr.o.length) fr.v.push(T.x); else fr.v.push(T.x);
+        reduce(fr, 0); T.x = fr.v[0];
+        if (T.frames.length === 1) break;
+        T.frames.pop();
+      }
+      T.frames = [{ v: [], o: [] }]; T.opJust = false; S.ans = T.x; return T.x;
+    }
+    function hasPending() { return T.frames.length > 1 || T.frames[0].o.length > 0; }
+    function setResult(v) { T.x = chk(v); T.entry = null; T.opJust = false; S.ans = T.x; }
+    function curVal() { commitEntry(); return T.x; }
+
+    /* ---------- TVM ---------- */
+    function rate(t) { var c = t.CY, p = t.PY; if (c <= 0 || p <= 0) throw E(ERR.ARG); return Math.pow(1 + t.IY / 100 / c, c / p) - 1; }
+    function tvmF(t, i) {
+      var b = t.bgn ? 1 : 0, N = t.N;
+      if (Math.abs(i) < 1e-14) return t.PV + t.PMT * N + t.FV;
+      var v = Math.pow(1 + i, -N);
+      return t.PV + t.PMT * (1 + i * b) * (1 - v) / i + t.FV * v;
+    }
+    function solveTVM(k) {
+      var t = S.tvm, i = rate(t), b = t.bgn ? 1 : 0, N = t.N, r;
+      if (k === 'PV' || k === 'PMT' || k === 'FV') {
+        if (Math.abs(i) < 1e-14) {
+          if (k === 'PV') r = -(t.PMT * N + t.FV);
+          else if (k === 'FV') r = -(t.PV + t.PMT * N);
+          else { if (N === 0) throw E(ERR.ARG); r = -(t.PV + t.FV) / N; }
+        } else {
+          var v = Math.pow(1 + i, -N), A = (1 + i * b) * (1 - v) / i;
+          if (k === 'PV') r = -(t.PMT * A + t.FV * v);
+          else if (k === 'FV') { if (v === 0) throw E(ERR.OVERFLOW); r = -(t.PV + t.PMT * A) / v; }
+          else { if (A === 0) throw E(ERR.ARG); r = -(t.PV + t.FV * v) / A; }
+        }
+      } else if (k === 'N') {
+        if (Math.abs(i) < 1e-14) { if (t.PMT === 0) throw E(ERR.NOSOL); r = -(t.PV + t.FV) / t.PMT; }
+        else {
+          var Ap = t.PMT * (1 + i * b) / i, num = Ap - t.FV, vv = (t.PV + Ap) / num;
+          if (!(num !== 0 && vv > 0)) throw E(ERR.NOSOL);
+          r = -Math.log(vv) / Math.log(1 + i);
+        }
+      } else if (k === 'IY') {
+        if (N <= 0) throw E(ERR.NOSOL);
+        var per = root(function (x) { return tvmF(t, x); }, 0.01, -0.999999, 1e3);
+        if (per === null) throw E(ERR.NOSOL);
+        r = t.CY * 100 * (Math.pow(1 + per, t.PY / t.CY) - 1);
+      }
+      r = chk(r); t[k] = r; return r;
+    }
+    // generic root finder: Newton from guess, then grid scan + bisection
+    function root(f, guess, lo, hi) {
+      var x = guess, ok = false;
+      for (var n = 0; n < 60; n++) {
+        var fx = f(x), h = Math.max(1e-7, Math.abs(x) * 1e-7), d = (f(x + h) - f(x - h)) / (2 * h);
+        if (!isFinite(fx) || !isFinite(d) || d === 0) break;
+        var nx = x - fx / d;
+        if (!(nx > lo && nx < hi)) break;
+        if (Math.abs(nx - x) < 1e-13 * Math.max(1, Math.abs(x))) { x = nx; ok = true; break; }
+        x = nx;
+      }
+      if (ok) return x;
+      // scan
+      var pts = [0], p;
+      for (p = lo + 1e-9; p < -1e-7; p *= 0.8) pts.push(p);
+      for (p = 1e-7; p < hi; p *= 1.25) pts.push(p);
+      var sorted = pts.sort(function (a, b) { return a - b; }), best = null;
+      for (var j = 0; j < sorted.length - 1; j++) {
+        var a = sorted[j], c = sorted[j + 1], fa = f(a), fc = f(c);
+        if (!isFinite(fa) || !isFinite(fc)) continue;
+        if (fa === 0) { best = pick(best, a); continue; }
+        if (fa * fc < 0) {
+          for (var k = 0; k < 200; k++) { var m = (a + c) / 2, fm = f(m); if (fa * fm <= 0) c = m; else { a = m; fa = fm; } if (c - a < 1e-15) break; }
+          best = pick(best, (a + c) / 2);
+        }
+      }
+      return best;
+      function pick(cur, v) { return cur === null || Math.abs(v - guess) < Math.abs(cur - guess) ? v : cur; }
+    }
+
+    /* ---------- cash flows ---------- */
+    function flows() { var a = [S.cf.cf0]; for (var j = 0; j < S.cf.c.length; j++) for (var k = 0; k < S.cf.f[j]; k++) a.push(S.cf.c[j]); return a; }
+    function npvAt(r, a) { var s = 0; for (var t = 0; t < a.length; t++) s += a[t] / Math.pow(1 + r, t); return s; }
+    function irr() {
+      var a = flows(), pos = a.some(function (v) { return v > 0; }), neg = a.some(function (v) { return v < 0; });
+      if (!pos || !neg) throw E(ERR.NOSOL);
+      var r = root(function (x) { return npvAt(x, a); }, 0.1, -0.999999, 1e4);
+      if (r === null) throw E(ERR.ITER);
+      return chk(r * 100);
+    }
+    function payback(disc) {
+      var a = flows(), i = S.npv.I / 100, cum = 0;
+      for (var t = 0; t < a.length; t++) {
+        var c = disc ? a[t] / Math.pow(1 + i, t) : a[t], prev = cum; cum += c;
+        if (t > 0 && prev < 0 && cum >= 0) return t - 1 + (-prev) / c;
+      }
+      return -1; // device shows a negative value when payback never occurs
+    }
+    function mirr() {
+      var a = flows(), n = a.length - 1, i = S.npv.I / 100, ri = S.irr.RI / 100, pvN = 0, fvP = 0;
+      if (n < 1) throw E(ERR.NOSOL);
+      for (var t = 0; t <= n; t++) { if (a[t] < 0) pvN += a[t] / Math.pow(1 + i, t); else fvP += a[t] * Math.pow(1 + ri, n - t); }
+      if (pvN === 0 || fvP === 0) throw E(ERR.NOSOL);
+      return chk((Math.pow(fvP / -pvN, 1 / n) - 1) * 100);
+    }
+
+    /* ---------- amortization ---------- */
+    function amort() {
+      var t = S.tvm, i = rate(t), P1 = S.amort.P1, P2 = S.amort.P2, bal = t.PV, pr = 0, it = 0;
+      if (!(P1 >= 1 && P2 >= P1) || P1 !== Math.floor(P1) || P2 !== Math.floor(P2)) throw E(ERR.ARG);
+      for (var k = 1; k <= P2; k++) {
+        var base = t.bgn ? bal + t.PMT : bal, intr = -base * i, prn = t.PMT - intr;
+        bal = bal + prn;
+        if (k >= P1) { pr += prn; it += intr; }
+      }
+      return { BAL: chk(bal), PRN: chk(pr), INT: chk(it) };
+    }
+
+    /* ---------- bond ---------- */
+    function bondCalc(y) {
+      var B = S.bond, sd = getDate('sdt'), rd = getDate('rdt'), M = B.m, cpn = B.CPN / M;
+      if (dnum(rd) <= dnum(sd)) throw E(ERR.ARG);
+      var k = 0, nc = rd;
+      while (dnum(addMonths(rd, -(k + 1) * 12 / M)) > dnum(sd)) k++;
+      nc = addMonths(rd, -k * 12 / M); var pc = addMonths(rd, -(k + 1) * 12 / M), N = k + 1;
+      var E_ = B.act ? dnum(nc) - dnum(pc) : 360 / M, A = B.act ? dnum(sd) - dnum(pc) : d360(pc, sd);
+      var DSC = E_ - A, yy = y / 100 / M, ai = cpn * A / E_, pri;
+      if (N === 1) {
+        var DSR = B.act ? dnum(rd) - dnum(sd) : d360(sd, rd);
+        pri = (B.RV + cpn) / (1 + DSR / E_ * yy) - ai;
+      } else {
+        var e = DSC / E_; pri = B.RV / Math.pow(1 + yy, N - 1 + e);
+        for (var j = 1; j <= N; j++) pri += cpn / Math.pow(1 + yy, j - 1 + e);
+        pri -= ai;
+      }
+      return { PRI: pri, AI: ai };
+    }
+    function bondYld() {
+      var P = S.bond.PRI, f = function (y) { return bondCalc(y).PRI - P; };
+      var lo = -50, hi = 500, flo = f(lo), fhi = f(hi);
+      if (!(flo * fhi < 0)) throw E(ERR.NOSOL);
+      for (var k = 0; k < 200; k++) { var m = (lo + hi) / 2, fm = f(m); if (flo * fm <= 0) hi = m; else { lo = m; flo = fm; } }
+      return (lo + hi) / 2;
+    }
+    function bondDur() {
+      var y = S.bond.YLD, h = 1e-4, c = bondCalc(y), P = c.PRI + c.AI;
+      var up = bondCalc(y + h), dn = bondCalc(y - h);
+      return -((up.PRI + up.AI) - (dn.PRI + dn.AI)) / (2 * h / 100) / P;
+    }
+
+    /* ---------- depreciation ---------- */
+    var DMETH = ['SL', 'SYD', 'DB', 'DBX'];
+    function depr() {
+      var D = S.depr, L = D.LIF, f1 = (13 - D.M01) / 12, base = D.CST - D.SAL, yr = D.YR, m = DMETH[D.meth];
+      if (!(L > 0) || D.M01 < 1 || D.M01 >= 13 || yr < 1 || yr !== Math.floor(yr)) throw E(ERR.ARG);
+      var lastYr = Math.ceil(L + 1 - f1 - 1e-12), rbv = D.CST, dep = 0;
+      for (var y = 1; y <= yr; y++) {
+        var d = 0;
+        if (y > lastYr) d = 0;
+        else if (m === 'SL') d = base / L * (y === 1 ? f1 : 1);
+        else if (m === 'SYD') {
+          var soyd = L * (L + 1) / 2, ay = function (k) { return k < 1 || k > Math.ceil(L) ? 0 : Math.max(0, (L - k + 1)) / soyd * base; };
+          d = y === 1 ? f1 * ay(1) : f1 * ay(y) + (1 - f1) * ay(y - 1);
+        } else {
+          var r = D.DB / 100 / L, dbd = rbv * r * (y === 1 ? f1 : 1);
+          if (m === 'DBX') {
+            var remLife = L - (y === 1 ? 0 : (f1 + (y - 2))), sl = remLife > 0 ? (rbv - D.SAL) / remLife * (y === 1 ? f1 : 1) : rbv - D.SAL;
+            if (sl > dbd) dbd = sl;
+          }
+          d = y === lastYr ? rbv - D.SAL : dbd;
+        }
+        if (y === lastYr && m !== 'DB' && m !== 'DBX') d = rbv - D.SAL;
+        d = Math.max(0, Math.min(d, rbv - D.SAL));
+        rbv -= d; dep = d;
+      }
+      return { DEP: chk(dep), RBV: chk(rbv), RDV: chk(rbv - D.SAL) };
+    }
+
+    /* ---------- statistics ---------- */
+    var SMETH = ['LIN', 'Ln', 'EXP', 'PWR', '1-V'];
+    function stats() {
+      var m = SMETH[S.stat.meth], X = S.data.x, Y = S.data.y, n = 0, sx = 0, sxx = 0, sy = 0, syy = 0, sxy = 0;
+      for (var j = 0; j < X.length; j++) {
+        var x = X[j], y = Y[j];
+        if (m === '1-V') { n += y; sx += x * y; sxx += x * x * y; continue; }
+        if (m === 'Ln' || m === 'PWR') { if (x <= 0) throw E(ERR.ARG); x = Math.log(x); }
+        if (m === 'EXP' || m === 'PWR') { if (y <= 0) throw E(ERR.ARG); y = Math.log(y); }
+        n++; sx += x; sxx += x * x; sy += y; syy += y * y; sxy += x * y;
+      }
+      var o = { n: n, SX: sx, SXX: sxx, SY: sy, SYY: syy, SXY: sxy };
+      o.XB = n ? sx / n : NaN; o.SDX = n > 1 ? Math.sqrt(Math.max(0, (sxx - sx * sx / n) / (n - 1))) : NaN; o.PX = n ? Math.sqrt(Math.max(0, sxx / n - o.XB * o.XB)) : NaN;
+      if (m !== '1-V') {
+        o.YB = n ? sy / n : NaN; o.SDY = n > 1 ? Math.sqrt(Math.max(0, (syy - sy * sy / n) / (n - 1))) : NaN; o.PY = n ? Math.sqrt(Math.max(0, syy / n - o.YB * o.YB)) : NaN;
+        var sxxc = sxx - sx * sx / n, syyc = syy - sy * sy / n, sxyc = sxy - sx * sy / n;
+        o.b = sxxc ? sxyc / sxxc : NaN; o.a = o.YB - o.b * o.XB; o.r = sxxc > 0 && syyc > 0 ? sxyc / Math.sqrt(sxxc * syyc) : NaN;
+        if (m === 'EXP' || m === 'PWR') o.a = Math.exp(o.a);
+        if (m === 'EXP') o.b = Math.exp(o.b);
+      }
+      return o;
+    }
+    function predictY(x) {
+      var o = stats(), m = SMETH[S.stat.meth];
+      if (m === 'LIN') return o.a + o.b * x; if (m === 'Ln') return o.a + o.b * Math.log(x);
+      if (m === 'EXP') return o.a * Math.pow(o.b, x); if (m === 'PWR') return o.a * Math.pow(x, o.b); throw E(ERR.ARG);
+    }
+    function predictX(y) {
+      var o = stats(), m = SMETH[S.stat.meth];
+      if (m === 'LIN') return (y - o.a) / o.b; if (m === 'Ln') return Math.exp((y - o.a) / o.b);
+      if (m === 'EXP') return Math.log(y / o.a) / Math.log(o.b); if (m === 'PWR') return Math.pow(y / o.a, 1 / o.b); throw E(ERR.ARG);
+    }
+    function sv(k) { return function () { var v = stats()[k]; if (!isFinite(v)) throw E(ERR.ARG); return v; }; }
+
+    /* ---------- worksheets ---------- */
+    // item kinds: 'in' (ENTER), 'out' (shown, auto), 'set' (2ND SET toggles); cpt: function computing value
+    function num(o, k, valid) { return { get: function () { return o()[k]; }, set: function (v) { if (valid && !valid(v)) throw E(ERR.ARG); o()[k] = v; } }; }
+    function I(label, kind, x) { x.label = label; x.kind = kind; return x; }
+    function int(v) { return v === Math.floor(v); }
+    var WS = {
+      PY: function () {
+        return [I('P/Y', 'in', { get: function () { return S.tvm.PY; }, set: function (v) { if (!(v > 0)) throw E(ERR.ARG); S.tvm.PY = v; S.tvm.CY = v; } }),
+          I('C/Y', 'in', { get: function () { return S.tvm.CY; }, set: function (v) { if (!(v > 0)) throw E(ERR.ARG); S.tvm.CY = v; } })];
+      },
+      BGN: function () { return [I(S.tvm.bgn ? 'BGN' : 'END', 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { S.tvm.bgn = !S.tvm.bgn; } })]; },
+      CF: function () {
+        var a = [I('CF0', 'in', num(function () { return S.cf; }, 'cf0'))], n = S.cf.c.length;
+        for (var j = 0; j < n; j++) (function (j) {
+          var nn = (j < 9 ? '0' : '') + (j + 1);
+          a.push(I('C' + nn, 'in', { get: function () { return S.cf.c[j]; }, set: function (v) { S.cf.c[j] = v; }, cf: j }));
+          a.push(I('F' + nn, 'in', { get: function () { return S.cf.f[j]; }, set: function (v) { if (!(v >= 1 && v <= 9999 && int(v))) throw E(ERR.ARG); S.cf.f[j] = v; }, cf: j }));
+        })(j);
+        if (n < MAXCF) { var nn = (n < 9 ? '0' : '') + (n + 1); a.push(I('C' + nn, 'in', { get: function () { return 0; }, set: function (v) { S.cf.c.push(v); S.cf.f.push(1); }, cf: n, empty: true })); }
+        return a;
+      },
+      NPV: function () {
+        return [I('I', 'in', num(function () { return S.npv; }, 'I')),
+          I('NPV', 'cpt', { cpt: function () { return npvAt(S.npv.I / 100, flows()); } }),
+          I('NFV', 'cpt', { cpt: function () { var a = flows(), i = S.npv.I / 100; return npvAt(i, a) * Math.pow(1 + i, a.length - 1); } }),
+          I('PB', 'cpt', { cpt: function () { return payback(false); } }),
+          I('DPB', 'cpt', { cpt: function () { return payback(true); } })];
+      },
+      IRR: function () {
+        return [I('IRR', 'cpt', { cpt: irr }), I('RI', 'in', num(function () { return S.irr; }, 'RI')), I('MOD', 'cpt', { cpt: mirr })];
+      },
+      AMORT: function () {
+        var ok = function (v) { return v >= 1 && int(v); };
+        return [I('P1', 'in', num(function () { return S.amort; }, 'P1', ok)), I('P2', 'in', num(function () { return S.amort; }, 'P2', ok)),
+          I('BAL', 'out', { get: function () { return amort().BAL; } }), I('PRN', 'out', { get: function () { return amort().PRN; } }), I('INT', 'out', { get: function () { return amort().INT; } })];
+      },
+      BOND: function () {
+        var B = S.bond;
+        function dt(slot, lab) { return I(lab, 'in', { date: true, show: function () { return fmtDate(getDate(slot)); }, get: function () { return encodeDate(getDate(slot), S.fmt.us); }, set: function (v) { setDate(slot, decodeDate(v, S.fmt.us)); } }); }
+        return [dt('sdt', 'SDT'), I('CPN', 'in', num(function () { return B; }, 'CPN')), dt('rdt', 'RDT'), I('RV', 'in', num(function () { return B; }, 'RV')),
+          I(B.act ? 'ACT' : '360', 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { B.act = !B.act; } }),
+          I(B.m === 2 ? '2/Y' : '1/Y', 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { B.m = B.m === 2 ? 1 : 2; } }),
+          I('YLD', 'in', { get: function () { return B.YLD; }, set: function (v) { B.YLD = v; }, cpt: function () { B.YLD = bondYld(); return B.YLD; } }),
+          I('PRI', 'in', { get: function () { return B.PRI; }, set: function (v) { B.PRI = v; }, cpt: function () { B.PRI = bondCalc(B.YLD).PRI; return B.PRI; } }),
+          I('AI', 'out', { get: function () { return bondCalc(B.YLD).AI; } }),
+          I('DUR', 'out', { get: bondDur })];
+      },
+      DEPR: function () {
+        var D = S.depr, a = [I(DMETH[D.meth], 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { D.meth = (D.meth + 1) % DMETH.length; } }),
+          I('LIF', 'in', num(function () { return D; }, 'LIF', function (v) { return v > 0; })),
+          I('M01', 'in', num(function () { return D; }, 'M01', function (v) { return v >= 1 && v < 13; }))];
+        if (D.meth >= 2) a.push(I('DB', 'in', num(function () { return D; }, 'DB', function (v) { return v > 0; })));
+        a.push(I('CST', 'in', num(function () { return D; }, 'CST')), I('SAL', 'in', num(function () { return D; }, 'SAL')),
+          I('YR', 'in', { get: function () { return D.YR; }, set: function (v) { if (!(v >= 1 && int(v))) throw E(ERR.ARG); D.YR = v; }, cpt: function () { D.YR += 1; return D.YR; } }),
+          I('DEP', 'out', { get: function () { return depr().DEP; } }), I('RBV', 'out', { get: function () { return depr().RBV; } }), I('RDV', 'out', { get: function () { return depr().RDV; } }));
+        return a;
+      },
+      BRKEVN: function () {
+        var B = S.brk, sol = {
+          FC: function () { return B.P * B.Q - B.VC * B.Q - B.PFT; },
+          VC: function () { if (!B.Q) throw E(ERR.ARG); return (B.P * B.Q - B.FC - B.PFT) / B.Q; },
+          P: function () { if (!B.Q) throw E(ERR.ARG); return (B.PFT + B.FC + B.VC * B.Q) / B.Q; },
+          PFT: function () { return B.P * B.Q - (B.FC + B.VC * B.Q); },
+          Q: function () { if (B.P === B.VC) throw E(ERR.ARG); return (B.FC + B.PFT) / (B.P - B.VC); }
+        };
+        return ['FC', 'VC', 'P', 'PFT', 'Q'].map(function (k) { return I(k, 'in', { get: function () { return B[k]; }, set: function (v) { B[k] = v; }, cpt: function () { B[k] = chk(sol[k]()); return B[k]; } }); });
+      },
+      PROFIT: function () {
+        var P = S.prof, sol = {
+          CST: function () { return P.SEL * (1 - P.MAR / 100); },
+          SEL: function () { if (P.MAR === 100) throw E(ERR.ARG); return P.CST / (1 - P.MAR / 100); },
+          MAR: function () { if (!P.SEL) throw E(ERR.ARG); return (P.SEL - P.CST) / P.SEL * 100; }
+        };
+        return ['CST', 'SEL', 'MAR'].map(function (k) { return I(k, 'in', { get: function () { return P[k]; }, set: function (v) { P[k] = v; }, cpt: function () { P[k] = chk(sol[k]()); return P[k]; } }); });
+      },
+      DATE: function () {
+        var D = S.date;
+        function cnt(a, b) { return D.act ? dnum(b) - dnum(a) : d360(a, b); }
+        function dt(slot, lab, other, sign) {
+          return I(lab, 'in', { date: true, show: function () { return fmtDate(getDate(slot)); }, get: function () { return encodeDate(getDate(slot), S.fmt.us); }, set: function (v) { setDate(slot, decodeDate(v, S.fmt.us)); },
+            cpt: function () { if (!D.act) throw E(ERR.ARG); setDate(slot, fromDnum(dnum(getDate(other)) + sign * D.DBD)); return encodeDate(getDate(slot), S.fmt.us); } });
+        }
+        return [dt('dt1', 'DT1', 'dt2', -1),
+          I('DBD', 'in', { get: function () { return D.DBD; }, set: function (v) { D.DBD = v; }, cpt: function () { D.DBD = cnt(getDate('dt1'), getDate('dt2')); return D.DBD; } }),
+          dt('dt2', 'DT2', 'dt1', 1),
+          I(D.act ? 'ACT' : '360', 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { D.act = !D.act; } })];
+      },
+      ICONV: function () {
+        var C = S.iconv;
+        return [I('NOM', 'in', { get: function () { return C.NOM; }, set: function (v) { C.NOM = v; }, cpt: function () { if (!(C.CY > 0)) throw E(ERR.ARG); C.NOM = chk(C.CY * 100 * (Math.pow(1 + C.EFF / 100, 1 / C.CY) - 1)); return C.NOM; } }),
+          I('EFF', 'in', { get: function () { return C.EFF; }, set: function (v) { C.EFF = v; }, cpt: function () { if (!(C.CY > 0)) throw E(ERR.ARG); C.EFF = chk(100 * (Math.pow(1 + C.NOM / 100 / C.CY, C.CY) - 1)); return C.EFF; } }),
+          I('C/Y', 'in', num(function () { return C; }, 'CY', function (v) { return v > 0; }))];
+      },
+      DELTAPCT: function () {
+        var D = S.dlt, sol = {
+          OLD: function () { return D.NEW / Math.pow(1 + D.PCH / 100, D.PD); },
+          NEW: function () { return D.OLD * Math.pow(1 + D.PCH / 100, D.PD); },
+          PCH: function () { if (!D.OLD || !D.PD) throw E(ERR.ARG); return (Math.pow(D.NEW / D.OLD, 1 / D.PD) - 1) * 100; },
+          PD: function () { if (!D.OLD || D.PCH === 0) throw E(ERR.ARG); return Math.log(D.NEW / D.OLD) / Math.log(1 + D.PCH / 100); }
+        }, L = { OLD: 'OLD', NEW: 'NEW', PCH: '%CH', PD: '#PD' };
+        return ['OLD', 'NEW', 'PCH', 'PD'].map(function (k) { return I(L[k], 'in', { get: function () { return D[k]; }, set: function (v) { D[k] = v; }, cpt: function () { D[k] = chk(sol[k]()); return D[k]; } }); });
+      },
+      DATA: function () {
+        var a = [], n = S.data.x.length;
+        for (var j = 0; j < n; j++) (function (j) {
+          var nn = (j < 9 ? '0' : '') + (j + 1);
+          a.push(I('X' + nn, 'in', { get: function () { return S.data.x[j]; }, set: function (v) { S.data.x[j] = v; }, cf: j }));
+          a.push(I('Y' + nn, 'in', { get: function () { return S.data.y[j]; }, set: function (v) { S.data.y[j] = v; }, cf: j }));
+        })(j);
+        if (n < MAXDATA) { var nn = (n < 9 ? '0' : '') + (n + 1); a.push(I('X' + nn, 'in', { get: function () { return 0; }, set: function (v) { S.data.x.push(v); S.data.y.push(1); }, cf: n, empty: true })); }
+        return a;
+      },
+      STAT: function () {
+        var m = SMETH[S.stat.meth], a = [I(m, 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: function () { S.stat.meth = (S.stat.meth + 1) % SMETH.length; } }),
+          I('n', 'out', { get: sv('n') }), I('x̄', 'out', { get: sv('XB') }), I('Sx', 'out', { get: sv('SDX') }), I('σx', 'out', { get: sv('PX') })];
+        if (m !== '1-V') a.push(I('ȳ', 'out', { get: sv('YB') }), I('Sy', 'out', { get: sv('SDY') }), I('σy', 'out', { get: sv('PY') }),
+          I('a', 'out', { get: sv('a') }), I('b', 'out', { get: sv('b') }), I('r', 'out', { get: sv('r') }),
+          I("X'", 'in', { get: function () { return S.stat.XP; }, set: function (v) { S.stat.XP = v; }, cpt: function () { S.stat.XP = chk(predictX(S.stat.YP)); return S.stat.XP; } }),
+          I("Y'", 'in', { get: function () { return S.stat.YP; }, set: function (v) { S.stat.YP = v; }, cpt: function () { S.stat.YP = chk(predictY(S.stat.XP)); return S.stat.YP; } }));
+        a.push(I('Σx', 'out', { get: sv('SX') }), I('Σx²', 'out', { get: sv('SXX') }));
+        if (m !== '1-V') a.push(I('Σy', 'out', { get: sv('SY') }), I('Σy²', 'out', { get: sv('SYY') }), I('Σxy', 'out', { get: sv('SXY') }));
+        return a;
+      },
+      MEM: function () { return S.mem.map(function (v, j) { return I('M' + j, 'in', { get: function () { return S.mem[j]; }, set: function (v) { S.mem[j] = v; } }); }); },
+      FORMAT: function () {
+        var F = S.fmt, tg = function (lab, fn) { return I(lab, 'set', { show: function () { return ' '; }, get: function () { return 0; }, toggle: fn }); };
+        return [I('DEC', 'in', { get: function () { return F.dec; }, set: function (v) { if (!(v >= 0 && v <= 9 && int(v))) throw E(ERR.ARG); F.dec = v; } }),
+          tg(F.deg ? 'DEG' : 'RAD', function () { F.deg = !F.deg; }), tg(F.us ? 'US' : 'EUR', function () { F.us = !F.us; }),
+          tg(F.sepUS ? 'US 1,000.' : 'EUR 1.000,', function () { F.sepUS = !F.sepUS; }), tg(F.chn ? 'Chn' : 'AOS', function () { F.chn = !F.chn; })];
+      }
+    };
+    var CLEAR = {
+      PY: function () { S.tvm.PY = 12; S.tvm.CY = 12; }, BGN: function () { S.tvm.bgn = false; },
+      CF: function () { S.cf = { cf0: 0, c: [], f: [] }; }, NPV: function () { S.npv.I = 0; }, IRR: function () { S.irr.RI = 0; },
+      AMORT: function () { S.amort = { P1: 1, P2: 1 }; }, BOND: function () { var d = defaults().bond; S.bond = d; if (S._d) { delete S._d.sdt; delete S._d.rdt; } },
+      DEPR: function () { S.depr = defaults().depr; }, BRKEVN: function () { S.brk = defaults().brk; }, PROFIT: function () { S.prof = defaults().prof; },
+      DATE: function () { S.date = defaults().date; if (S._d) { delete S._d.dt1; delete S._d.dt2; } }, ICONV: function () { S.iconv = defaults().iconv; },
+      DELTAPCT: function () { S.dlt = defaults().dlt; }, DATA: function () { S.data = { x: [], y: [] }; }, STAT: function () { S.data = { x: [], y: [] }; },
+      MEM: function () { S.mem = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; }, FORMAT: function () { S.fmt = defaults().fmt; }
+    };
+    function items() { return T.ws ? WS[T.ws]() : []; }
+    function curItem() { var a = items(); if (T.idx >= a.length) T.idx = a.length - 1; if (T.idx < 0) T.idx = 0; return a[T.idx]; }
+    function openWS(id) { clearCalc(); T.ws = id; T.idx = 0; T.star = false; T.label = ''; }
+    function quitWS() { T.ws = null; T.idx = 0; T.star = false; clearCalc(); T.x = 0; T.label = ''; }
+    function clearCalc() { T.entry = null; T.frames = [{ v: [], o: [] }]; T.opJust = false; }
+
+    /* ---------- key dispatch ---------- */
+    var TVMK = { N: 'N =', IY: 'I/Y =', PV: 'PV =', PMT: 'PMT =', FV: 'FV =' };
+    var WSKEYS = { PY: 1, BGN: 1, CF: 1, NPV: 1, IRR: 1, AMORT: 1, BOND: 1, DEPR: 1, BRKEVN: 1, PROFIT: 1, DATE: 1, ICONV: 1, DELTAPCT: 1, DATA: 1, STAT: 1, MEM: 1, FORMAT: 1 };
+
+    function press(fn, ctx) {
+      try { handle(fn); }
+      catch (e) {
+        if (e && e.fcCode) { T.err = e.fcCode; clearCalc(); }
+        else { T.err = ERR.ARG; clearCalc(); if (typeof console !== 'undefined') console.error(e); }
+      }
+      save(); render();
+    }
+
+    function handle(fn) {
+      if (T.off) { if (fn === 'ONOFF') { T.off = false; T.err = 0; T.ws = null; T.cpt = false; T.inv = false; clearCalc(); T.x = 0; T.label = ''; } return; }
+      if (fn === 'ONOFF') { T.off = true; T.cpt = false; T.inv = false; T.rst = false; return; }
+      if (T.rst) { T.rst = false; if (fn === 'ENTER') { S = defaults(); resetTransient(); T.label = 'RST'; } return; }
+      if (T.err) {
+        if (fn === 'CEC') { T.err = 0; T.x = 0; T.label = ''; return; }
+        if (fn === 'QUIT') { T.err = 0; quitWS(); return; }
+        if (fn === 'RESET') { T.err = 0; T.rst = true; return; }
+        if (fn === 'UP' || fn === 'DOWN') { T.err = 0; } else return;
+      }
+      if (fn === 'RESET') { T.rst = true; return; }
+
+      // STO / RCL pending
+      if (T.sto !== null) {
+        var st = T.sto;
+        if (/^[0-9]$/.test(fn)) { var d = +fn, v = curVal(); S.mem[d] = st === '' ? v : binop(S.mem[d], st, v); T.sto = null; T.label = ''; return; }
+        if (st === '' && /^(ADD|SUB|MUL|DIV|POW)$/.test(fn)) { T.sto = fn; return; }
+        T.sto = null; // fall through
+      }
+      if (T.rcl) {
+        T.rcl = false;
+        if (/^[0-9]$/.test(fn)) { T.x = S.mem[+fn]; T.entry = null; T.opJust = false; T.label = ''; return; }
+        if (TVMK[fn]) { if (T.ws) quitWS(); T.x = S.tvm[fn]; T.entry = null; T.opJust = false; T.label = TVMK[fn]; T.star = false; return; }
+      }
+      var inv = T.inv, hyp = T.hyp;
+      if (fn !== 'INV' && fn !== 'HYP') { T.inv = false; if (!/^(SIN|COS)$/.test(fn)) T.hyp = false; }
+      var cpt = T.cpt; if (fn !== 'CPT') T.cpt = false;
+
+      // digits & entry
+      if (/^[0-9]$/.test(fn) || fn === 'DOT') {
+        if (T.entry === null) { T.entry = ''; T.star = false; if (!T.ws) T.label = ''; }
+        var digits = T.entry.replace(/[-.]/g, '').length;
+        if (fn === 'DOT') { if (T.entry.indexOf('.') < 0) T.entry += (T.entry === '' || T.entry === '-' ? '0.' : '.'); }
+        else if (digits < 10) { if (T.entry === '0') T.entry = fn; else if (T.entry === '-0') T.entry = '-' + fn; else T.entry += fn; }
+        T.opJust = false; return;
+      }
+      if (fn === 'NEG') {
+        if (T.entry !== null) { T.entry = T.entry.charAt(0) === '-' ? T.entry.slice(1) : '-' + T.entry; }
+        else if (T.ws && !hasPending()) { var it0 = curItem(); var v0 = it0 && !it0.date && it0.kind !== 'set' ? safeGet(it0) : T.x; T.entry = String(r13(-v0)); if (/e/i.test(T.entry)) { T.x = -v0; T.entry = null; } }
+        else { T.x = r13(-T.x); T.label = ''; }
+        T.opJust = false; return;
+      }
+      if (fn === 'BKSP') { if (T.entry !== null) T.entry = T.entry.slice(0, -1); return; }
+      if (fn === 'CEC') {
+        if (T.entry !== null) { T.entry = null; T.x = 0; if (!T.ws) { T.entry = null; } return; }
+        clearCalc(); T.x = 0; T.label = ''; T.star = false; T.sto = null; T.rcl = false; return;
+      }
+      if (fn === 'INV') { T.inv = !inv; T.hyp = hyp; return; }
+      if (fn === 'HYP') { T.hyp = true; T.inv = inv; return; }
+      if (fn === 'STO') { T.sto = ''; return; }
+      if (fn === 'RCL') { T.rcl = true; return; }
+      if (fn === 'CPT') {
+        if (T.ws) { computeItem(); return; }
+        T.cpt = true; return;
+      }
+      if (fn === 'QUIT') { quitWS(); return; }
+      if (fn === 'CLRWORK') { if (T.ws && CLEAR[T.ws]) { CLEAR[T.ws](); T.idx = 0; clearCalc(); T.star = false; } return; }
+      if (fn === 'CLRTVM') { var t = S.tvm; t.N = t.IY = t.PV = t.PMT = t.FV = 0; T.label = ''; clearCalc(); T.x = 0; return; }
+      if (fn === 'xPY') { setResult(curVal() * S.tvm.PY); T.label = ''; return; }
+      if (WSKEYS[fn]) { openWS(fn); return; }
+
+      // TVM keys
+      if (TVMK[fn]) {
+        if (T.ws) { var keep = T.entry; quitWS(); T.entry = keep; }
+        if (cpt) { T.x = solveTVM(fn); S.ans = T.x; T.star = true; T.label = TVMK[fn]; clearCalc(); return; }
+        if (hasPending()) equals(); else commitEntry();
+        var val = T.x;
+        S.tvm[fn] = val; T.label = TVMK[fn]; T.star = false; T.opJust = false; return;
+      }
+
+      // worksheet navigation & entry
+      if (fn === 'UP' || fn === 'DOWN') {
+        if (!T.ws) return;
+        var n = items().length; clearCalc(); T.star = false;
+        T.idx = (T.idx + (fn === 'DOWN' ? 1 : -1) + n) % n; return;
+      }
+      if (fn === 'ENTER') {
+        if (!T.ws) { if (hasPending() || T.entry !== null) equals(); return; }  // keyboard Enter acts like '=' outside worksheets
+        var it = curItem(); if (!it) return;
+        if (T.entry === null && !hasPending()) return;
+        if (!it.set) { clearCalc(); throw E(ERR.ARG); }
+        var v = hasPending() ? equals() : curVal();
+        it.set(r13(v)); clearCalc(); T.star = false;
+        return;
+      }
+      if (fn === 'SET') { var its = T.ws && curItem(); if (its && its.toggle) { its.toggle(); clearCalc(); } return; }
+      if (fn === 'INS' || fn === 'DEL') { insDel(fn); return; }
+
+      // arithmetic
+      if (fn === 'POW' && inv) { binary('YROOTX'); return; }
+      if (PREC[fn]) { binary(fn); return; }
+      if (fn === 'EQ') { if (T.ws && !hasPending() && T.entry === null) return; equals(); T.label = ''; return; }
+      if (fn === 'LP') { commitEntry(); if (T.frames.length >= 16) throw E(ERR.PEND); if (!T.opJust && T.frames[T.frames.length - 1].v.length === 0 && T.entry === null) { } T.frames.push({ v: [], o: [] }); T.opJust = false; T.entry = null; T.x = 0; return; }
+      if (fn === 'RP') {
+        if (T.frames.length < 2) return;
+        commitEntry(); var fr = top(); fr.v.push(T.x); reduce(fr, 0); var rv = fr.v[0]; T.frames.pop(); T.x = rv; T.opJust = false; return;
+      }
+      if (fn === 'ANS') { T.x = S.ans; T.entry = null; T.opJust = false; return; }
+      if (fn === 'RAND') { T.x = r13(Math.random()); T.entry = null; T.opJust = false; return; }
+      if (fn === 'PCT') {
+        var x = curVal(), fr2 = top(), lastOp = fr2.o[fr2.o.length - 1];
+        if ((lastOp === 'ADD' || lastOp === 'SUB') && fr2.v.length) setResult(fr2.v[fr2.v.length - 1] * x / 100);
+        else setResult(x / 100);
+        return;
+      }
+      var U = {
+        SQRT: function (x) { if (x < 0) throw E(ERR.ARG); return Math.sqrt(x); },
+        SQ: function (x) { return x * x; },
+        RECIP: function (x) { if (x === 0) throw E(ERR.ARG); return 1 / x; },
+        LN: function (x) { if (inv) return Math.exp(x); if (x <= 0) throw E(ERR.ARG); return Math.log(x); },
+        EX: function (x) { if (inv) { if (x <= 0) throw E(ERR.ARG); return Math.log(x); } return Math.exp(x); },
+        FACT: fact,
+        ROUND: roundDisp,
+        SIN: function (x) { return trig('sin', x); },
+        COS: function (x) { return trig('cos', x); }
+      };
+      if (U[fn]) { var r = U[fn](curVal()); setResult(r); T.label = ''; return; }
+    }
+    function trig(f, x) {
+      var inv = arguments.length && T._lastInv, k = S.fmt.deg ? Math.PI / 180 : 1, hyp = T.hyp; T.hyp = false;
+      var invF = T._inv; T._inv = false;
+      if (invF) {
+        if (hyp) return f === 'sin' ? Math.asinh(x) : (x < 1 ? (function () { throw E(ERR.ARG); })() : Math.acosh(x));
+        if (x < -1 || x > 1) throw E(ERR.ARG);
+        return (f === 'sin' ? Math.asin(x) : Math.acos(x)) / k;
+      }
+      if (hyp) return f === 'sin' ? Math.sinh(x) : Math.cosh(x);
+      return f === 'sin' ? Math.sin(x * k) : Math.cos(x * k);
+    }
+    function safeGet(it) { try { return it.get(); } catch (e) { return 0; } }
+    function computeItem() {
+      var it = curItem(); if (!it) return;
+      if (!it.cpt) { return; }
+      var v = it.cpt(); clearCalc(); T.x = chk(v); S.ans = T.x; T.star = true;
+    }
+    function insDel(fn) {
+      if (T.ws !== 'CF' && T.ws !== 'DATA') return;
+      var it = curItem(); if (!it || it.cf == null) return;
+      var j = it.cf;
+      var A = T.ws === 'CF' ? [S.cf.c, S.cf.f] : [S.data.x, S.data.y], lim = T.ws === 'CF' ? MAXCF : MAXDATA;
+      if (fn === 'DEL') { if (it.empty) return; A[0].splice(j, 1); A[1].splice(j, 1); T.idx = T.ws === 'CF' ? 1 + 2 * j : 2 * j; }
+      else { if (A[0].length >= lim) throw E(ERR.RANGE); A[0].splice(j, 0, 0); A[1].splice(j, 0, 1); T.idx = T.ws === 'CF' ? 1 + 2 * j : 2 * j; }
+      clearCalc();
+    }
+
+    // INV must reach trig: capture it before handle() resets it
+    var _handle = handle;
+    handle = function (fn) { T._inv = T.inv && (fn === 'SIN' || fn === 'COS'); return _handle(fn); };
+
+    function refresh() { render(); }
+    return {
+      press: press, refresh: refresh,
+      // test hooks (harmless in the page)
+      _state: function () { return S; }, _t: function () { return T; }
+    };
+  }
+  /* ==FINCALC ENGINE END== */
+
+  try { FC.attach(createEngine({ display: FC.display, indicator: FC.indicator, storage: window.localStorage })); } catch (e) { if (window.console) console.error('FinCalc engine failed, placeholder kept', e); }
+
+  /* ---------- top-bar button ---------- */
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('#calcBtn'); if (b) FC.toggle(); });
+  window.addEventListener('resize', function () { if (host && !host.hidden) place(); });
+})();
+
 </script>
 </body>
 </html>
