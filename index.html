@@ -3254,42 +3254,152 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
 .lp-main h1 { min-width: 0; }
 @media (max-width: 639px) { .lp-hdone .lp-bl { display: none; } .lp-hdone { min-width: 44px; padding-inline: .6rem; } }
 
-/* ---- financial calculator (look only; the engine plugs into window.FinCalc) ---- */
-.fc { position: fixed; z-index: 70; width: min(384px, calc(100vw - 16px)); padding: 10px 14px 12px; border-radius: 20px; color: #fff; background: linear-gradient(180deg, #2b3273, #202658); box-shadow: 0 24px 60px rgba(8, 10, 40, .55), inset 0 1px 0 rgba(255, 255, 255, .08); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+/* ---- financial calculator · v38: every size is a multiple of --u (1px at the default 384 px width), so the whole calculator scales when you drag its corner ---- */
+.fc { --u: 1px; position: fixed; z-index: 70; width: calc(384 * var(--u)); max-width: calc(100vw - 8px); padding: calc(10 * var(--u)) calc(14 * var(--u)) calc(12 * var(--u)); border-radius: calc(20 * var(--u)); color: #fff; background: linear-gradient(180deg, #2b3273, #202658); box-shadow: 0 calc(24 * var(--u)) calc(60 * var(--u)) rgba(8, 10, 40, .55), inset 0 1px 0 rgba(255, 255, 255, .08); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; touch-action: manipulation; }
 .fc[hidden] { display: none; }
 .fc:focus { outline: none; }
-.fc-head { display: flex; align-items: center; gap: 6px; padding: 2px 2px 8px; cursor: move; user-select: none; touch-action: none; }
-.fc-brand { flex: 1; font: 700 12px/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; color: #c9cffc; }
+.fc-head { display: flex; align-items: center; gap: calc(5 * var(--u)); padding: calc(2 * var(--u)) calc(2 * var(--u)) calc(8 * var(--u)); cursor: move; user-select: none; touch-action: none; }
+.fc-brand { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 700 calc(12 * var(--u))/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .1em; color: #c9cffc; }
 .fc-brand b { color: #ff9a3d; }
-.fc-hb { height: 32px; min-width: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, .1); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+.fc-hb { height: calc(30 * var(--u)); min-width: calc(30 * var(--u)); padding: 0 calc(7 * var(--u)); border: 0; border-radius: calc(8 * var(--u)); background: rgba(255, 255, 255, .1); color: #fff; font-size: calc(12 * var(--u)); font-weight: 600; line-height: 1; cursor: pointer; white-space: nowrap; }
 .fc-hb:hover { background: rgba(255, 255, 255, .22); }
-.fc-lcd { margin-bottom: 12px; padding: 6px 12px 8px; min-height: 86px; border-radius: 10px; color: #1b2410; background: linear-gradient(#d3dfb3, #bdcc98); box-shadow: inset 0 2px 7px rgba(0, 0, 0, .35); font-family: ui-monospace, Menlo, Consolas, monospace; }
-.fc-ind { display: flex; gap: 10px; height: 16px; font-size: 12px; font-weight: 700; }
+.fc-hb:focus-visible { outline: 2px solid #ffd08a; outline-offset: 1px; }
+.fc-lcd { margin-bottom: calc(12 * var(--u)); padding: calc(6 * var(--u)) calc(12 * var(--u)) calc(8 * var(--u)); min-height: calc(86 * var(--u)); border-radius: calc(10 * var(--u)); color: #1b2410; background: linear-gradient(#d3dfb3, #bdcc98); box-shadow: inset 0 calc(2 * var(--u)) calc(7 * var(--u)) rgba(0, 0, 0, .35); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.fc-ind { display: flex; gap: calc(10 * var(--u)); height: calc(16 * var(--u)); font-size: calc(12 * var(--u)); font-weight: 700; }
 .fc-ind span { opacity: .16; }
 .fc-ind span.on { opacity: 1; }
-.fc-lbl { min-height: 16px; font-size: 12px; font-weight: 600; opacity: .8; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.fc-num { font-size: 38px; line-height: 1.15; font-weight: 700; text-align: right; overflow: hidden; white-space: nowrap; }
-.fc-pad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 8px; row-gap: 4px; }
+.fc-lbl { min-height: calc(16 * var(--u)); font-size: calc(12 * var(--u)); font-weight: 600; opacity: .8; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fc-num { font-size: calc(38 * var(--u)); line-height: 1.15; font-weight: 700; text-align: right; overflow: hidden; white-space: nowrap; }
+.fc-pad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: calc(8 * var(--u)); row-gap: calc(4 * var(--u)); }
 .fc-c { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
 .fc-c.eq { grid-row: span 2; }
-.fc-s { height: 16px; font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; white-space: nowrap; color: #aab2f0; letter-spacing: -.02em; }
+.fc-s { height: calc(16 * var(--u)); font-size: calc(12 * var(--u)); line-height: calc(16 * var(--u)); font-weight: 600; text-align: center; white-space: nowrap; color: #aab2f0; letter-spacing: -.02em; }
 .fc.on2 .fc-s { color: #ffb45e; }
-.fc-k { height: 38px; padding: 0; border: 0; border-radius: 9px; color: #fff; font: 700 14px/1 system-ui, sans-serif; cursor: pointer; background: linear-gradient(#4f5ab6, #3c4693); box-shadow: 0 2px 0 #181d4e, 0 4px 8px rgba(0, 0, 0, .3); }
+.fc-k { height: calc(38 * var(--u)); padding: 0; border: 0; border-radius: calc(9 * var(--u)); color: #fff; font: 700 calc(14 * var(--u))/1 system-ui, sans-serif; cursor: pointer; background: linear-gradient(#4f5ab6, #3c4693); box-shadow: 0 calc(2 * var(--u)) 0 #181d4e, 0 calc(4 * var(--u)) calc(8 * var(--u)) rgba(0, 0, 0, .3); }
 .fc-k:hover { filter: brightness(1.1); }
-.fc-k:active { transform: translateY(2px); box-shadow: 0 0 0 #181d4e; }
+.fc-k:active, .fc-k.hit { transform: translateY(calc(2 * var(--u))); box-shadow: 0 0 0 #181d4e; filter: brightness(1.25); }
 .fc-k:focus-visible { outline: 2px solid #ffd08a; outline-offset: 2px; }
-.fc-k.num { color: #1b2255; background: linear-gradient(#fff, #e4e8f6); box-shadow: 0 2px 0 #959cc6, 0 4px 8px rgba(0, 0, 0, .25); }
-.fc-k.sec, .fc-k.eq { background: linear-gradient(#ff9d42, #ee7810); box-shadow: 0 2px 0 #9a4a08, 0 4px 8px rgba(0, 0, 0, .3); }
-.fc.on2 .fc-k.sec { box-shadow: 0 0 0 3px #fff3, 0 2px 0 #9a4a08; filter: brightness(1.15); }
-.fc-c.eq .fc-k { height: auto; flex: 1; font-size: 22px; }
-.fc-note { margin-top: 10px; font-size: 12px; line-height: 1.4; text-align: center; color: #aab2f0; }
+.fc-k.num { color: #1b2255; background: linear-gradient(#fff, #e4e8f6); box-shadow: 0 calc(2 * var(--u)) 0 #959cc6, 0 calc(4 * var(--u)) calc(8 * var(--u)) rgba(0, 0, 0, .25); }
+.fc-k.sec, .fc-k.eq { background: linear-gradient(#ff9d42, #ee7810); box-shadow: 0 calc(2 * var(--u)) 0 #9a4a08, 0 calc(4 * var(--u)) calc(8 * var(--u)) rgba(0, 0, 0, .3); }
+.fc.on2 .fc-k.sec { box-shadow: 0 0 0 calc(3 * var(--u)) #fff3, 0 calc(2 * var(--u)) 0 #9a4a08; filter: brightness(1.15); }
+.fc-k.hit { outline: 3px solid #ffd08a; outline-offset: 1px; }
+.fc-c.eq .fc-k { height: auto; flex: 1; font-size: calc(22 * var(--u)); }
+.fc-note { margin-top: calc(10 * var(--u)); font-size: calc(12 * var(--u)); line-height: 1.4; text-align: center; color: #aab2f0; }
+.fc-rz { position: absolute; right: calc(2 * var(--u)); bottom: calc(2 * var(--u)); width: calc(26 * var(--u)); height: calc(26 * var(--u)); cursor: nwse-resize; touch-action: none; border-radius: 0 0 calc(18 * var(--u)) 0; opacity: .75; background: linear-gradient(135deg, transparent 0 52%, #aab2f0 52% 58%, transparent 58% 70%, #aab2f0 70% 76%, transparent 76% 88%, #aab2f0 88% 94%, transparent 94%); }
+.fc-rz:hover { opacity: 1; }
+.fc-rz:focus-visible { outline: 2px solid #ffd08a; }
+.fc.sizing { user-select: none; }
+.fc.sizing .fc-rz { opacity: 1; }
 @media (max-width: 639px) {
-  .fc { left: 50% !important; top: auto !important; right: auto !important; bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; transform: translateX(-50%); padding: 8px 10px 10px; }
-  .fc-k { height: 34px; font-size: 13px; }
-  .fc-num { font-size: 32px; }
-  .fc-lcd { min-height: 76px; margin-bottom: 8px; }
+  .fc { left: 50% !important; top: auto !important; right: auto !important; bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; transform: translateX(-50%); padding: calc(8 * var(--u)) calc(10 * var(--u)) calc(10 * var(--u)); }
+  .fc-lcd { margin-bottom: calc(8 * var(--u)); }
   .fc-head { cursor: default; }
 }
+/* ---- calculator manual (a panel next to the calculator) ---- */
+.fcm { position: fixed; z-index: 75; top: 8px; bottom: 8px; left: 8px; width: min(600px, calc(100vw - 16px)); display: flex; flex-direction: column; border-radius: 16px; background: #fff; color: #0f172a; border: 1px solid #cbd5e1; box-shadow: 0 20px 60px rgba(2, 6, 23, .45); overflow: hidden; font-size: 14px; line-height: 1.55; }
+.dark .fcm { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+.fcm[hidden] { display: none; }
+.fcm-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #312e81; color: #fff; }
+.fcm-head h2 { font-size: 15px; font-weight: 700; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcm-x { width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #fff; font-size: 16px; cursor: pointer; }
+.fcm-x:hover { background: rgba(255, 255, 255, .2); }
+.fcm-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.dark .fcm-bar { background: #111c33; border-color: #334155; }
+.fcm-bar input[type=search] { flex: 1; min-width: 140px; padding: 7px 10px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: inherit; font-size: 14px; }
+.dark .fcm-bar input[type=search] { background: #0f172a; border-color: #475569; }
+.fcm-bar label { font-size: 12px; display: flex; gap: 6px; align-items: center; color: #475569; }
+.dark .fcm-bar label { color: #a3b1c6; }
+.fcm-body { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 0; flex: 1; }
+.fcm-toc { overflow-y: auto; padding: 8px 6px; border-right: 1px solid #e2e8f0; background: #f8fafc; }
+.dark .fcm-toc { background: #111c33; border-color: #334155; }
+.fcm-toc button { display: block; width: 100%; text-align: left; padding: 7px 9px; margin-bottom: 2px; border: 0; border-radius: 8px; background: transparent; color: inherit; font-size: 13px; cursor: pointer; line-height: 1.3; }
+.fcm-toc button:hover { background: #e0e7ff; }
+.dark .fcm-toc button:hover { background: #1e1b4b; }
+.fcm-toc button.on { background: #4f46e5; color: #fff; font-weight: 600; }
+.fcm-toc .g { margin: 10px 9px 3px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #64748b; }
+.fcm-main { overflow-y: auto; padding: 14px 18px 30px; scroll-behavior: smooth; }
+.fcm-main h3 { font-size: 20px; font-weight: 800; margin: 26px 0 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
+.dark .fcm-main h3 { border-color: #334155; }
+.fcm-main h3:first-child { margin-top: 0; border-top: 0; }
+.fcm-main h4 { font-size: 15px; font-weight: 700; margin: 16px 0 4px; }
+.fcm-main p { margin: 6px 0; }
+.fcm-main ul, .fcm-main ol { margin: 6px 0 6px 20px; padding: 0; list-style: revert; }
+.fcm-main li { margin: 3px 0; }
+.fcm-main table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+.fcm-main th, .fcm-main td { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; vertical-align: top; }
+.dark .fcm-main th, .dark .fcm-main td { border-color: #334155; }
+.fcm-main th { background: #f1f5f9; }
+.dark .fcm-main th { background: #1e293b; }
+.fcm-tip, .fcm-warn, .fcm-def { margin: 10px 0; padding: 9px 12px; border-radius: 10px; font-size: 13px; }
+.fcm-tip { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.fcm-warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+.fcm-def { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; }
+.dark .fcm-tip { background: #064e3b; border-color: #047857; color: #a7f3d0; }
+.dark .fcm-warn { background: #431407; border-color: #9a3412; color: #fed7aa; }
+.dark .fcm-def { background: #1e1b4b; border-color: #4338ca; color: #c7d2fe; }
+.fcm-ex { margin: 12px 0; padding: 10px 12px; border: 1px solid #c7d2fe; border-radius: 12px; background: #f5f7ff; }
+.dark .fcm-ex { background: #131a36; border-color: #3730a3; }
+.fcm-ex-t { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 700; margin-bottom: 6px; }
+.fcm-ex-t span { flex: 1; min-width: 0; }
+.fcm-run { border: 0; border-radius: 8px; padding: 6px 11px; background: #4f46e5; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.fcm-run:hover { background: #4338ca; }
+.fcm-run.stop { background: #be123c; }
+.fcm-keys { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
+.fcm-key { display: inline-block; min-width: 26px; padding: 3px 7px; border-radius: 6px; border: 1px solid #94a3b8; border-bottom-width: 3px; background: #fff; color: #1b2255; font: 700 12px/1.3 ui-monospace, Menlo, Consolas, monospace; text-align: center; }
+.fcm-key.f2 { background: #fff1e0; border-color: #ee7810; color: #9a4a08; }
+.fcm-key.fn { background: #e0e7ff; border-color: #6366f1; }
+.dark .fcm-key { background: #1e293b; color: #e2e8f0; border-color: #64748b; }
+.dark .fcm-key.f2 { background: #3b2410; color: #fdba74; border-color: #c2570c; }
+.dark .fcm-key.fn { background: #1e1b4b; color: #c7d2fe; border-color: #4f46e5; }
+.fcm-key.cur { outline: 2px solid #f59e0b; }
+.fcm-res { font-size: 13px; margin-top: 4px; }
+.fcm-res b { font-family: ui-monospace, Menlo, Consolas, monospace; background: #d3dfb3; color: #1b2410; padding: 1px 7px; border-radius: 5px; }
+.fcm-hit { background: #fde68a; border-radius: 3px; }
+.fcm-pill { position: fixed; z-index: 76; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 999px; background: #1e293b; color: #f8fafc; border: 1px solid #6366f1; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); font-size: 13px; }
+.fcm-pill[hidden] { display: none; }
+.fcm-pill button { border: 0; border-radius: 999px; padding: 5px 11px; background: #4f46e5; color: #fff; font-weight: 700; cursor: pointer; }
+@media (max-width: 720px) {
+  .fcm { top: 0; bottom: 0; left: 0; width: 100vw; border-radius: 0; }
+  .fcm-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .fcm-toc { display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid #e2e8f0; padding: 6px; }
+  .fcm-toc button { width: auto; flex: none; white-space: nowrap; margin: 0; }
+  .fcm-toc .g { display: none; }
+}
+
+/* ---- v38 · module outline: Lectures list, Practice window, Performance ---- */
+.lp-lec { list-style: none; margin: .1rem 0 0; padding: 0; }
+.lp-grp-l { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; }
+.lp-gc { flex: 1; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #0f766e; }
+.dark .lp-gc { color: #5eead4; }
+.lp-gm { flex: none; border: 1px solid #c7d2fe; background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; cursor: pointer; }
+.lp-gm:hover { background: #e0e7ff; }
+.dark .lp-gm { background: #1e1b4b; border-color: #4338ca; color: #c7d2fe; }
+.lp-empty { padding: .4rem .5rem; font-size: 13px; color: #64748b; }
+.lp-sub { margin: .35rem 0 .1rem .35rem; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: .04em; text-transform: uppercase; }
+.lp-vdot { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin: 3px 0 3px 6px; border-radius: 99px; border: 2px solid #cbd5e1; font-size: 10px; color: #64748b; }
+.lp-vid.done .lp-vdot { background: #10b981; border-color: #10b981; color: #fff; }
+.lp-vid .lp-lbl { padding: .4rem .4rem .4rem 0; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-perf .lp-vdot { border-color: transparent; font-size: 16px; margin-left: 4px; }
+.lp-lecchip { flex: none; margin-bottom: -1px; padding: .5rem .75rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #0f766e; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.dark .lp-lecchip { color: #5eead4; }
+.pw-seg { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: .9rem; border-radius: 12px; background: #e2e8f0; }
+.dark .pw-seg { background: #1e293b; }
+.pw-seg button { border: 0; border-radius: 9px; padding: .45rem .9rem; min-height: 40px; background: transparent; color: #475569; font-weight: 600; font-size: 14px; cursor: pointer; }
+.dark .pw-seg button { color: #a3b1c6; }
+.pw-seg button.on { background: #fff; color: #4338ca; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+.dark .pw-seg button.on { background: #312e81; color: #e0e7ff; }
+.pw-n { display: inline-block; min-width: 1.4em; padding: 0 .4em; margin-left: .2em; border-radius: 99px; background: #fee2e2; color: #b91c1c; font-size: 12px; text-align: center; }
+.pf-los { display: grid; grid-template-columns: minmax(0, 1fr) 6rem 2.8rem; gap: .1rem .6rem; align-items: center; padding: .45rem 0; border-top: 1px solid #f1f5f9; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.dark .pf-los { border-color: #1e293b; }
+.pf-los:first-child { border-top: 0; }
+.pf-los-n { display: flex; gap: .4rem; align-items: center; min-width: 0; }
+.pf-los-b { min-width: 0; }
+.pf-los-v { text-align: right; }
+.pf-los-v.g { color: #059669; } .pf-los-v.a { color: #d97706; } .pf-los-v.r { color: #e11d48; } .pf-los-v.nd { color: #94a3b8; }
+.pf-los-s { grid-column: 1 / 3; font-size: .72rem; color: #64748b; }
+.pf-los .btn-ghost { justify-self: end; padding: .15rem .5rem; min-height: 32px; }
+.pf-los-b .dbullet { display: block; }
+.lp-shell[data-tab="perf"] [data-lpa="done"] { display: none !important; }
 
 </style>
 </head>
@@ -5162,31 +5272,50 @@ async function fsaCommonClick(e, x) {
 // ---------- v37 · lesson outline: a left panel inside every module (replaces the tab strip on wide screens) ----------
 // Each step has a circle: tick it (or press "Mark complete & next") and the lesson moves on to the next step.
 // Saved under kv "lessonSteps" = { [moduleId]: { [step]: timestamp } }. Nothing else in the site reads or changes it.
-const LP_GROUP = { map: 'Learn', schweser: 'Learn', curriculum: 'Learn', diff: 'Learn', xtra: 'Learn', conf: 'Learn', cards: 'Consolidate', ai: 'Consolidate', mohd: 'Consolidate', qbank: 'Practice', mistakes: 'Practice' };
+const LP_GROUP = { map: 'Reading', schweser: 'Reading', curriculum: 'Reading', diff: 'Reading', xtra: 'Reading', conf: 'Reading', cards: 'Consolidate', ai: 'Consolidate', mohd: 'Consolidate', qbank: 'Practice', mistakes: 'Practice', perf: 'Performance' };
+const LP_HIDE = new Set(['mistakes']);                                   // v38 · Mistakes now lives inside the Practice window
+const lpShown = tabs => tabs.filter(([k]) => !LP_HIDE.has(k));
+const lpSteps = tabs => lpShown(tabs).filter(([k]) => k !== 'perf');     // Performance is a view, not a step you tick
 const LP_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 async function lpDone(modId) { const all = (await kv.get('lessonSteps', {})) || {}; return { ...(all[modId] || {}) }; }
 const lpClosedNow = () => { try { return localStorage.getItem('lpClosed') === '1'; } catch (e) { return false; } };
 const lpHeadBtns = () => `<span class="lp-hb"><button type="button" class="ib lp-tgl" data-lpa="panel" title="Show / hide the lesson outline" aria-label="Show or hide the lesson outline">☰</button><button type="button" class="btn-primary text-xs lp-hdone" data-lpa="done"></button></span>`;
+// lecture videos linked to this module (kv "modTrack" → [moduleId].videos)
+async function lpVids(modId) { const t = (await kv.get('modTrack', {})) || {}; return ((t[modId] || {}).videos || []).map(v => ({ ...v })); }
+function lpLecHTML(mid, vs) {
+  const n = vs.filter(v => v.done).length, groups = [...new Set(vs.map(v => v.src || ''))];
+  const head = `<li class="lp-grp lp-grp-l" role="presentation"><span>Lectures</span><span class="lp-gc">${vs.length ? `${n}/${vs.length} watched` : ''}</span><button type="button" class="lp-gm" data-vids="${esc(mid)}" title="Add, reorder or remove the lecture videos of this module">${vs.length ? 'Manage' : '+ Add'}</button></li>`;
+  if (!vs.length) return head + '<li class="lp-empty">No lecture video linked to this module yet.</li>';
+  return head + groups.map(g => (groups.length > 1 && g ? `<li class="lp-sub" role="presentation">${esc(g)}</li>` : '') + vs.map((v, i) => (v.src || '') !== g ? '' :
+    `<li class="lp-row lp-vid${v.done ? ' done' : ''}"><span class="lp-vdot" aria-hidden="true">${v.done ? LP_CHECK : '▶'}</span><a class="lp-lbl" href="#/video/${encodeURIComponent(mid)}/${i}" title="${esc(v.name || v.file || '')}">${esc(v.name || v.file || 'Video ' + (i + 1))}</a></li>`).join('')).join('');
+}
+const lpChipTxt = vs => '🎬 Lectures' + (vs.length ? ` ${vs.filter(v => v.done).length}/${vs.length}` : '');
+function lpStrip(o) {       // the tab strip shown on narrow screens (the outline is hidden there)
+  const vs = o.vids || [];
+  return `<button type="button" class="lp-lecchip" data-vids="${esc(o.x.id)}" title="Lecture videos of this module">${lpChipTxt(vs)}</button>` + lpShown(o.tabs).map(([k, l]) => `<a href="${o.hrefOf(k)}" class="${k === o.tab ? 'on' : ''}${o.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('');
+}
 function lpHTML(o) {
-  const { tabs, tab, hrefOf, st } = o, n = tabs.filter(([k]) => st[k]).length, pct = Math.round(100 * n / tabs.length);
+  const { tabs, tab, hrefOf, st } = o, steps = lpSteps(tabs), n = steps.filter(([k]) => st[k]).length, pct = steps.length ? Math.round(100 * n / steps.length) : 0;
   let last = '';
-  const rows = tabs.map(([k, l]) => {
+  const rows = lpShown(tabs).map(([k, l]) => {
     const g = LP_GROUP[k] || '', head = g !== last ? `<li class="lp-grp" role="presentation">${g}</li>` : ''; last = g;
+    if (k === 'perf') return head + `<li class="lp-row lp-perf${k === tab ? ' on' : ''}" data-k="perf"><span class="lp-vdot" aria-hidden="true">📊</span><a class="lp-lbl" href="${hrefOf(k)}"${k === tab ? ' aria-current="page"' : ''}>${esc(l)}</a></li>`;
     return head + `<li class="lp-row${k === tab ? ' on' : ''}${st[k] ? ' done' : ''}" data-k="${k}"><button type="button" class="lp-dot" data-lpa="dot" data-k="${k}" aria-pressed="${!!st[k]}" aria-label="${esc(l)}: mark as complete">${LP_CHECK}</button><a class="lp-lbl" href="${hrefOf(k)}"${k === tab ? ' aria-current="step"' : ''}>${esc(l)}</a></li>`;
   }).join('');
   return `<aside class="lp-panel" aria-label="Lesson outline"><a class="lp-back" href="${esc(o.back[0])}">← ${esc(o.back[1])}</a>
     <div class="lp-ttl"><span class="lp-num">${esc(String(o.num))}</span><b>${o.titleHTML}</b></div>
     <div class="lp-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
-    <div class="lp-pct"><b data-lp-pct>${pct}%</b> complete · <span data-lp-n>${n}</span>/${tabs.length} steps</div>
+    <div class="lp-pct"><b data-lp-pct>${pct}%</b> complete · <span data-lp-n>${n}</span>/${steps.length} steps</div>
+    <ul class="lp-lec lp-list" aria-label="Lectures">${lpLecHTML(o.x.id, o.vids || [])}</ul>
     <ol class="lp-list">${rows}</ol>
     <button type="button" class="btn-primary lp-cta" data-lpa="done"></button></aside>`;
 }
 function lpBind(root, o) {
   if (!root) return;
-  const tabs = o.tabs, idx = tabs.findIndex(([k]) => k === o.tab), st = { ...o.st };
+  const tabs = lpSteps(o.tabs), idx = tabs.findIndex(([k]) => k === o.tab), st = { ...o.st };
   const paint = () => {
-    const n = tabs.filter(([k]) => st[k]).length, pct = Math.round(100 * n / tabs.length);
-    root.querySelectorAll('.lp-row').forEach(r => { const d = !!st[r.dataset.k]; r.classList.toggle('done', d); r.querySelector('.lp-dot').setAttribute('aria-pressed', String(d)); });
+    const n = tabs.filter(([k]) => st[k]).length, pct = tabs.length ? Math.round(100 * n / tabs.length) : 0;
+    root.querySelectorAll('.lp-row[data-k]').forEach(r => { const dot = r.querySelector('.lp-dot'); if (!dot) return; const d = !!st[r.dataset.k]; r.classList.toggle('done', d); dot.setAttribute('aria-pressed', String(d)); });
     root.querySelectorAll('.tabs a').forEach((a, i) => { if (tabs[i]) a.classList.toggle('lp-tick', !!st[tabs[i][0]]); });
     const bar = root.querySelector('.lp-bar'); if (bar) { bar.firstElementChild.style.width = pct + '%'; bar.setAttribute('aria-valuenow', String(pct)); }
     const p = root.querySelector('[data-lp-pct]'); if (p) p.textContent = pct + '%';
@@ -5205,6 +5334,7 @@ function lpBind(root, o) {
     if (a === 'panel') { const closed = root.classList.toggle('lp-closed'); try { localStorage.setItem('lpClosed', closed ? '1' : '0'); } catch (x) { } return; }
     if (a === 'dot') { e.preventDefault(); const k = b.dataset.k; if (st[k]) delete st[k]; else st[k] = Date.now(); paint(); await save(); return; }
     if (a === 'done') {
+      if (idx < 0) return;                                  // the Performance page has nothing to tick
       if (st[o.tab]) { delete st[o.tab]; paint(); await save(); return; }
       st[o.tab] = Date.now(); paint(); await save();
       const nx = tabs[idx + 1];
@@ -5213,16 +5343,205 @@ function lpBind(root, o) {
   });
   paint();
 }
+// the Lectures list refreshes by itself when videos are added, removed or reordered in the dialog
+addEventListener('lp:vids', async () => {
+  const root = document.querySelector('.lp-shell[data-mid]'); if (!root) return;
+  const mid = root.dataset.mid, vs = await lpVids(mid), ul = root.querySelector('.lp-lec'); if (ul) ul.innerHTML = lpLecHTML(mid, vs);
+  const chip = root.querySelector('.lp-lecchip'); if (chip) chip.textContent = lpChipTxt(vs);
+});
 
-const FSA_TABS = [['map', 'Study Map'], ['schweser', 'Schweser Notes'], ['curriculum', 'Curriculum'], ['xtra', 'Extras'], ['conf', 'Conflicts'], ['cards', 'Flashcards'], ['ai', 'AI Summary'], ['mohd', 'Mohd Summary'], ['qbank', 'Questions'], ['mistakes', 'Mistakes']];
+// ---------- v38 · Practice window: Questions and Mistakes together ----------
+async function legacyQPane(body, x) {
+  const c = await progressCtx(), m = modInfo(x.id), n = m ? modQs(m, c).filter(inStat).length : 0;
+  body.innerHTML = `<div class="card max-w-2xl"><h3 class="sec">Practice questions</h3><p class="text-sm text-slate-600 dark:text-slate-300">${n} question${n === 1 ? '' : 's'} in this module.</p><button type="button" class="btn-primary mt-3" data-qgo="1" ${n ? '' : 'disabled'}>🎯 Practise this module (${n})</button></div>`;
+  body.onclick = e => { if (e.target.closest('[data-qgo]')) location.hash = `#/qbank/m/${x.id}`; };
+  return () => { body.onclick = null; };
+}
+async function practiceWindow(body, x, first, qPane) {
+  const st = (await kv.get('qstats', {})) || {}, Q = (await allQs()).filter(q => modKey(q) === x.id), nMis = Q.filter(q => st[q.id]?.n > st[q.id]?.c).length;
+  const base = (modInfo(x.id) || x).href;
+  body.innerHTML = `<div class="pw-seg" role="tablist" aria-label="Practice"><button type="button" role="tab" data-pw="qbank">🎯 Questions</button><button type="button" role="tab" data-pw="mistakes">📕 Mistakes <span class="pw-n">${nMis}</span></button></div><div class="pw-pane"></div>`;
+  const seg = body.querySelector('.pw-seg'); let cleanup = null, cur = null;
+  async function show(which) {
+    if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; }
+    cur = which;
+    seg.querySelectorAll('button').forEach(b => { const on = b.dataset.pw === which; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    const old = body.querySelector('.pw-pane'), pane = document.createElement('div'); pane.className = 'pw-pane'; old.replaceWith(pane);
+    try { history.replaceState(null, '', `${base}/${which}`); } catch (e) { }
+    const c = await (which === 'mistakes' ? mistakesTab(pane, x) : qPane(pane, x)); if (typeof c === 'function') cleanup = c;
+  }
+  seg.addEventListener('click', e => { const b = e.target.closest('[data-pw]'); if (b && b.dataset.pw !== cur) show(b.dataset.pw); });
+  await show(first === 'mistakes' ? 'mistakes' : 'qbank');
+  return () => { if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; } };
+}
+
+// ---------- v38 · Performance of ONE module: the dashboard measures, at module level ----------
+// Same definitions, thresholds and "what is this?" popups (KPI_INFO) as the Dashboard — only the questions of this module are counted.
+async function modulePerfTab(body, x) {
+  const m = modInfo(x.id);
+  if (!m || !m.x) { body.innerHTML = '<div class="card text-sm text-slate-500">This module is not loaded yet, so there is nothing to measure.</div>'; return; }
+  body.innerHTML = '<div class="text-sm text-slate-500 p-3">Calculating…</div>';
+  const c = await progressCtx(), st = c.st, now = Date.now(), DAY = 864e5, WEEK = 7 * DAY;
+  const p = modProgress(m, c), est = modEstimate(m, c), rd = Math.round(est.p * 100), rdK = rdOk(est), ft = modFirstTry(m, c), ftv = ft.n ? pct(ft.c, ft.n) : 0;
+  const QS = modQs(m, c).filter(inStat), ans = QS.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
+  const cov = pct(ans.length, QS.length), acc = ans.length ? pct(cor.length, ans.length) : null;
+  const R = m.kind === 'pack' ? losRatings(m, c) : { ready: false, list: [] };
+  const mustN = R.list.filter(z => z.rate === 'must').length;
+  // every recorded answer of this module
+  const ev = []; for (const q of QS) for (const h of ((st[q.id] || {}).hist || [])) if (h && h.t) ev.push({ q, t: h.t, ok: !!h.ok, s: h.s || 0, cf: h.cf || null, md: h.md || null, tw: !!h.tw });
+  // learning quality
+  let fa = { n: 0, c: 0, r30: 0, r30c: 0 }; const lv = { apply: { n: 0, c: 0 }, recall: { n: 0, c: 0 } }, fev = [];
+  for (const q of QS) { const f = firstAtt(st[q.id]); if (!f) continue; fa.n++; if (f.ok) fa.c++; if (f.t > now - 30 * DAY) { fa.r30++; if (f.ok) fa.r30c++; } if (f.t) fev.push(f); const z = lv[qLevel(q)]; if (z) { z.n++; if (f.ok) z.c++; } }
+  let rn = 0, rc = 0, tn = 0, tc = 0, sn = 0, sk = 0, wr = 0, cr = 0;
+  for (const q of QS) {
+    const s = st[q.id] || {}, h = s.hist || [];
+    for (let i = 0; i < h.length; i++) { const e = h[i]; if (!e || !e.t) continue; if (i > 0 && h[i - 1].t && e.t - h[i - 1].t >= 7 * DAY) { rn++; if (e.ok) rc++; } if (e.tw) { tn++; if (e.ok) tc++; } if (e.s > 0 && e.s < 1200) { sn++; if (e.s > 150 && !e.ok) sk++; } }
+    for (const r of allReasons(s)) { wr++; if (r.r === 'careless' || r.r === 'calc' || r.r === 'time') cr++; }
+  }
+  const K = { ret: rn >= 30 ? { v: pct(rc, rn), n: rn } : { v: null, n: rn }, twin: tn >= 15 ? { v: pct(tc, tn), n: tn } : { v: null, n: tn }, sink: sn >= 50 ? { v: Math.round(sk / sn * 1000) / 10, n: sn } : { v: null, n: sn }, care: wr >= 20 ? { v: pct(cr, wr), n: wr } : { v: null, n: wr } };
+  // confidence
+  const conf = { sure: [0, 0], unsure: [0, 0], guess: [0, 0] }; ans.forEach(q => { const h = lastH(st[q.id]); if (h && conf[h.cf]) conf[h.cf][st[q.id].last ? 0 : 1]++; });
+  const TG = { sure: 90, unsure: 60, guess: 33 }; let cN = 0, cE = 0; for (const k of Object.keys(TG)) { const [a, b] = conf[k], n = a + b; if (!n) continue; cN += n; cE += n * Math.abs(a / n * 100 - TG[k]); }
+  const sN = conf.sure[0] + conf.sure[1], sureAcc = sN ? pct(conf.sure[0], sN) : null;
+  K.cal = cN >= 40 ? { v: Math.round(cE / cN), n: cN } : { v: null, n: cN };
+  // pace
+  const tEx = ev.filter(e => e.s > 0 && e.md === 'exam'), tAll = ev.filter(e => e.s > 0 && e.s < 1200), tUse = tEx.length >= 20 ? tEx : tAll.length >= 20 ? tAll : null;
+  const pace = tUse ? (() => { const a = tUse.slice(-400).map(e => e.s).sort((u, v) => u - v); return { med: a[a.length >> 1], slow: Math.round(a.filter(v => v > 90).length / a.length * 100), src: tUse === tEx ? 'exam mode' : 'all modes' }; })() : null;
+  // retry queue, due, flags, sure-but-wrong
+  let grad = 0, inq = 0, rqDue = []; for (const q of QS) { const s = st[q.id]; if (s && s.rqGrad) grad++; const r = rqOf(s); if (r) { inq++; if (r.due <= now) rqDue.push(q); } }
+  const dueRev = ans.filter(q => st[q.id].due <= now).length, flagged = QS.filter(q => st[q.id]?.flag).length, sw = QS.filter(q => isSureWrong(q, st));
+  const peak = ((await kv.get('modPeak', {})) || {})[m.id], fade = rdK && peak != null && peak - rd >= 10 ? { peak, rd } : null;
+  let cardsDue = 0; try { cardsDue = await dueCardCount([m.id]); } catch (e) { }
+  // weeks and activity
+  const wk0 = dshMonday(now).getTime(), act = {}; ev.forEach(e => { const k = dshDay(e.t); act[k] = (act[k] || 0) + 1; });
+  const weeks = [...Array(12)].map((_, i) => { const a = wk0 - (11 - i) * WEEK, b = a + WEEK, es = ev.filter(e => e.t >= a && e.t < b), fs = fev.filter(e => e.t >= a && e.t < b);
+    return { start: a, n: es.length, acc: es.length ? pct(es.filter(e => e.ok).length, es.length) : null, fac: fs.length >= 3 ? pct(fs.filter(e => e.ok).length, fs.length) : null, min: Math.round(es.reduce((t, e) => t + e.s, 0) / 60) }; });
+  const tw = weeks[11], lw = weeks[10];
+  const tally = reasonTally(QS, st), topR = tallyTop(tally)[0];
+  const trapLos = {}; sw.forEach(q => { const k = q.los || ''; (trapLos[k] = trapLos[k] || { los: k, qs: [] }).qs.push(q); }); const traps = Object.values(trapLos).sort((a, b) => b.qs.length - a.qs.length);
+  const mini = miniGroups(m.subject).find(g => g.mods.some(z => z.id === m.id)), miniScore = mini && MINIRES[mini.key] ? MINIRES[mini.key].score : null;
+
+  // ----- helpers (same look as the Dashboard cards) -----
+  const nd = n => `<span class="dk-nd">not enough data${n != null ? ` · ${n} so far` : ''}</span>`;
+  const c3 = (v, g, a, hi = true) => v == null ? '' : hi ? (v >= g ? 'g' : v >= a ? 'a' : 'r') : (v <= g ? 'g' : v <= a ? 'a' : 'r');
+  const sgn = v => (v > 0 ? '+' : '') + v;
+  const card = (key, val, sub, cls = '', lab) => { const t = lab || KPI_INFO[key].t; return `<div class="dk ${cls}" data-kpi="${key}" role="button" tabindex="0" aria-label="${esc(t)} — what is this?"><div class="dk-l">${esc(t)}<span class="dk-i" aria-hidden="true">i</span></div><div class="dk-v">${val}</div><div class="dk-s">${sub}</div></div>`; };
+  const plain = (lab, val, sub, cls = '', tip = '') => `<div class="dk ${cls}" ${tip ? `data-tip="${esc(tip)}"` : ''}><div class="dk-l">${esc(lab)}</div><div class="dk-v">${val}</div><div class="dk-s">${sub}</div></div>`;
+  const grp = (title, sub, cards) => `<section class="dk-grp"><h3 class="dk-gh">${title}<span>${sub}</span></h3><div class="dk-grid">${cards.join('')}</div></section>`;
+  const faP = fa.n ? pct(fa.c, fa.n) : null, apN = lv.apply.n, apP = apN >= 10 ? pct(lv.apply.c, apN) : null;
+
+  const groups =
+    grp('🧭 Path', 'is this module done?', [
+      card('cmp', `${p.complete}%`, `${p.rDone}/${p.rTot} LOS read · ${ans.length}/${QS.length} questions answered`, p.complete >= 100 ? 'g' : p.complete >= 80 ? 'a' : ''),
+      card('week', `${tw.n}`, `${tw.min} min this week · last week ${lw.n}`, tw.n > 0 ? 'g' : ''),
+      card('rq', grad + inq ? `${pct(grad, grad + inq)}%` : '—', `${grad} graduated · ${inq} in queue${rqDue.length ? ` · <b>${rqDue.length} due</b>` : ''}`, !(grad + inq) ? '' : rqDue.length > 10 ? 'r' : rqDue.length > 0 ? 'a' : pct(grad, grad + inq) >= 50 ? 'g' : 'a'),
+      plain('Due for review', dueRev, `${cardsDue} flashcard${cardsDue === 1 ? '' : 's'} due · ${flagged} flagged ⚑`, dueRev ? 'a' : 'g', 'Questions whose spaced review date has come, flashcards due today, and questions you flagged'),
+    ]) +
+    grp('🎯 Result', 'how well do I know it?', [
+      card('rdy', rdK ? `${rd}%` : '—', rdK ? `evidence: ${rdEv(est.W)}` : `${rdNeed({ W: est.W })} more answers needed`, rdK ? (rd >= MPS ? 'g' : rd >= 50 ? 'a' : 'r') : '', 'Readiness'),
+      plain('Accuracy', acc == null ? '—' : `${acc}%`, ans.length ? `${cor.length} of ${ans.length} correct (latest answer)` : 'no answers yet', c3(acc, 70, 60), 'Accuracy on the questions you answered, using your latest answer on each'),
+      plain('Coverage', `${cov}%`, QS.length ? `${ans.length} of ${QS.length} questions answered` : 'no questions loaded', cov >= 100 ? 'g' : ''),
+      card('los', mustN, R.ready ? 'rated Must improve' : 'LOS ratings appear after enough answers', R.ready ? (mustN ? 'r' : 'g') : ''),
+    ]) +
+    grp('🧠 Learning quality', 'is it sticking?', [
+      card('fa', faP == null ? '—' : `${faP}%`, fa.n ? `${fa.n} first attempts${fa.r30 >= 10 ? ` · 30 days ${pct(fa.r30c, fa.r30)}%` : ''}` : nd(0), c3(faP, 70, 60)),
+      card('apply', apP == null ? '—' : `${apP}%`, apP != null ? `${apN} Apply first attempts · Recall ${lv.recall.n ? pct(lv.recall.c, lv.recall.n) + '%' : '—'}` : nd(apN), c3(apP, 70, 60)),
+      card('ret', K.ret.v == null ? '—' : `${K.ret.v}%`, K.ret.v == null ? nd(K.ret.n) : `${K.ret.n} spaced attempts`, c3(K.ret.v, 80, 65)),
+      card('twin', K.twin.v == null ? '—' : `${K.twin.v}%`, K.twin.v == null ? nd(K.twin.n) : `${K.twin.n} twins`, c3(K.twin.v, 70, 50)),
+      card('cal', K.cal.v == null ? '—' : K.cal.v, sureAcc != null ? `“Sure” right ${sureAcc}% · goal ≥ 90 %` : nd(K.cal.n), c3(K.cal.v, 10, 20, false)),
+      card('care', K.care.v == null ? '—' : `${K.care.v}%`, K.care.v == null ? nd(K.care.n) : `${K.care.n} tagged mistakes`, c3(K.care.v, 15, 25, false)),
+      card('fade', fade ? 1 : 0, fade ? `readiness ${fade.peak} → ${fade.rd}` : 'not fading', fade ? 'a' : 'g'),
+      plain('Sure but wrong', sw.length, 'answered “Sure” and got it wrong', sw.length ? 'r' : 'g', 'The most dangerous kind of mistake: a concept you think you know but do not'),
+    ]) +
+    grp('⏱ Speed & stamina', 'can I do it in the time?', [
+      card('pace', pace ? fmtSec(pace.med) : '—', pace ? `median · ${pace.slow}% over 90 s · ${pace.src}` : nd(), pace ? (pace.med <= 90 && pace.slow <= 15 ? 'g' : pace.med <= 105 ? 'a' : 'r') : ''),
+      card('sink', K.sink.v == null ? '—' : `${K.sink.v}%`, K.sink.v == null ? nd(K.sink.n) : `of ${K.sink.n} timed answers`, c3(K.sink.v, 5, 10, false)),
+    ]);
+
+  // ----- LOS table -----
+  const losRows = R.list.length ? R.list.map(z => {
+    const qs = losQs(m, c, z.id).filter(q => st[q.id]?.n), fT = qs.map(q => firstAtt(st[q.id])).filter(Boolean), fP = fT.length ? pct(fT.filter(f => f.ok).length, fT.length) : null;
+    const tm = qs.map(q => lastH(st[q.id])?.s).filter(v => v > 0), swN = losQs(m, c, z.id).filter(q => isSureWrong(q, st)).length, r = RATE[z.rate], col = z.acc == null ? 'nd' : dshCol(z.acc);
+    return `<div class="pf-los"><div class="pf-los-n" title="${esc(z.t)}"><span class="mx ${r.cls}">${r.icon} ${esc(z.id)}</span> <span class="truncate">${esc(losShort(z.t))}</span></div>
+      <div class="pf-los-b"><span class="dbullet"><span class="dbr ${col}" style="width:${z.acc == null ? 0 : z.acc}%"></span><i style="left:${MPS}%"></i></span></div>
+      <b class="pf-los-v ${col}">${z.acc == null ? '—' : z.acc + '%'}</b><span class="pf-los-s">${z.n}/${z.of} answered${fP != null ? ` · 1st try ${fP}%` : ''}${tm.length ? ` · ${fmtSec(tm.reduce((a, b) => a + b, 0) / tm.length)}/q` : ''}${swN ? ` · <b class="text-rose-600">${swN} sure-wrong</b>` : ''}</span>
+      <button type="button" class="btn-ghost text-xs" data-plos="${esc(z.id)}" ${z.of ? '' : 'disabled'}>Practise</button></div>`;
+  }).join('') : '<div class="text-sm text-slate-500">No LOS list for this module.</div>';
+
+  // ----- what to do next (module version of “Do this week”) -----
+  const A = [];
+  if (sw.length) A.push({ t: `Redo ${sw.length} “Sure but wrong” question${sw.length > 1 ? 's' : ''}`, why: 'Concepts you think you know but do not — the most dangerous gaps on exam day.', act: 'sw' });
+  if (mustN) A.push({ t: `Practise ${mustN} “Must improve” LOS`, why: 'Red LOS with enough answers to be sure they are weak.', mustgo: m.id });
+  if (rqDue.length) A.push({ t: `Retry ${rqDue.length} missed question${rqDue.length > 1 ? 's' : ''}`, why: 'A miss only becomes memory when it is re-tested at 1, 3, 7 and 21 days.', act: 'retry' });
+  if (cardsDue) A.push({ t: `Review ${cardsDue} due flashcard${cardsDue > 1 ? 's' : ''}`, why: 'Spaced repetition only works when due cards are done on time.', href: `${m.href}/cards` });
+  if (p.lecture < 100) A.push({ t: `Watch the lecture videos (${p.lecture}% done)`, why: p.nVid ? `${p.nVid} video${p.nVid > 1 ? 's' : ''} linked to this module.` : 'No video is linked yet — add them from the Lectures list.', vids: m.id });
+  if (p.reading < 100) A.push({ t: `Finish the reading: ${p.rDone}/${p.rTot} LOS`, why: 'Tick each LOS in the Study Map when you have read it.', href: `${m.href}/schweser` });
+  if (p.summary < 100) A.push({ t: 'Write your summary', why: 'Your own words stick longer than anyone else’s notes.', href: `${m.href}/mohd` });
+  if (QS.length && ans.length < QS.length) A.push({ t: `Answer the ${QS.length - ans.length} question${QS.length - ans.length > 1 ? 's' : ''} you have not seen`, why: 'Coverage and Completeness both need every question answered at least once.', href: `${m.href}/qbank` });
+  if (K.care.v != null && K.care.v > 25) A.push({ t: `${K.care.v}% of your mistakes here are careless, calculation or time errors`, why: 'A method problem, not knowledge: read the question twice and underline what is asked.', href: '#/calc' });
+  if (K.ret.v != null && K.ret.v < 65) A.push({ t: `Retention is ${K.ret.v}% — you forget this module fast`, why: 'Use the retry queue and short spaced reviews instead of re-reading.', act: 'retry' });
+  if (sN >= 20 && sureAcc < 90) A.push({ t: `Only ${sureAcc}% of your “Sure” answers are right`, why: 'Slow down on “easy” questions and mark Unsure more often.', act: 'sw' });
+  if (fade) A.push({ t: `Readiness fell from ${fade.peak}% to ${fade.rd}%`, why: 'A short Blurt test plus a retry block brings it back faster than re-reading.', blurt: m.id });
+  const actions = A.slice(0, 6);
+
+  // ----- trend / activity -----
+  const hasW = weeks.some(w => w.n);
+  const delta = (a, b, unit = '') => a == null || b == null ? '' : `<span class="dk-d ${a - b >= 0 ? 'up' : 'dn'}">${a - b >= 0 ? '▲' : '▼'} ${Math.abs(a - b)}${unit}</span>`;
+  const cTot = Object.values(conf).reduce((a, z) => a + z[0] + z[1], 0);
+  const rings = `<div class="flex flex-wrap gap-5 items-start">
+    <div class="text-center" data-tip="Completeness — every step done and every question solved correctly at least once">${ring(p.complete, 72, 7, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div>
+    <div class="text-center" data-tip="Readiness — the share of exam questions on this module you would most likely get right today">${rdRing(rd, rdK, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, est.W, rdK)}</div></div>
+    <div class="text-center" data-tip="First try — share right the FIRST time you met each question. Retries never count.">${ring(ft.n ? ftv : 0, 72, 7, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers yet'}</div></div>
+    <div class="min-w-[220px] flex-1"><div class="mb-2">${diagChip(rd, p.complete)}</div>
+      <div class="grid grid-cols-3 gap-2 text-center text-xs"><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${cov}%</div>Coverage</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${acc == null ? '—' : acc + '%'}</div>Accuracy</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${miniScore == null ? '—' : miniScore + '%'}</div>${mini ? 'Mini-exam' : 'No mini-exam'}</div></div>
+      ${mini ? `<div class="text-[11px] text-slate-500 mt-1">${esc(mini.label)}${miniScore == null ? ' · not taken yet' : ''} — it also counts in this topic’s readiness.</div>` : ''}</div></div>
+    <div class="step-grid mt-4">${stepBar('Lecture', p.lecture)}${stepBar('Reading', p.reading)}${stepBar('Extras', p.extras)}${stepBar('Summary', p.summary)}${stepBar('Practice', p.questions)}</div>
+    <div class="text-xs mt-3 flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>🔴 ${mustN} Must improve</span><span>🟡 ${R.list.filter(z => z.rate === 'good').length} Good</span><span>🟢 ${R.list.filter(z => z.rate === 'exc').length} Excellent</span><span class="text-slate-500">⚪ ${R.list.filter(z => z.rate === 'few').length} not rated yet</span></div>`;
+
+  body.innerHTML = `<div class="space-y-4 pf-wrap">
+    <div class="card">${rings}
+      <div class="flex flex-wrap gap-2 mt-4">${mustN ? `<button type="button" class="btn-primary text-xs" data-mustgo="${m.id}">🎯 Practise Must improve (${mustN})</button>` : ''}${sw.length ? `<button type="button" class="btn-ghost text-xs" data-pact="sw">🟢 Sure but wrong (${sw.length})</button>` : ''}${rqDue.length ? `<button type="button" class="btn-ghost text-xs" data-pact="retry">🧠 Retry ${rqDue.length} missed</button>` : ''}<a class="btn-ghost text-xs" href="#/qbank/stats/${m.subject}">📊 Topic &amp; LOS detail</a><a class="btn-ghost text-xs" href="#/progress">📈 Whole dashboard</a></div></div>
+    ${groups}
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card"><h3 class="sec">Learning objectives · accuracy vs ${MPS}% <span class="normal-case font-normal">· ${R.list.length} LOS</span></h3><div class="pf-los-list">${losRows}</div><div class="text-xs text-slate-500 mt-2">Bar = evidence-weighted accuracy (same rule as the LOS rating) · line = ${MPS}% · grey = not enough answers yet.</div></div>
+      <div class="card"><h3 class="sec">Do this next</h3>
+        ${actions.length ? `<ol class="dact">${actions.map((a, i) => `<li><span class="dact-i">${i + 1}</span><div class="flex-1 min-w-0"><div class="font-semibold text-sm">${a.href ? `<a class="link" href="${a.href}">${esc(a.t)}</a>` : `<button type="button" class="link text-left" ${a.act ? `data-pact="${a.act}"` : a.mustgo ? `data-mustgo="${a.mustgo}"` : a.vids ? `data-vids="${esc(a.vids)}"` : `data-blurt="${esc(a.blurt)}"`}>${esc(a.t)}</button>`}</div><div class="text-xs text-slate-500">${esc(a.why)}</div></div></li>`).join('')}</ol>` : '<div class="text-sm text-emerald-600">✓ Nothing urgent in this module — keep your rhythm.</div>'}
+        <h3 class="sec mt-4">Confidence check</h3>
+        ${cTot ? `<table class="dconf"><thead><tr><th></th><th>Right</th><th>Wrong</th></tr></thead><tbody>${Object.entries(CONF).map(([k, v]) => `<tr><th>${v.icon} ${v.name}</th><td>${conf[k][0]}</td><td class="${k === 'sure' && conf[k][1] ? 'hot' : ''}">${conf[k][1]}</td></tr>`).join('')}</tbody></table><div class="text-xs text-slate-500 mt-1">Latest answer per question. <b>Sure + wrong</b> = a concept you think you know — fix these first.</div>` : '<div class="text-xs text-slate-500">Choose Sure / Unsure / Guess when you answer to see this.</div>'}
+        <h3 class="sec mt-4">Why you miss questions here</h3>
+        ${tally.tagged ? `${tallyBarHTML(tally)}<div class="flex flex-wrap gap-1">${tallyChipsHTML(tally, 5)}</div><div class="text-xs text-slate-500 mt-1">${tally.tagged} tagged mistake${tally.tagged > 1 ? 's' : ''}${tally.untagged ? ` · ${tally.untagged} not tagged` : ''}${topR ? ` · most common: ${esc(reasonName(topR[0]))}` : ''}</div>` : `<div class="text-xs text-slate-500">${tally.untagged ? `${tally.untagged} mistake${tally.untagged > 1 ? 's' : ''} without a reason — tag them after each wrong answer.` : 'No mistakes recorded yet.'}</div>`}</div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card"><h3 class="sec">First-attempt accuracy by week <span class="normal-case font-normal">· last 12 weeks · weeks with 3+ new questions</span></h3>
+        ${hasW ? svgLine([{ name: 'First-attempt accuracy', color: '#6366f1', pts: weeks.map(w => ({ x: new Date(w.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), y: w.fac })) }], { target: MPS, label: 'Weekly first-attempt accuracy of this module' }) + `<div class="dvol">${weeks.map(w => `<span style="height:${Math.max(2, w.n / Math.max(1, ...weeks.map(z => z.n)) * 36)}px" title="${w.n} questions · ${w.min} min"></span>`).join('')}</div><div class="text-xs text-slate-500">Bars = all questions of this module answered that week (repeats included).</div>` : '<div class="text-sm text-slate-500">Answer this module’s questions to see your weekly trend.</div>'}</div>
+      <div class="card"><h3 class="sec">Activity <span class="normal-case font-normal">· last 26 weeks</span></h3>${svgHeat(act)}
+        <div class="dwk"><div><b>${tw.n}</b><span>questions this week</span>${delta(tw.n, lw.n)}</div><div><b>${tw.acc ?? '—'}${tw.acc != null ? '%' : ''}</b><span>accuracy incl. retries</span>${delta(tw.acc, lw.acc, ' pts')}</div><div><b>${tw.min}</b><span>minutes on questions</span>${delta(tw.min, lw.min)}</div><div><b>${ev.length}</b><span>answers recorded</span></div></div></div>
+    </div>
+    <div class="card"><h3 class="sec">Top traps <span class="normal-case font-normal">· LOS where you were Sure and wrong</span></h3>
+      ${traps.length ? `<div class="space-y-1">${traps.slice(0, 8).map((z, i) => `<button type="button" class="dtrap" data-ptrap="${i}"><span class="chip">${esc(m.short)}${z.los ? ' · ' + esc(z.los) : ''}</span><span class="flex-1 min-w-0 truncate text-left">${esc((R.list.find(r => r.id === z.los) || {}).t || m.title)}</span><b>${z.qs.length}</b></button>`).join('')}</div><div class="text-xs text-slate-500 mt-1">Click to practise that LOS's trap questions.</div>` : '<div class="text-sm text-slate-500">No traps yet — great, or tag your confidence when answering.</div>'}</div>
+    <p class="text-xs text-slate-500">Tap any number card for what it measures, how it is calculated and how to read it. Same definitions as the <a class="link" href="#/progress">Dashboard</a>, limited to this module’s questions.</p></div>`;
+
+  const back = location.hash;
+  const sess = (qs, title) => startQSession(qs, 'practice', 'all', back, { title, reasons: true });
+  body.onclick = async e => {
+    const a = e.target.closest('[data-pact]'); if (a) { const k = a.dataset.pact; if (k === 'sw') await sess(sw, `${m.short} · Sure but wrong`); else if (k === 'retry') await sess(rqDue, `${m.short} · Retry missed questions`); return; }
+    const l = e.target.closest('[data-plos]'); if (l) { await startLosPractice(m.id, l.dataset.plos, back); return; }
+    const t = e.target.closest('[data-ptrap]'); if (t) { const z = traps[+t.dataset.ptrap]; if (z) await sess(z.qs, `Traps · ${m.short}${z.los ? ' · LOS ' + z.los : ''}`); }
+  };
+  return () => { body.onclick = null; };
+}
+
+
+const FSA_TABS = [['map', 'Study Map'], ['schweser', 'Schweser Notes'], ['curriculum', 'Curriculum'], ['xtra', 'Extras'], ['conf', 'Conflicts'], ['cards', 'Flashcards'], ['ai', 'AI Summary'], ['mohd', 'Mohd Summary'], ['qbank', 'Questions & Mistakes'], ['mistakes', 'Mistakes'], ['perf', 'Performance']];
 async function fsaModule(subj, num, tab = 'map') {
   const x = packX(`${subj}-${+num}`); if (!x) return subjectHome(subj);
   setCurPack(x); const m = x.m, sj = SUBJECTS.find(s => s.id === subj);
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   if (tab === 'print') return fsaPrint(x);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
-  const lpo = { x, tabs: FSA_TABS, tab, hrefOf: k => `${x.href}/${k}`, back: ['#/study/' + subj, sj.name], num: m.id, titleHTML: esc(m.title), st: await lpDone(x.id) };
-  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}">${lpHTML(lpo)}
+  const tabK = tab === 'mistakes' ? 'qbank' : tab;                    // v38 · Mistakes is part of the Practice window
+  const lpo = { x, tabs: FSA_TABS, tab: tabK, hrefOf: k => `${x.href}/${k}`, back: ['#/study/' + subj, sj.name], num: m.id, titleHTML: esc(m.title), st: await lpDone(x.id), vids: await lpVids(x.id) };
+  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}" data-mid="${x.id}" data-tab="${tabK}">${lpHTML(lpo)}
   <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Module ' + m.id]])}
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
@@ -5231,20 +5550,20 @@ async function fsaModule(subj, num, tab = 'map') {
       <h1 class="${reading ? 'font-semibold text-sm sm:text-base' : 'text-xl sm:text-2xl font-bold'} truncate">${esc(m.title)}</h1>
       ${lpHeadBtns()}
     </div>
-    ${reading ? '' : '<div id="mTrack"></div>'}
-    <div class="tabs ${reading ? 'px-2' : ''}">${FSA_TABS.map(([k, l]) => `<a href="${x.href}/${k}" class="${k === tab ? 'on' : ''}${lpo.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('')}</div>
+    ${reading || tab === 'perf' ? '' : '<div id="mTrack"></div>'}
+    <div class="tabs ${reading ? 'px-2' : ''}">${lpStrip(lpo)}</div>
     <div id="tabBody" class="${reading ? 'flex-1 min-h-0' : 'mt-4'}"></div>
   </div></div>`;
   lpBind(view.querySelector('.lp-shell'), lpo);
   const body = document.getElementById('tabBody');
-  if (!reading) moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
+  if (!reading && tab !== 'perf') moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
   if (reading) return bookTab(body, x, tab, tab === 'aipdf' ? {} : { extraTab: fsaExtraPanel(x, tab), losAt: async pg => losForPage(await losStartPages(x.id, tab), pg) });
   if (tab === 'ai') return fsaAiTab(body, x);
   if (tab === 'cards') return cardsTab(body, x);
-  if (tab === 'mistakes') return mistakesTab(body, x);
+  if (tab === 'perf') return modulePerfTab(body, x);
   if (tab === 'xtra') return fsaXtraTab(body, x);
   if (tab === 'conf') return fsaConfTab(body, x);
-  if (tab === 'qbank') return fsaQTab(body, x);
+  if (tab === 'mistakes' || tab === 'qbank') return practiceWindow(body, x, tab, fsaQTab);
   if (tab === 'mohd') return mohdTab(body, x);
   return fsaMapTab(body, x);
 }
@@ -8065,7 +8384,7 @@ async function studyModule(subj, num, tab) {
   const id = `${subj}-${+num}`;
   if (PACKS[id]) return fsaModule(subj, num, tab || 'map');
   const m = moduleList().find(z => z.subject === subj && z.num === +num);
-  if (m && m.kind === 'legacy') { location.hash = m.href + '/' + (['schweser', 'curriculum', 'diff', 'cards', 'ai', 'mohd', 'mistakes'].includes(tab) ? tab : 'ai'); return; }
+  if (m && m.kind === 'legacy') { location.hash = m.href + '/' + (['schweser', 'curriculum', 'diff', 'cards', 'ai', 'mohd', 'mistakes', 'qbank', 'perf'].includes(tab) ? tab : 'ai'); return; }
   const sj = SUBJECTS.find(s => s.id === subj); if (!sj || !m) return study();
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Module ' + num]]) + `
   <div class="flex items-center gap-2 mb-4"><div class="mod-num bg-slate-400">${num}</div><h1 class="text-xl sm:text-2xl font-bold">${esc(m.title)}</h1></div>
@@ -9472,7 +9791,7 @@ async function videosDialog(mid) {
     } else if (e.target.dataset.del !== undefined) vs.splice(+e.target.dataset.del, 1);
     else if (e.target.dataset.up !== undefined) { const i = +e.target.dataset.up; [vs[i - 1], vs[i]] = [vs[i], vs[i - 1]]; }
     else return;
-    await kv.set('modTrack', t); draw();
+    await kv.set('modTrack', t); draw(); dispatchEvent(new Event('lp:vids'));
   };
   document.body.append(bg); draw();
 }
@@ -12819,15 +13138,16 @@ function comingSoon(id) {
 
 
 // ---------------- MODULE ----------------
-const TABS = [['schweser', 'Schweser Notes'], ['curriculum', 'Curriculum'], ['diff', 'Schweser vs Curriculum'], ['cards', 'Flashcards'], ['ai', 'AI Summary'], ['mohd', 'Mohd Summary'], ['mistakes', 'Mistakes']];
+const TABS = [['schweser', 'Schweser Notes'], ['curriculum', 'Curriculum'], ['diff', 'Schweser vs Curriculum'], ['cards', 'Flashcards'], ['ai', 'AI Summary'], ['mohd', 'Mohd Summary'], ['qbank', 'Questions & Mistakes'], ['mistakes', 'Mistakes'], ['perf', 'Performance']];
 async function moduleView(num, tab = 'ai') {
   if (PACKS['econ-' + (num - 11)]) { location.hash = '#/study/econ/' + (num - 11); return; }
   const x = modById('econ-' + num); if (!x) return subjectHome('econ');
   const m = x.m;
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
-  const lpo = { x, tabs: TABS, tab, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id, titleHTML: m.title, st: await lpDone(x.id) };
-  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}">${lpHTML(lpo)}
+  const tabK = tab === 'mistakes' ? 'qbank' : tab;
+  const lpo = { x, tabs: TABS, tab: tabK, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id, titleHTML: m.title, st: await lpDone(x.id), vids: await lpVids(x.id) };
+  view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}" data-mid="${x.id}" data-tab="${tabK}">${lpHTML(lpo)}
   <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], ['Economics', '#/study/econ'], ['Module ' + m.id]])}
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
@@ -12839,19 +13159,20 @@ async function moduleView(num, tab = 'ai') {
         ${m.id < 19 ? `<a class="ib" title="Next module" href="#/study/econ/${m.id + 1}/${tab}">›</a>` : ''}
       </div>
     </div>
-    ${reading ? '' : '<div id="mTrack"></div>'}
-    <div class="tabs ${reading ? 'px-2' : ''}">${TABS.map(([k, l]) => `<a href="#/study/econ/${m.id}/${k}" class="${k === tab ? 'on' : ''}${lpo.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('')}</div>
+    ${reading || tab === 'perf' ? '' : '<div id="mTrack"></div>'}
+    <div class="tabs ${reading ? 'px-2' : ''}">${lpStrip(lpo)}</div>
     <div id="tabBody" class="${reading ? 'flex-1 min-h-0' : 'mt-4'}"></div>
   </div></div>`;
   lpBind(view.querySelector('.lp-shell'), lpo);
   const body = document.getElementById('tabBody');
-  if (!reading) moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
+  if (!reading && tab !== 'perf') moduleTrackStrip(x.id).then(h => { const el = document.getElementById('mTrack'); if (el) el.innerHTML = h; });
   if (reading) return bookTab(body, x, tab);
+  if (tab === 'perf') return modulePerfTab(body, x);
   if (tab === 'ai') return aiTab(body, x);
   if (tab === 'diff') return diffTab(body, x);
   if (tab === 'mohd') return mohdTab(body, x);
   if (tab === 'cards') return cardsTab(body, x);
-  if (tab === 'mistakes') return mistakesTab(body, x);
+  if (tab === 'mistakes' || tab === 'qbank') return practiceWindow(body, x, tab, legacyQPane);
 }
 
 async function bookTab(body, x, kind, extra) {
@@ -14579,7 +14900,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
   function onRoute() {
     var on = location.hash.indexOf('#/qbank/run') === 0 && !document.body.classList.contains('auth');
     if (fab) fab.hidden = !on; document.body.classList.toggle('calc-on', on);
-    if (host && !on) host.hidden = true;
+    if (host && !on && !host.dataset.keep) host.hidden = true;     // v38 · a panel opened on purpose (Classic button) stays open outside a question run
   }
   function build() {
     fab = document.createElement('button'); fab.type = 'button'; fab.className = 'bc-fab'; fab.hidden = true;
@@ -14592,6 +14913,10 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
     fab.onclick = function () {
       host.hidden = !host.hidden;
       if (!host.hidden) { if (!host.style.left) { host.style.right = '1rem'; host.style.bottom = '9rem'; } paint(); }
+    };
+    window.BaCalc = {      // v38 · used by the Classic button of the new calculator
+      open: function () { host.dataset.keep = '1'; host.hidden = false; if (!host.style.left) { host.style.right = '1rem'; host.style.bottom = '9rem'; } paint(); host.focus && host.focus({ preventScroll: true }); },
+      close: function () { host.hidden = true; delete host.dataset.keep; }
     };
     // drag by the header
     var dr = null, head = $('.bc-head', host);
@@ -14629,7 +14954,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
       var el = e.target, d = el.dataset;
       if (d.t) T[d.t] = el.value; else if (d.cf0) CF.c0 = el.value; else if (d.cc !== undefined) CF.rows[+d.cc].c = el.value; else if (d.cf !== undefined) CF.rows[+d.cf].f = el.value; else if (d.cfr) CF.r = el.value;
     });
-    window.addEventListener('hashchange', onRoute); onRoute();
+    window.addEventListener('hashchange', function () { if (host) delete host.dataset.keep; onRoute(); }); onRoute();
   }
 
   /* ---------------- observers ---------------- */
@@ -14816,7 +15141,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
     [['RCL', 'RCL', '', '', 'fn'], ['1', '1', 'DATE', 'DATE', 'num'], ['2', '2', 'ICONV', 'ICONV', 'num'], ['3', '3', 'PROFIT', 'PROFIT', 'num'], ['=', 'EQ', 'ANS', 'ANS', 'eq']],
     [['CE|C', 'CEC', 'CLR WORK', 'CLRWORK', 'fn'], ['0', '0', 'MEM', 'MEM', 'num'], ['.', 'DOT', 'FORMAT', 'FORMAT', 'num'], ['+|−', 'NEG', 'RESET', 'RESET', 'num']]
   ];
-  var SEC = {}; ROWS.forEach(function (r) { r.forEach(function (k) { SEC[k[1]] = k[3] || null; }); });
+  var SEC = {}, REV = {}, FACE = {}, SLAB = {}; ROWS.forEach(function (r) { r.forEach(function (k) { SEC[k[1]] = k[3] || null; FACE[k[1]] = k[0]; if (k[3]) { REV[k[3]] = k[1]; SLAB[k[3]] = k[2]; } }); });
   var KEYMAP = { '.': 'DOT', ',': 'DOT', '+': 'ADD', '-': 'SUB', '*': 'MUL', 'x': 'MUL', 'X': 'MUL', '/': 'DIV', '=': 'EQ', 'Enter': 'ENTER', 'Backspace': 'BKSP', 'Delete': 'CEC', 'ArrowUp': 'UP', 'ArrowDown': 'DOWN', '%': 'PCT', '(': 'LP', ')': 'RP', '^': 'POW' };
 
   var host = null, st = { second: false, engine: null }, nodes = {};
@@ -14832,28 +15157,57 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
         pad += '<div class="fc-c' + (k[4] === 'eq' ? ' eq' : '') + '"><span class="fc-s" aria-hidden="true">' + esc(k[2]) + '</span><button type="button" class="fc-k ' + k[4] + '" data-key="' + k[1] + '"' + (k[3] ? ' data-sec="' + k[3] + '"' : '') + ' aria-label="' + esc(k[0] + (k[2] ? ', 2ND ' + k[2] : '')) + '">' + esc(k[0]) + '</button></div>';
       });
     });
-    host.innerHTML = '<div class="fc-head"><div class="fc-brand"><b>CFA</b> FINANCIAL CALCULATOR</div><button type="button" class="fc-hb" data-act="classic" title="Open the classic Calc · TVM · Cash flow panel">Classic</button><button type="button" class="fc-hb" data-act="close" aria-label="Close calculator">✕</button></div>' +
+    host.innerHTML = '<div class="fc-head"><div class="fc-brand"><b>CFA</b> CALC</div><button type="button" class="fc-hb" data-act="manual" title="Manual: how every key works, with examples you can run" aria-label="Open the manual">📖 Manual</button><button type="button" class="fc-hb" data-act="smaller" title="Smaller" aria-label="Make the calculator smaller">A−</button><button type="button" class="fc-hb" data-act="bigger" title="Bigger" aria-label="Make the calculator bigger">A+</button><button type="button" class="fc-hb" data-act="classic" title="Open the classic Calc · TVM · Cash flow panel">Classic</button><button type="button" class="fc-hb" data-act="close" aria-label="Close calculator">✕</button></div>' +
       '<div class="fc-lcd" aria-live="polite"><div class="fc-ind"><span data-ind="2ND">2ND</span><span data-ind="INV">INV</span><span data-ind="BGN">BGN</span><span data-ind="CPT">CPT</span></div><div class="fc-lbl" data-lbl></div><div class="fc-num" data-num>0.00</div></div>' +
-      '<div class="fc-pad">' + pad + '</div><div class="fc-note">Press 2ND, then a key, for the function printed above it · the keyboard works too</div>';
+      '<div class="fc-pad">' + pad + '</div><div class="fc-note">Press 2ND, then a key, for the function printed above it · the keyboard works too</div><div class="fc-rz" data-rz title="Drag to resize · double-click to reset" aria-hidden="true"></div>';
     document.body.appendChild(host);
     nodes.num = $('[data-num]'); nodes.lbl = $('[data-lbl]');
     host.addEventListener('click', onClick);
     host.addEventListener('keydown', onKey);
-    drag();
+    drag(); resizer(); applySize(savedW());
   }
 
   /* ---------- public API ---------- */
   var FC = window.FinCalc = {
-    open: function () { if (!host) build(); place(); host.hidden = false; if (st.engine && st.engine.refresh) st.engine.refresh(); host.focus({ preventScroll: true }); },
+    open: function () { if (!host) build(); host.hidden = false; applySize(savedW()); place(); if (st.engine && st.engine.refresh) st.engine.refresh(); host.focus({ preventScroll: true }); },
     close: function () { if (host) host.hidden = true; var b = document.getElementById('calcBtn'); if (b) b.setAttribute('aria-expanded', 'false'); },
     toggle: function () { if (!host || host.hidden) FC.open(); else FC.close(); var b = document.getElementById('calcBtn'); if (b) b.setAttribute('aria-expanded', String(!host.hidden)); },
     display: function (main, label) {
       if (!host) return; var t = String(main == null ? '' : main); nodes.num.textContent = t;
-      nodes.num.style.fontSize = t.length > 17 ? '22px' : t.length > 13 ? '28px' : t.length > 10 ? '33px' : '';
+      nodes.num.style.fontSize = t.length > 17 ? 'calc(22 * var(--u))' : t.length > 13 ? 'calc(28 * var(--u))' : t.length > 10 ? 'calc(33 * var(--u))' : '';
       if (label !== undefined) nodes.lbl.textContent = label || '';
     },
     indicator: function (name, on) { var n = host && $('[data-ind="' + name + '"]'); if (n) n.classList.toggle('on', !!on); },
     attach: function (engine) { st.engine = engine || null; },
+    /* v38 · helpers used by the manual: key labels, a key-sequence parser and a runner that presses the keys one by one */
+    faceOf: function (id) { return FACE[id] || id; },
+    secLabel: function (id) { return SLAB[id] || id; },
+    parse: function (seq) {
+      var toks = Array.isArray(seq) ? seq : String(seq).trim().split(/\s+/), out = [], after2 = false;
+      toks.forEach(function (t) {
+        if (after2) { after2 = false; out.push(REV[t] || t); return; }
+        if (t === '2ND') { after2 = true; out.push('2ND'); return; }
+        if (/^-?[0-9]*\.?[0-9]+$/.test(t)) { var neg = t.charAt(0) === '-'; t.replace('-', '').split('').forEach(function (ch) { out.push(ch === '.' ? 'DOT' : ch); }); if (neg) out.push('NEG'); return; }
+        out.push(t);
+      });
+      return out;
+    },
+    press: function (key) { if (!host) build(); press(key); },
+    flash: function (key) { var b = host && host.querySelector('[data-key="' + key + '"]'); if (!b) return; b.classList.add('hit'); setTimeout(function () { b.classList.remove('hit'); }, 220); },
+    run: function (seq, o) {
+      o = o || {}; var keys = FC.parse(seq), i = 0, stopped = false, tm = null, delay = o.delay || 280;
+      if (!host || host.hidden) FC.open();
+      function step() {
+        if (stopped) return;
+        if (i >= keys.length) { if (o.onDone) o.onDone(false); return; }
+        var k = keys[i++]; FC.flash(k); press(k); if (o.onStep) o.onStep(i - 1, k);
+        tm = setTimeout(step, delay);
+      }
+      step();
+      return { stop: function (silent) { stopped = true; clearTimeout(tm); if (!silent && o.onDone) o.onDone(true); } };
+    },
+    setSize: function (w) { if (!host) build(); return applySize(w, true); },
+    get width() { return host ? host.offsetWidth : 0; },
     get second() { return st.second; }
   };
 
@@ -14870,7 +15224,10 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
   function onClick(e) {
     var b = e.target.closest('button'); if (!b) return;
     if (b.dataset.act === 'close') return FC.close();
-    if (b.dataset.act === 'classic') { var f = document.querySelector('.bc-fab'); FC.close(); if (f) f.click(); return; }
+    if (b.dataset.act === 'manual') { if (window.FinCalcManual) window.FinCalcManual.toggle(); return; }
+    if (b.dataset.act === 'smaller') { applySize(host.offsetWidth * 0.9, true); clampPos(); return; }
+    if (b.dataset.act === 'bigger') { applySize(host.offsetWidth * 1.1, true); clampPos(); return; }
+    if (b.dataset.act === 'classic') { FC.close(); if (window.BaCalc) window.BaCalc.open(); else { var f = document.querySelector('.bc-fab'); if (f) f.click(); } return; }
     if (b.dataset.key) { press(b.dataset.key); if (e.detail > 0) host.focus({ preventScroll: true }); }
   }
   function onKey(e) {
@@ -14881,6 +15238,37 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
     var k = /^[0-9]$/.test(e.key) ? e.key : KEYMAP[e.key];
     if (k) { e.preventDefault(); press(k); }
   }
+
+  /* ---------- size (v38): drag the bottom-right corner, or use A− / A+; remembered in localStorage 'fcSize' ---------- */
+  var SZ = { MIN: 300, MAX: 760, DEF: 384 };
+  function savedW() { var v = 0; try { v = parseInt(localStorage.getItem('fcSize'), 10); } catch (e) { } return v >= SZ.MIN ? v : SZ.DEF; }
+  function maxW() {
+    var ratio = host && host.offsetWidth && host.offsetHeight ? host.offsetHeight / host.offsetWidth : 1.5, phone = window.innerWidth < 640;
+    return Math.max(SZ.MIN, Math.min(SZ.MAX, window.innerWidth - 8, (window.innerHeight - (phone ? 76 : 16)) / ratio));
+  }
+  function applySize(w, persist) {
+    w = Math.round(Math.max(SZ.MIN, Math.min(maxW(), w))); host.style.setProperty('--u', (w / 384) + 'px');
+    if (persist) { try { localStorage.setItem('fcSize', String(w)); } catch (e) { } }
+    return w;
+  }
+  function clampPos() {
+    if (window.innerWidth < 640 || host.style.left === '') return;
+    var l = parseInt(host.style.left, 10) || 0, t = parseInt(host.style.top, 10) || 0;
+    host.style.left = Math.max(4, Math.min(window.innerWidth - host.offsetWidth - 4, l)) + 'px';
+    host.style.top = Math.max(4, Math.min(window.innerHeight - host.offsetHeight - 4, t)) + 'px';
+  }
+  function resizer() {
+    var h = $('.fc-rz'), d = null;
+    h.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); d = { x: e.clientX, y: e.clientY, w: host.offsetWidth, r: host.offsetHeight / host.offsetWidth }; h.setPointerCapture(e.pointerId); host.classList.add('sizing'); });
+    h.addEventListener('pointermove', function (e) {
+      if (!d) return; var k = window.innerWidth < 640 ? 2 : 1;      // on a phone the calculator is centred, so it grows on both sides
+      applySize(d.w + k * ((e.clientX - d.x) + (e.clientY - d.y) / d.r) / 2); clampPos();
+    });
+    function end() { if (!d) return; d = null; host.classList.remove('sizing'); try { localStorage.setItem('fcSize', String(host.offsetWidth)); } catch (e) { } }
+    h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+    h.addEventListener('dblclick', function () { applySize(SZ.DEF, true); clampPos(); });
+  }
+  window.addEventListener('resize', function () { if (host && !host.hidden) { applySize(savedW()); clampPos(); } });
 
   /* ---------- position / drag ---------- */
   function place() {
@@ -15652,6 +16040,564 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
   window.addEventListener('resize', function () { if (host && !host.hidden) place(); });
 })();
 
+</script>
+<script id="fincalc-manual-js">
+/* v38 · calculator manual — a beginner-friendly guide with runnable examples. Uses only the public FinCalc API. */
+(function () {
+  'use strict';
+/* ==FCM EXAMPLES START== */
+var FCM_EXAMPLES = {
+  add:    { t: 'Add two numbers with decimals', keys: '12.5 ADD 7.25 EQ', main: '19.75' },
+  chain:  { t: 'Calculator order: 1 + 2 × 3', keys: '1 ADD 2 MUL 3 EQ', main: '9.00' },
+  aos:    { t: 'Switch to AOS, then 1 + 2 × 3', keys: '2ND FORMAT DOWN DOWN DOWN DOWN 2ND SET 2ND QUIT 1 ADD 2 MUL 3 EQ', main: '7.00' },
+  neg:    { t: 'A negative number: −5 + 12', keys: '5 NEG ADD 12 EQ', main: '7.00' },
+  bksp:   { t: 'Typed 1234 by mistake — delete the last digit', keys: '1234 BKSP', main: '123' },
+  pct:    { t: 'Add 5% to 200', keys: '200 ADD 5 PCT EQ', main: '210.00' },
+  pct2:   { t: '15% of 40', keys: '40 MUL 15 PCT EQ', main: '6.00' },
+  powr:   { t: '2 to the power 10', keys: '2 POW 10 EQ', main: '1,024.00' },
+  root:   { t: 'Cube root of 27', keys: '27 2ND YROOTX 3 EQ', main: '3.00' },
+  sqrt:   { t: 'Square root of 144', keys: '144 SQRT', main: '12.00' },
+  sq:     { t: '12 squared', keys: '12 SQ', main: '144.00' },
+  recip:  { t: 'One divided by 8', keys: '8 RECIP', main: '0.13' },
+  ln:     { t: 'Natural log of 100', keys: '100 LN', main: '4.61' },
+  ex:     { t: 'e to the power 1', keys: '1 2ND EX', main: '2.72' },
+  fact:   { t: '5 factorial', keys: '5 2ND FACT', main: '120.00' },
+  npr:    { t: 'Permutations: 10 nPr 3', keys: '10 2ND NPR 3 EQ', main: '720.00' },
+  ncr:    { t: 'Combinations: 10 nCr 3', keys: '10 2ND NCR 3 EQ', main: '120.00' },
+  paren:  { t: 'Parentheses: 2 × (3 + 4)', keys: '2 MUL LP 3 ADD 4 RP EQ', main: '14.00' },
+  sin:    { t: 'sin of 30 degrees', keys: '30 2ND SIN', main: '0.50' },
+  asin:   { t: 'Angle whose sine is 0.5 (INV + SIN)', keys: '0.5 INV 2ND SIN', main: '30.00' },
+  mem:    { t: 'Store 8 in memory 1, then use it', keys: '8 STO 1 CEC 5 ADD RCL 1 EQ', main: '13.00' },
+  ans:    { t: 'Reuse the last answer', keys: '7 MUL 6 EQ 2ND ANS ADD 8 EQ', main: '50.00' },
+  dec4:   { t: 'Show 4 decimals, then 1 ÷ 3', keys: '2ND FORMAT 4 ENTER 2ND QUIT 1 DIV 3 EQ', main: '0.3333' },
+  pvlump: { t: 'PV of $2,000 received in 4 years at 6%', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 4 N 6 IY 2000 FV 0 PMT CPT PV', main: '-1,584.19', label: 'PV = *' },
+  mort:   { t: 'Monthly payment: $200,000, 6%, 30 years', keys: '2ND PY 12 ENTER 2ND QUIT 2ND CLRTVM 360 N 6 IY 200000 PV 0 FV CPT PMT', main: '-1,199.10', label: 'PMT = *' },
+  loan:   { t: 'Annual payment: $1,000,000 loan, 5%, 20 years', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 20 N 5 IY 1000000 PV 0 FV CPT PMT', main: '-80,242.59', label: 'PMT = *' },
+  car:    { t: 'Car loan: $30,000, 60 months, 6.75%', keys: '2ND PY 12 ENTER 2ND QUIT 2ND CLRTVM 60 N 6.75 IY 30000 PV 0 FV CPT PMT', main: '-590.50', label: 'PMT = *' },
+  nyrs:   { t: 'How many years to double money at 10%?', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 10 IY 1000 NEG PV 2000 FV 0 PMT CPT N', main: '7.27', label: 'N = *' },
+  rate:   { t: 'What rate doubles money in 6 years?', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 6 N 1000 NEG PV 2000 FV 0 PMT CPT IY', main: '12.25', label: 'I/Y = *' },
+  bond6:  { t: 'Bond price: 5 years, 8% coupon, yield 6%', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 5 N 6 IY 80 PMT 1000 FV CPT PV', main: '-1,084.25', label: 'PV = *' },
+  ytm:    { t: 'Bond yield: 10 years, $90 coupon, price $887', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 10 N 887 NEG PV 90 PMT 1000 FV CPT IY', main: '10.91', label: 'I/Y = *' },
+  due:    { t: 'Annuity due: PV of 3 payments of $100 at 10%', keys: '2ND PY 1 ENTER 2ND QUIT 2ND CLRTVM 2ND BGN 2ND SET 2ND QUIT 3 N 10 IY 100 NEG PMT 0 FV CPT PV', main: '273.55', label: 'PV = *' },
+  xpy:    { t: '30 years × 12 payments a year', keys: '30 2ND xPY', main: '360.00' },
+  save:   { t: 'Saving $200 a month for 10 years at 5%', keys: '2ND PY 12 ENTER 2ND QUIT 2ND CLRTVM 10 2ND xPY N 5 IY 200 NEG PMT 0 PV CPT FV', main: '31,056.46', label: 'FV = *' },
+  npv:    { t: 'NPV of an uneven series (TI example)', keys: 'CF 2ND CLRWORK 7000 NEG ENTER DOWN 3000 ENTER DOWN DOWN 5000 ENTER DOWN 4 ENTER DOWN 4000 ENTER NPV 10 ENTER DOWN CPT', main: '12,393.65', label: 'NPV = *' },
+  irr:    { t: 'IRR of the same cash flows', keys: 'CF 2ND CLRWORK 7000 NEG ENTER DOWN 3000 ENTER DOWN DOWN 5000 ENTER DOWN 4 ENTER DOWN 4000 ENTER IRR CPT', main: '55.63', label: 'IRR = *' },
+  payb:   { t: 'Payback period of the same cash flows', keys: 'CF 2ND CLRWORK 7000 NEG ENTER DOWN 3000 ENTER DOWN DOWN 5000 ENTER DOWN 4 ENTER DOWN 4000 ENTER NPV 10 ENTER DOWN DOWN DOWN CPT', main: '1.80', label: 'PB = *' },
+  amort:  { t: 'Mortgage: balance after year 1 ($200,000, 6%, 30 yrs)', keys: '2ND PY 12 ENTER 2ND QUIT 2ND CLRTVM 360 N 6 IY 200000 PV 0 FV CPT PMT 2ND AMORT 1 ENTER DOWN 12 ENTER DOWN', main: '197,543.98', label: 'BAL =' },
+  bond:   { t: 'Bond worksheet: price at an 8% yield', keys: '2ND BOND 2ND CLRWORK 6.1206 ENTER DOWN 7 ENTER DOWN 12.3129 ENTER DOWN DOWN DOWN DOWN 8 ENTER DOWN CPT', main: '89.46', label: 'PRI = *' },
+  iconv:  { t: 'Effective annual rate of 6% compounded monthly', keys: '2ND ICONV 6 ENTER DOWN DOWN 12 ENTER UP CPT', main: '6.17', label: 'EFF = *' },
+  stat:   { t: 'Mean and standard deviation of 2, 4, 4, 4, 5, 5, 7, 9', keys: '2ND DATA 2ND CLRWORK 2 ENTER DOWN DOWN 4 ENTER DOWN DOWN 4 ENTER DOWN DOWN 4 ENTER DOWN DOWN 5 ENTER DOWN DOWN 5 ENTER DOWN DOWN 7 ENTER DOWN DOWN 9 ENTER DOWN DOWN 2ND STAT DOWN DOWN', main: '5.00', label: 'x̄ =' },
+  sdx:    { t: 'Same data: sample standard deviation Sx', keys: '2ND DATA 2ND CLRWORK 2 ENTER DOWN DOWN 4 ENTER DOWN DOWN 4 ENTER DOWN DOWN 4 ENTER DOWN DOWN 5 ENTER DOWN DOWN 5 ENTER DOWN DOWN 7 ENTER DOWN DOWN 9 ENTER DOWN DOWN 2ND STAT DOWN DOWN DOWN', main: '2.14', label: 'Sx =' },
+  days:   { t: 'Days between 1 Jan 2024 and 1 Mar 2024', keys: '2ND DATE 1.0124 ENTER DOWN DOWN 3.0124 ENTER UP CPT', main: '60.00', label: 'DBD = *' },
+  dt2:    { t: 'The date 100 days after 1 Jan 2024', keys: '2ND DATE 1.0124 ENTER DOWN 100 ENTER DOWN CPT', main: '04-10-2024 WED', label: 'DT2 = *' },
+  depsl:  { t: 'Straight-line: cost 10,000, salvage 1,000, 5 years', keys: '2ND DEPR DOWN 5 ENTER DOWN DOWN 10000 ENTER DOWN 1000 ENTER DOWN DOWN', main: '1,800.00', label: 'DEP =' },
+  depsyd: { t: 'Sum-of-years-digits: cost 15,000, 5 years, year 1', keys: '2ND DEPR 2ND SET DOWN 5 ENTER DOWN DOWN 15000 ENTER DOWN 0 ENTER DOWN DOWN', main: '5,000.00', label: 'DEP =' },
+  brk:    { t: 'Break-even quantity: fixed cost 3,000, cost 15, price 20', keys: '2ND BRKEVN 2ND CLRWORK 3000 ENTER DOWN 15 ENTER DOWN 20 ENTER DOWN 0 ENTER DOWN CPT', main: '600.00', label: 'Q = *' },
+  prof:   { t: 'Margin: cost 75, selling price 100', keys: '2ND PROFIT 75 ENTER DOWN 100 ENTER DOWN CPT', main: '25.00', label: 'MAR = *' },
+  dpct:   { t: 'Growth rate: 100 became 121 in 2 periods', keys: '2ND DELTAPCT 100 ENTER DOWN 121 ENTER DOWN DOWN 2 ENTER UP CPT', main: '10.00', label: '%CH = *' }
+};
+/* ==FCM EXAMPLES END== */
+
+var SECTIONS = [
+{ id: 'welcome', g: 'Start here', t: 'Welcome — read this first', h: `
+<p>This is a copy of the <b>Texas Instruments BA II Plus</b> financial calculator — one of the only two calculators allowed in the CFA exam (the other is the HP 12C). This manual assumes <b>you have never held a calculator like this</b>. Nothing is skipped.</p>
+<div class="fcm-def"><b>How to use this manual.</b> Every example has a <b>▶ Run on the calculator</b> button. Press it and the calculator presses the keys for you, one by one, with each key lighting up. Then do the same yourself with the mouse, a finger or your keyboard.</div>
+<h4>What can it do?</h4>
+<ul><li>Normal arithmetic: add, subtract, multiply, divide, percentages, powers, roots, logs.</li>
+<li><b>Finance</b>: loan payments, what money is worth in the future or today, bond prices, returns (NPV, IRR), loan schedules.</li>
+<li><b>Statistics</b>: average and standard deviation of a list of numbers, and a best-fit line.</li></ul>
+<h4>The 3 ideas you need</h4>
+<ol><li><b>Type a number, then press a key.</b> The key uses the number on the screen.</li>
+<li><b>The orange 2ND key</b> unlocks the small orange-ish words printed above the keys.</li>
+<li><b>Worksheets.</b> For finance the calculator opens a small “form”. You move between boxes with ↑ ↓, type a value, press ENTER to save it, and press CPT to calculate.</li></ol>
+<div class="fcm-tip">Stuck at any time? Press [[2ND RESET]] then [[ENTER]]. This returns everything to factory settings. Then try the example again.</div>
+<div class="fcm-warn">This is a study aid. In the exam you must use the physical calculator, so practise your key presses until they are automatic.</div>` },
+
+{ id: 'screen', g: 'Start here', t: 'The screen and the keys', h: `
+<h4>The screen (LCD)</h4>
+<table><tr><th>Part</th><th>What it shows</th></tr>
+<tr><td>Top row of small words</td><td><b>2ND</b> lit = you pressed 2ND and the next key uses its orange function. <b>INV</b> = inverse mode. <b>BGN</b> = payments at the <i>beginning</i> of each period (normal is end). <b>CPT</b> = you pressed CPT and the next key will be computed.</td></tr>
+<tr><td>Small line (label)</td><td>The name of the box you are in, e.g. <code>N =</code>, <code>CF0 =</code>, <code>P/Y =</code>. A <code>*</code> after the <code>=</code> means the value was <b>computed</b> (not typed).</td></tr>
+<tr><td>Big number</td><td>What you are typing, or the answer. Long numbers shrink automatically.</td></tr></table>
+<h4>The keys</h4>
+<ul><li><b>White keys</b> — digits 0–9, the decimal point and the sign key [[NEG]].</li>
+<li><b>Blue keys</b> — functions (CF, NPV, N, I/Y, +, −, ×, ÷ …).</li>
+<li><b>Orange keys</b> — <b>2ND</b> and <b>=</b>.</li>
+<li><b>Small words above each key</b> — the <i>second function</i>. Example: above the <b>I/Y</b> key is <b>P/Y</b>.</li></ul>
+<h4>How to use 2ND (very important)</h4>
+<p>You do <b>not</b> hold 2ND down. Press it, let go, then press the key that has the word above it. The 2ND light goes off by itself after that one key.</p>
+<p>In this manual a key with 2ND is written as two chips: [[2ND PY]] means “press 2ND, then the key that has <b>P/Y</b> above it” (that is the I/Y key).</p>
+<h4>Turning it off and on</h4>
+<p>[[ONOFF]] blanks the screen. Your numbers stay in memory, and they also survive closing the page.</p>` },
+
+{ id: 'first', g: 'Start here', t: 'Your first calculations', h: `
+<h4>Typing a number</h4>
+<ul><li>Press the digit keys. Press [[DOT]] for a decimal point.</li>
+<li>[[NEG]] changes the sign (positive ↔ negative). Press it <b>after</b> typing the number.</li>
+<li>Typed a wrong digit? [[BKSP]] (the → key) deletes the last digit.</li>
+<li>[[CEC]] clears what you are typing. Press it twice to clear the whole calculation.</li></ul>
+{{ex:bksp}}
+<h4>+ − × ÷ =</h4>
+<p>Type a number, press the operation, type the next number, press [[EQ]].</p>
+{{ex:add}}
+{{ex:neg}}
+<div class="fcm-tip">Keyboard users: the digits, + - * / = Enter Backspace Delete and the arrow keys all work.</div>` },
+
+{ id: 'arith', g: 'Everyday math', t: 'Arithmetic keys, one by one', h: `
+<h4>% (percent)</h4>
+<p>Different meaning depending on the key before it.</p>
+<ul><li>After <b>+</b> or <b>−</b>: takes that percent <i>of the first number</i>. So <code>200 + 5 % =</code> adds 5% to 200.</li>
+<li>After <b>×</b> or <b>÷</b>, or alone: divides by 100. So <code>40 × 15 % =</code> is 15% of 40.</li></ul>
+{{ex:pct}}
+{{ex:pct2}}
+<h4>√x &nbsp; x² &nbsp; 1/x</h4>
+<p>These act on the number on the screen immediately — no = needed. √x is the square root, x² the square, 1/x is “one divided by it”.</p>
+{{ex:sqrt}}
+{{ex:sq}}
+{{ex:recip}}
+<h4>yˣ and ʸ√x</h4>
+<p><b>yˣ</b> = raise to a power: type the base, press yˣ, type the exponent, press =. <b>ʸ√x</b> ([[2ND YROOTX]]) = a root of any degree: type the number, [[2ND YROOTX]], type the root degree, =.</p>
+{{ex:powr}}
+{{ex:root}}
+<h4>LN and eˣ</h4>
+<p><b>LN</b> is the natural logarithm (base e ≈ 2.718). <b>eˣ</b> ([[2ND EX]]) is its opposite. You use them for continuous compounding.</p>
+{{ex:ln}}
+{{ex:ex}}
+<h4>x!, nPr, nCr</h4>
+<p><b>x!</b> ([[2ND FACT]]) = factorial: 5! = 5×4×3×2×1. <b>nPr</b> counts ordered arrangements; <b>nCr</b> counts groups where order does not matter. Type n, press the function, type r, press =.</p>
+{{ex:fact}}
+{{ex:npr}}
+{{ex:ncr}}
+<h4>Parentheses ( )</h4>
+<p>Use them to force an order. Everything inside is worked out first.</p>
+{{ex:paren}}
+<h4>SIN, COS, INV, HYP</h4>
+<p>[[2ND SIN]] and [[2ND COS]] are sine and cosine (angles are in degrees unless you change FORMAT). Press [[INV]] <b>before</b> SIN or COS to get the inverse (the angle). [[2ND HYP]] makes them hyperbolic.</p>
+{{ex:sin}}
+{{ex:asin}}
+<h4>ROUND and RAND</h4>
+<p>[[2ND ROUND]] rounds the number on the screen to the decimals you display, so later steps use the rounded value. [[2ND RAND]] gives a random number between 0 and 1.</p>` },
+
+{ id: 'chain', g: 'Everyday math', t: 'Chn vs AOS: the order of operations', h: `
+<p>Type <code>1 + 2 × 3 =</code>. A person answers 7 (multiply first). The calculator can do it two ways:</p>
+<table><tr><th>Mode</th><th>How it works</th><th>1 + 2 × 3 =</th></tr>
+<tr><td><b>Chn</b> (chain, the factory setting)</td><td>Works strictly left to right, one operation at a time.</td><td><b>9</b></td></tr>
+<tr><td><b>AOS</b> (algebraic)</td><td>Follows school rules: × ÷ powers before + −.</td><td><b>7</b></td></tr></table>
+{{ex:chain}}
+<div class="fcm-warn">The CFA exam calculator ships in <b>Chn</b> mode. If you type a long formula, use parentheses or press = after each part so that you do not depend on the mode.</div>
+<h4>Switching mode</h4>
+<p>Open [[2ND FORMAT]], press [[DOWN]] until you see <b>Chn</b> or <b>AOS</b>, press [[2ND SET]] to flip it, then [[2ND QUIT]].</p>
+{{ex:aos}}` },
+
+{ id: 'memory', g: 'Everyday math', t: 'Memory: STO, RCL and ANS', h: `
+<p>The calculator has ten storage boxes called <b>M0 … M9</b>.</p>
+<ul><li><b>Store:</b> type a number, press [[STO]], then a digit 0–9. The number is now saved in that box.</li>
+<li><b>Recall:</b> press [[RCL]], then the digit. The saved number appears.</li>
+<li><b>View or edit all ten:</b> [[2ND MEM]]. Use ↑ ↓ to move. Type a value and press ENTER to save. [[2ND CLRWORK]] empties all ten.</li>
+<li><b>Last answer:</b> [[2ND ANS]] puts the last result of = back on the screen.</li></ul>
+{{ex:mem}}
+{{ex:ans}}
+<div class="fcm-tip">You can also recall a finance variable: [[RCL]] then [[N]] shows the stored N. Nothing is lost.</div>` },
+
+{ id: 'format', g: 'Everyday math', t: 'Format: decimals, angles, dates', h: `
+<p>Open [[2ND FORMAT]]. Move with ↑ ↓. The boxes are:</p>
+<table><tr><th>Box</th><th>What it does</th><th>How to change</th></tr>
+<tr><td>DEC</td><td>Number of decimals shown (0–9). <b>9 = floating</b> (shows as many as needed).</td><td>type a digit, ENTER</td></tr>
+<tr><td>DEG / RAD</td><td>Angles in degrees or radians.</td><td>[[2ND SET]]</td></tr>
+<tr><td>US / EUR</td><td>Date order: month-day-year or day-month-year.</td><td>[[2ND SET]]</td></tr>
+<tr><td>US 1,000. / EUR 1.000,</td><td>Thousands and decimal symbols.</td><td>[[2ND SET]]</td></tr>
+<tr><td>Chn / AOS</td><td>Order of operations (see the previous section).</td><td>[[2ND SET]]</td></tr></table>
+<p>Leave with [[2ND QUIT]]. The calculator keeps full precision inside; the setting only changes what you see.</p>
+{{ex:dec4}}
+<div class="fcm-tip">Many candidates set 4 decimals for the exam so that small differences in answers are visible.</div>` },
+
+{ id: 'ws', g: 'Worksheets (finance)', t: 'What is a worksheet?', h: `
+<p>A worksheet is a small form with several boxes (variables). You open one with a key such as [[CF]], [[NPV]], [[IRR]] or with a 2ND function such as [[2ND BOND]].</p>
+<table><tr><th>Key</th><th>What it does inside a worksheet</th></tr>
+<tr><td>[[UP]] [[DOWN]]</td><td>Move to the previous / next box.</td></tr>
+<tr><td>type number + [[ENTER]]</td><td>Saves the number in the box you are on. You must press ENTER — typing alone does not save.</td></tr>
+<tr><td>[[CPT]]</td><td>Computes the box you are on (for boxes that can be computed). The answer shows with a <code>*</code>.</td></tr>
+<tr><td>[[2ND SET]]</td><td>Flips an option box (for example END ↔ BGN, ACT ↔ 360, SL ↔ SYD).</td></tr>
+<tr><td>[[2ND CLRWORK]]</td><td>Clears every box of the worksheet you are in.</td></tr>
+<tr><td>[[2ND QUIT]]</td><td>Leaves the worksheet and returns to the normal calculator.</td></tr>
+<tr><td>[[2ND INS]] / [[2ND DEL]]</td><td>Insert or delete a cash flow or data row (in CF and DATA).</td></tr></table>
+<div class="fcm-tip"><b>Golden habit:</b> at the start of every problem, clear the worksheet you are about to use ([[2ND CLRTVM]] for TVM, [[2ND CLRWORK]] for the others). Old numbers are the #1 cause of wrong answers.</div>` },
+
+{ id: 'tvm', g: 'Worksheets (finance)', t: 'TVM — time value of money', h: `
+<p><b>What is it?</b> Money today is worth more than money later, because today’s money can earn interest. TVM connects five numbers. Give the calculator any four and it finds the fifth.</p>
+<table><tr><th>Key</th><th>Meaning</th></tr>
+<tr><td>[[N]]</td><td>Number of periods (years, or months if payments are monthly).</td></tr>
+<tr><td>[[IY]]</td><td>Interest rate <b>per year in percent</b>. Type 6 for 6%. Never type 0.06.</td></tr>
+<tr><td>[[PV]]</td><td>Present value — the amount today.</td></tr>
+<tr><td>[[PMT]]</td><td>Payment each period (the same every time).</td></tr>
+<tr><td>[[FV]]</td><td>Future value — the amount at the end.</td></tr></table>
+<h4>The sign rule (the biggest beginner trap)</h4>
+<p>Money you <b>pay out</b> is <b>negative</b>; money you <b>receive</b> is <b>positive</b>. If you put 1,000 in a bank you type <code>1000 +|− PV</code> (money left your pocket). When you get 2,000 back it is positive FV. If all your numbers have the same sign, you will get an error or a nonsense answer.</p>
+<h4>Step 1 — set P/Y once</h4>
+<p>[[2ND PY]] is “payments per year”. Type 1 for annual, 12 for monthly, 4 for quarterly, then [[ENTER]], then [[2ND QUIT]]. The calculator starts at 12, which is wrong for most exam problems — always check it.</p>
+<h4>Step 2 — enter what you know</h4>
+<p>Type the number and press its key. Example: <code>4 N</code> stores N = 4.</p>
+<h4>Step 3 — compute</h4>
+<p>Press [[CPT]] then the key you want. The answer appears with <code>*</code>.</p>
+{{ex:pvlump}}
+<h4>Loans and mortgages (find PMT)</h4>
+{{ex:mort}}
+{{ex:loan}}
+{{ex:car}}
+<p>The payment is negative because it is money you pay out.</p>
+<h4>Find the time or the rate</h4>
+{{ex:nyrs}}
+{{ex:rate}}
+<h4>Bonds with TVM</h4>
+<p>Coupon = PMT, face value = FV, years to maturity = N, market yield = I/Y, price = PV.</p>
+{{ex:bond6}}
+{{ex:ytm}}
+<h4>Payments at the start of the period (annuity due)</h4>
+<p>Normal payments come at the <b>end</b> of each period. For rent, leases and savings plans where you pay on day one, switch to <b>BGN</b>: [[2ND BGN]] shows END; press [[2ND SET]] to flip to BGN; [[2ND QUIT]]. The BGN light appears on screen. Flip it back for ordinary problems!</p>
+{{ex:due}}
+<h4>Monthly and yearly helpers</h4>
+<p>[[2ND xPY]] multiplies the number on the screen by P/Y: handy for “30 years × 12 months”. [[2ND CLRTVM]] sets N, I/Y, PV, PMT and FV back to zero (but keeps P/Y and BGN).</p>
+{{ex:xpy}}
+{{ex:save}}
+<h4>Why do I get Error 5?</h4>
+<p>The calculator could not find an answer, usually because of the sign rule (all numbers have the same sign) or an impossible problem (e.g. a rate that cannot produce the future value).</p>` },
+
+{ id: 'cf', g: 'Worksheets (finance)', t: 'Cash flows: CF, NPV, IRR', h: `
+<p><b>What is it?</b> Use CF when the money coming in or out is <i>different</i> each period (TVM needs equal payments).</p>
+<div class="fcm-def"><b>NPV</b> (net present value) = what all the future cash flows are worth today, minus what you pay now, using the discount rate you choose. Positive NPV = a good project.<br><b>IRR</b> (internal rate of return) = the discount rate at which NPV would be exactly zero.</div>
+<h4>Step 1 — enter the cash flows</h4>
+<p>Press [[CF]]. You see <b>CF0</b> — the money at time 0 (usually negative: the investment). Type it and press ENTER. Press ↓ to get <b>C01</b> — the first later cash flow — and <b>F01</b> — how many times in a row it repeats (starts at 1). Press ↓ again for C02 and so on. You can enter up to <b>32</b> different cash flows.</p>
+<ul><li>Same amount 4 years in a row? Type it once in C0x and put <code>4</code> in F0x.</li>
+<li>[[2ND INS]] inserts a row; [[2ND DEL]] removes the row you are on.</li></ul>
+<h4>Step 2 — NPV</h4>
+<p>Press [[NPV]]. The first box is <b>I</b>, the discount rate per period in percent. Type it, ENTER, press ↓ until you see NPV, then [[CPT]].</p>
+{{ex:npv}}
+<h4>Step 3 — IRR</h4>
+<p>With the cash flows entered, press [[IRR]] then [[CPT]].</p>
+{{ex:irr}}
+<h4>Extras (BA II Plus Professional)</h4>
+<p>Inside the NPV sheet, keep pressing ↓ after NPV for <b>NFV</b> (net future value), <b>PB</b> (payback period) and <b>DPB</b> (discounted payback). Inside IRR, <b>MOD</b> gives the modified IRR (reinvestment rate in <b>RI</b>).</p>
+{{ex:payb}}
+<div class="fcm-warn">IRR needs at least one positive and one negative cash flow. All positive or all negative gives <b>Error 5</b>.</div>` },
+
+{ id: 'amort', g: 'Worksheets (finance)', t: 'AMORT — loan schedule', h: `
+<p><b>What is it?</b> It splits the payments of a loan into the part that repays the loan (<b>principal</b>) and the part that is interest, for any range of payments.</p>
+<ol><li>First solve the loan in TVM (N, I/Y, PV, FV, then CPT PMT).</li>
+<li>Press [[2ND AMORT]].</li>
+<li><b>P1</b> = first payment of the range, <b>P2</b> = last payment of the range. Type each and ENTER.</li>
+<li>Press ↓ to read <b>BAL</b> (balance left after P2), <b>PRN</b> (principal paid in the range) and <b>INT</b> (interest paid in the range).</li></ol>
+{{ex:amort}}
+<p>Press ↓ again to see PRN and INT. They are negative because you pay them. Interest + principal = 12 payments.</p>
+<div class="fcm-warn">The real calculator may differ by one cent because it handles rounding of each payment in its own way. Do not worry about 0.01.</div>` },
+
+{ id: 'bond', g: 'Worksheets (finance)', t: 'BOND — price and yield', h: `
+<p><b>What is it?</b> The BOND worksheet prices a bond between coupon dates, using real dates. (Use TVM for simple whole-period bonds.)</p>
+<table><tr><th>Box</th><th>Meaning</th></tr>
+<tr><td>SDT</td><td>Settlement (purchase) date.</td></tr>
+<tr><td>CPN</td><td>Annual coupon rate in percent (7 means 7%).</td></tr>
+<tr><td>RDT</td><td>Redemption (maturity) date.</td></tr>
+<tr><td>RV</td><td>Redemption value, % of face value (100 normally).</td></tr>
+<tr><td>ACT / 360</td><td>Day count: actual days or 30/360. Flip with [[2ND SET]].</td></tr>
+<tr><td>2/Y or 1/Y</td><td>Coupons twice or once a year. Flip with [[2ND SET]].</td></tr>
+<tr><td>YLD</td><td>Yield to maturity (percent per year).</td></tr>
+<tr><td>PRI</td><td>Clean price per 100 of face value.</td></tr>
+<tr><td>AI</td><td>Accrued interest (computed).</td></tr>
+<tr><td>DUR</td><td>Modified duration (computed — an extra in this simulator).</td></tr></table>
+<h4>Typing dates</h4>
+<p>Dates are typed as <b>MM.DDYY</b> (US format): 12 June 2006 → <code>6.1206</code>. 31 Dec 2029 → <code>12.3129</code>. In EUR format use DD.MMYY. The calculator then shows the date with its weekday.</p>
+<h4>Price from yield, or yield from price</h4>
+<p>Enter YLD and press CPT on PRI to get the price. Enter PRI and press CPT on YLD to get the yield.</p>
+{{ex:bond}}
+<p>Press ↓ to read AI (accrued interest). To find the yield instead, type the price in PRI (ENTER) and press ↑ to YLD, then CPT.</p>` },
+
+{ id: 'iconv', g: 'Worksheets (finance)', t: 'ICONV — nominal vs effective rate', h: `
+<div class="fcm-def"><b>Nominal rate</b> (NOM) = the quoted yearly rate, e.g. “6% compounded monthly”. <b>Effective rate</b> (EFF) = what you really earn in a year after compounding. <b>C/Y</b> = compounding periods per year.</div>
+<ol><li>[[2ND ICONV]].</li><li>Type NOM and ENTER; ↓ to EFF; ↓ to C/Y, type it and ENTER.</li><li>Go back ↑ to the one you want and press [[CPT]]. (Fill NOM to get EFF; fill EFF to get NOM.)</li></ol>
+{{ex:iconv}}` },
+
+{ id: 'stat', g: 'Worksheets (finance)', t: 'DATA & STAT — statistics', h: `
+<p><b>Step 1 — enter the data.</b> [[2ND DATA]]. Clear old data with [[2ND CLRWORK]]. Type the first number as <b>X01</b> and ENTER. Press ↓ — <b>Y01</b> is a second value (or a frequency); leave it at 1 and press ↓ again to reach <b>X02</b>.</p>
+<p><b>Step 2 — read the results.</b> [[2ND STAT]]. The first line is the method: <b>LIN</b> (straight-line regression), <b>Ln</b>, <b>EXP</b>, <b>PWR</b> or <b>1-V</b> (one variable). Flip with [[2ND SET]]. Then ↓ to read each result:</p>
+<table><tr><th>Label</th><th>Meaning</th></tr>
+<tr><td>n</td><td>How many data points.</td></tr>
+<tr><td>x̄</td><td>The mean (average).</td></tr>
+<tr><td>Sx</td><td>Sample standard deviation (divides by n−1).</td></tr>
+<tr><td>σx</td><td>Population standard deviation (divides by n).</td></tr>
+<tr><td>ȳ, Sy, σy</td><td>Same for the Y values (two-variable methods).</td></tr>
+<tr><td>a, b, r</td><td>Regression line y = a + b·x, and the correlation r.</td></tr>
+<tr><td>X′ / Y′</td><td>Predict X from Y, or Y from X (type one, CPT the other).</td></tr>
+<tr><td>Σx, Σx², Σy, Σy², Σxy</td><td>Sums.</td></tr></table>
+{{ex:stat}}
+{{ex:sdx}}
+<p>Keep pressing ↓ to also see σx = 2.00.</p>` },
+
+{ id: 'date', g: 'Worksheets (finance)', t: 'DATE — days between dates', h: `
+<p>[[2ND DATE]] opens three boxes: <b>DT1</b> (first date), <b>DBD</b> (days between dates) and <b>DT2</b> (second date). Type dates as MM.DDYY.</p>
+<ul><li><b>Days between:</b> enter DT1 and DT2, go to DBD, CPT.</li>
+<li><b>Date after N days:</b> enter DT1 and DBD, go to DT2, CPT (the weekday is shown).</li></ul>
+{{ex:days}}
+{{ex:dt2}}
+<p>The line under DT2 flips between actual days (ACT) and a 360-day year (360) with [[2ND SET]].</p>` },
+
+{ id: 'depr', g: 'Worksheets (finance)', t: 'DEPR — depreciation', h: `
+<p>[[2ND DEPR]]. The first line is the method; flip it with [[2ND SET]]: <b>SL</b> straight-line, <b>SYD</b> sum-of-years-digits, <b>DB</b> declining balance, <b>DBX</b> declining balance switching to straight-line.</p>
+<table><tr><th>Box</th><th>Meaning</th></tr>
+<tr><td>LIF</td><td>Life of the asset in years.</td></tr>
+<tr><td>M01</td><td>Month the asset is first used (1 = January, full first year).</td></tr>
+<tr><td>DB</td><td>Declining-balance percent (200 = double declining). Only for DB / DBX.</td></tr>
+<tr><td>CST / SAL</td><td>Cost and salvage (residual) value.</td></tr>
+<tr><td>YR</td><td>The year you want to look at (type it and ENTER).</td></tr>
+<tr><td>DEP</td><td>Depreciation for that year (computed).</td></tr>
+<tr><td>RBV / RDV</td><td>Remaining book value / remaining depreciable value.</td></tr></table>
+{{ex:depsl}}
+{{ex:depsyd}}
+<p>Change YR to 2, 3 … to see other years.</p>` },
+
+{ id: 'more', g: 'Worksheets (finance)', t: 'BRKEVN, PROFIT and Δ%', h: `
+<h4>BRKEVN — break-even</h4>
+<p>[[2ND BRKEVN]]. Boxes: <b>FC</b> fixed costs, <b>VC</b> variable cost per unit, <b>P</b> price per unit, <b>PFT</b> profit wanted, <b>Q</b> quantity. Fill four, CPT the fifth. For break-even set PFT = 0.</p>
+{{ex:brk}}
+<h4>PROFIT — margin</h4>
+<p>[[2ND PROFIT]]. <b>CST</b> cost, <b>SEL</b> selling price, <b>MAR</b> margin in %. Fill two, CPT the third.</p>
+{{ex:prof}}
+<h4>Δ% — percent change</h4>
+<p>[[2ND DELTAPCT]]. <b>OLD</b>, <b>NEW</b>, <b>%CH</b> (percent change per period) and <b>#PD</b> (number of periods). With #PD = 1 it is a simple percent change; with more periods it is the compound rate per period.</p>
+{{ex:dpct}}` },
+
+{ id: 'errors', g: 'Help', t: 'Errors and troubleshooting', h: `
+<p>An error shows on screen as “Error” and a number. Press [[CEC]] to clear it.</p>
+<table><tr><th>Error</th><th>Meaning</th><th>What to try</th></tr>
+<tr><td>1</td><td>Number too large.</td><td>Check for a missing decimal point or a wrong rate (6 not 600).</td></tr>
+<tr><td>2</td><td>Invalid input or operation (÷ by 0, √ of a negative, log of zero…).</td><td>Check the number you typed.</td></tr>
+<tr><td>3</td><td>Too many open operations or parentheses.</td><td>Press = more often; close parentheses.</td></tr>
+<tr><td>4</td><td>A value is outside the allowed range (for example a 33rd cash flow).</td><td>Max 32 cash flows.</td></tr>
+<tr><td>5</td><td>No solution (TVM, IRR, YLD).</td><td>Check the sign rule; make sure at least one flow is positive and one negative.</td></tr>
+<tr><td>7</td><td>Could not converge on an answer.</td><td>Check inputs; try different numbers.</td></tr></table>
+<h4>My answer is wrong — checklist</h4>
+<ol><li><b>P/Y</b>: is it what the problem needs (1 for annual)? [[2ND PY]] shows it.</li>
+<li><b>BGN light</b> on the screen when it should not be?</li>
+<li><b>Signs</b>: money out negative, money in positive?</li>
+<li><b>Old values</b>: did you clear with [[2ND CLRTVM]] / [[2ND CLRWORK]]?</li>
+<li>Did you press <b>ENTER</b> after typing in a worksheet?</li>
+<li><b>I/Y</b> typed as a percent (6, not 0.06)?</li>
+<li>2ND light on by accident? Press 2ND again to cancel it.</li>
+<li>Still strange? [[2ND RESET]] then [[ENTER]] and start over.</li></ol>` },
+
+{ id: 'exam', g: 'Help', t: 'Exam-day habits (CFA)', h: `
+<ul><li>Practise with the <b>same keystrokes every time</b> so that you do not think about the calculator.</li>
+<li>Before the exam: reset the calculator, set decimals to 4 (or more) and check Chn mode.</li>
+<li>Start every TVM problem with [[2ND CLRTVM]]. Start every CF problem with [[2ND CLRWORK]] inside the CF sheet.</li>
+<li>Set P/Y = 1 for annual problems, and set it back to the right value for monthly ones.</li>
+<li>Do not round in the middle of a calculation: keep full precision, round at the end.</li>
+<li>Check the sign and the order of magnitude of every answer. A negative PMT is normal; a negative N is not.</li>
+<li>Use [[RCL]] and [[STO]] instead of retyping long numbers.</li></ul>
+<div class="fcm-warn">The CFA Institute allows only the TI BA II Plus (including Professional) and the HP 12C. This simulator may differ slightly from the real device; always practise on the physical one before the exam.</div>` },
+
+{ id: 'kbd', g: 'Help', t: 'Keyboard, size and moving the calculator', h: `
+<h4>Keyboard</h4>
+<table><tr><th>Computer key</th><th>Calculator key</th></tr>
+<tr><td>0–9, . or ,</td><td>digits and decimal point</td></tr>
+<tr><td>+ - * (or x) /</td><td>+ − × ÷</td></tr>
+<tr><td>= </td><td>=</td></tr>
+<tr><td>Enter</td><td>ENTER (acts like = outside worksheets)</td></tr>
+<tr><td>Backspace</td><td>→ (delete last digit)</td></tr>
+<tr><td>Delete</td><td>CE|C</td></tr>
+<tr><td>↑ ↓</td><td>↑ ↓</td></tr>
+<tr><td>( ) % ^</td><td>( ) % yˣ</td></tr>
+<tr><td>Esc</td><td>closes the calculator</td></tr></table>
+<h4>Size</h4>
+<p>Drag the <b>corner at the bottom right</b> of the calculator to make it bigger or smaller. Double-click the corner to return to the normal size. The <b>A−</b> and <b>A+</b> buttons in the title bar do the same in steps (handy on a tablet). The size is remembered.</p>
+<h4>Moving</h4>
+<p>Drag the title bar (on a computer). On a phone the calculator sits at the bottom of the screen.</p>
+<h4>Classic</h4>
+<p>The <b>Classic</b> button opens the simple Calc · TVM · Cash flow panel (with text boxes instead of keys).</p>` }
+];
+
+/* each row: [token(s), plain-English meaning, section to read for more] */
+var KEYREF_MAIN = [
+  ['CPT', 'Compute. Press it, then a TVM key (N, I/Y, PV, PMT, FV) to solve for that one. Inside a worksheet, CPT computes the box you are on.', 'tvm'],
+  ['ENTER', 'Saves the number you typed into the box you are on (worksheets). Outside worksheets it works like =.', 'ws'],
+  ['UP', 'Moves to the previous box in a worksheet.', 'ws'],
+  ['DOWN', 'Moves to the next box in a worksheet.', 'ws'],
+  ['ONOFF', 'Blanks / wakes the screen. Memory is kept.', 'screen'],
+  ['2ND', 'Unlocks the small words above the keys for the next key only.', 'screen'],
+  ['CF', 'Opens the cash-flow sheet (CF0, C01, F01 …).', 'cf'],
+  ['NPV', 'Opens the NPV sheet: discount rate I, then NPV (also NFV, PB, DPB).', 'cf'],
+  ['IRR', 'Opens the IRR sheet. Press CPT to compute the internal rate of return.', 'cf'],
+  ['BKSP', 'Deletes the last digit you typed.', 'first'],
+  ['N', 'Number of periods (TVM). Type a number then N to store it; CPT N to solve it.', 'tvm'],
+  ['IY', 'Interest per year in percent (TVM).', 'tvm'],
+  ['PV', 'Present value (TVM).', 'tvm'],
+  ['PMT', 'Payment per period (TVM).', 'tvm'],
+  ['FV', 'Future value (TVM).', 'tvm'],
+  ['PCT', 'Percent — see the rules for % after + − × ÷.', 'arith'],
+  ['SQRT', 'Square root of the number on the screen.', 'arith'],
+  ['SQ', 'Square of the number on the screen.', 'arith'],
+  ['RECIP', '1 divided by the number on the screen.', 'arith'],
+  ['DIV', 'Divide.', 'first'],
+  ['INV', 'Inverse mode — press before SIN, COS (or LN / eˣ) to use the inverse function.', 'arith'],
+  ['LP', 'Opens a parenthesis.', 'arith'],
+  ['RP', 'Closes a parenthesis and works out what is inside.', 'arith'],
+  ['POW', 'Power: base yˣ exponent.', 'arith'],
+  ['MUL', 'Multiply.', 'first'],
+  ['LN', 'Natural logarithm.', 'arith'],
+  ['SUB', 'Subtract.', 'first'],
+  ['ADD', 'Add.', 'first'],
+  ['STO', 'Store the screen number in memory 0–9 (press STO, then the digit).', 'memory'],
+  ['RCL', 'Recall memory 0–9 (or a TVM variable such as N).', 'memory'],
+  ['EQ', 'Equals — finishes the calculation.', 'first'],
+  ['CEC', 'Clear entry; press twice to clear the whole calculation. Also clears an error.', 'first'],
+  ['DOT', 'Decimal point.', 'first'],
+  ['NEG', 'Change the sign of the number (+ ↔ −).', 'first'],
+  ['0', 'Digit keys 0–9 type numbers. Each one also has a 2ND function (see the next table).', 'first']
+];
+var KEYREF_2ND = [
+  ['2ND QUIT', 'Leave the worksheet and go back to the normal calculator.', 'ws'],
+  ['2ND SET', 'Flip an option in a worksheet (END/BGN, ACT/360, SL/SYD …, Chn/AOS).', 'ws'],
+  ['2ND DEL', 'Delete the cash-flow or data row you are on.', 'cf'],
+  ['2ND INS', 'Insert a new cash-flow or data row.', 'cf'],
+  ['2ND xPY', 'Multiply the screen number by P/Y (e.g. 30 years → 360 months).', 'tvm'],
+  ['2ND PY', 'Payments per year (P/Y) and compounding per year (C/Y).', 'tvm'],
+  ['2ND AMORT', 'Loan amortisation schedule: P1, P2, BAL, PRN, INT.', 'amort'],
+  ['2ND BGN', 'Switch payments to the beginning (BGN) or end (END) of the period; flip with 2ND SET.', 'tvm'],
+  ['2ND CLRTVM', 'Set N, I/Y, PV, PMT, FV to zero.', 'tvm'],
+  ['2ND ROUND', 'Round the screen number to the decimals you display.', 'arith'],
+  ['2ND RAND', 'Random number between 0 and 1.', 'arith'],
+  ['2ND HYP', 'Hyperbolic mode for SIN and COS.', 'arith'],
+  ['2ND SIN', 'Sine (degrees or radians, see FORMAT).', 'arith'],
+  ['2ND COS', 'Cosine.', 'arith'],
+  ['2ND YROOTX', 'Any root: number ʸ√x root-degree =.', 'arith'],
+  ['2ND FACT', 'Factorial x!.', 'arith'],
+  ['2ND EX', 'e raised to the screen number.', 'arith'],
+  ['2ND DATA', 'Enter statistics data (X and Y values).', 'stat'],
+  ['2ND STAT', 'Read statistics results (mean, standard deviation, regression …).', 'stat'],
+  ['2ND BOND', 'Bond price / yield worksheet.', 'bond'],
+  ['2ND NPR', 'Permutations nPr.', 'arith'],
+  ['2ND DEPR', 'Depreciation worksheet.', 'depr'],
+  ['2ND DELTAPCT', 'Percent-change worksheet (Δ%).', 'more'],
+  ['2ND BRKEVN', 'Break-even worksheet.', 'more'],
+  ['2ND NCR', 'Combinations nCr.', 'arith'],
+  ['2ND DATE', 'Date worksheet: days between dates, date after N days.', 'date'],
+  ['2ND ICONV', 'Interest-rate conversion: nominal ↔ effective.', 'iconv'],
+  ['2ND PROFIT', 'Profit-margin worksheet.', 'more'],
+  ['2ND ANS', 'Recall the last answer.', 'memory'],
+  ['2ND CLRWORK', 'Clear the worksheet you are in (or all memories inside MEM).', 'ws'],
+  ['2ND MEM', 'View and edit the ten memories M0–M9.', 'memory'],
+  ['2ND FORMAT', 'Decimals, degrees/radians, date style, separators, Chn/AOS.', 'format'],
+  ['2ND RESET', 'Back to factory settings (asks for ENTER to confirm). Clears memories too.', 'format']
+];
+
+  var FC = window.FinCalc; if (!FC) return;
+  var EX = FCM_EXAMPLES, host = null, pill = null, runCtl = null, runBtn = null, resetFirst = true, spy = null;
+  try { resetFirst = localStorage.getItem('fcmReset') !== '0'; } catch (e) { }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var NUMRE = /^-?[0-9]*\.?[0-9]+$/;
+  function items(seq) {
+    var toks = seq.trim().split(/\s+/), out = [], i = 0;
+    while (i < toks.length) {
+      var t = toks[i];
+      if (t === '2ND' && i + 1 < toks.length) { out.push({ txt: '2ND', cls: 'f2', n: 1 }, { txt: FC.secLabel(toks[i + 1]), cls: 'f2', n: 1 }); i += 2; continue; }
+      if (NUMRE.test(t)) out.push({ txt: t, cls: '', n: FC.parse([t]).length }); else out.push({ txt: FC.faceOf(t), cls: 'fn', n: 1 });
+      i++;
+    }
+    return out;
+  }
+  function chipsHTML(its) { return its.map(function (c, j) { return '<span class="fcm-key ' + c.cls + '" data-j="' + j + '">' + esc(c.txt) + '</span>'; }).join(''); }
+  function exHTML(id) {
+    var e = EX[id]; if (!e) return '';
+    return '<div class="fcm-ex" data-ex="' + id + '"><div class="fcm-ex-t"><span>' + esc(e.t) + '</span><button type="button" class="fcm-run" data-run="' + id + '">▶ Run on the calculator</button></div>' +
+      '<div class="fcm-keys">' + chipsHTML(items(e.keys)) + '</div><div class="fcm-res">Screen shows <b>' + esc(e.main) + '</b>' + (e.label ? ' &nbsp;<span style="opacity:.75">(small line: ' + esc(e.label) + ')</span>' : '') + '</div></div>';
+  }
+  function render(h) {
+    return h.replace(/\{\{ex:(\w+)\}\}/g, function (_, id) { return exHTML(id); })
+      .replace(/\[\[([^\]]+)\]\]/g, function (_, seq) { return '<span class="fcm-keys" style="display:inline-flex;margin:0 2px;vertical-align:middle">' + chipsHTML(items(seq)) + '</span>'; });
+  }
+  function refTable(rows, head) {
+    return '<table><tr><th style="width:34%">' + head + '</th><th>What it does</th><th style="width:14%">Read more</th></tr>' + rows.map(function (r) {
+      return '<tr><td><span class="fcm-keys" style="margin:0">' + chipsHTML(items(r[0])) + '</span></td><td>' + esc(r[1]) + '</td><td><button type="button" class="fcm-run" style="background:#64748b" data-go="' + r[2] + '">Open</button></td></tr>';
+    }).join('') + '</table>';
+  }
+  var ALL = SECTIONS.concat([{ id: 'ref', g: 'Reference', t: 'Every key, A to Z', h: '<p>Each key and each 2ND function in one place. “Open” jumps to the full explanation with examples.</p><h4>The keys on the face</h4>' + refTable(KEYREF_MAIN, 'Key') + '<h4>2ND functions (small words above the keys)</h4>' + refTable(KEYREF_2ND, 'Keystroke') }]);
+
+  function build() {
+    host = document.createElement('div'); host.className = 'fcm'; host.hidden = true; host.tabIndex = -1;
+    host.setAttribute('role', 'dialog'); host.setAttribute('aria-label', 'Calculator manual');
+    var toc = '', last = '';
+    ALL.forEach(function (s) { if (s.g !== last) { toc += '<div class="g">' + esc(s.g) + '</div>'; last = s.g; } toc += '<button type="button" data-sec="' + s.id + '">' + esc(s.t) + '</button>'; });
+    host.innerHTML = '<div class="fcm-head"><h2>📖 Calculator manual — BA II Plus</h2><button type="button" class="fcm-x" data-x aria-label="Close the manual">✕</button></div>' +
+      '<div class="fcm-bar"><input type="search" placeholder="Search the manual (e.g. BGN, IRR, percent)" aria-label="Search the manual"><label title="Before running an example, press 2ND RESET ENTER so that old numbers cannot change the result. This clears the calculator memory."><input type="checkbox" data-reset ' + (resetFirst ? 'checked' : '') + '> Start every example from factory settings</label></div>' +
+      '<div class="fcm-body"><nav class="fcm-toc" aria-label="Sections">' + toc + '</nav><div class="fcm-main" tabindex="0">' +
+      ALL.map(function (s) { return '<section id="fcm-' + s.id + '" data-s="' + s.id + '"><h3>' + esc(s.t) + '</h3>' + render(s.h) + '</section>'; }).join('') +
+      '<p class="fcm-nomatch" hidden style="opacity:.7">No section matches your search.</p></div></div>';
+    document.body.appendChild(host);
+    pill = document.createElement('div'); pill.className = 'fcm-pill'; pill.hidden = true;
+    pill.innerHTML = '<span>Example running…</span><button type="button" data-back>📖 Back to the manual</button>';
+    document.body.appendChild(pill);
+    pill.querySelector('[data-back]').addEventListener('click', function () { stopRun(); pill.hidden = true; host.hidden = false; });
+    host.addEventListener('click', onClick);
+    host.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Escape') FM.close(); });
+    var inp = host.querySelector('input[type=search]'); inp.addEventListener('input', function () { filter(inp.value); });
+    host.querySelector('[data-reset]').addEventListener('change', function (e) { resetFirst = !!e.target.checked; try { localStorage.setItem('fcmReset', resetFirst ? '1' : '0'); } catch (x) { } });
+    var main = host.querySelector('.fcm-main'); main.addEventListener('scroll', onScroll);
+    setActive('welcome');
+  }
+  function setActive(id) { host.querySelectorAll('.fcm-toc button').forEach(function (b) { b.classList.toggle('on', b.dataset.sec === id); }); }
+  function onScroll() {
+    var main = host.querySelector('.fcm-main'), top = main.getBoundingClientRect().top + 40, cur = null;
+    host.querySelectorAll('section[data-s]').forEach(function (s) { if (s.style.display === 'none') return; if (s.getBoundingClientRect().top <= top) cur = s.dataset.s; });
+    if (cur) setActive(cur);
+  }
+  function go(id) {
+    var s = host.querySelector('#fcm-' + id); if (!s) return;
+    if (s.style.display === 'none') { host.querySelector('input[type=search]').value = ''; filter(''); }
+    s.scrollIntoView({ block: 'start' }); setActive(id);
+  }
+  function filter(q) {
+    q = q.trim().toLowerCase(); var n = 0;
+    host.querySelectorAll('section[data-s]').forEach(function (s) {
+      var ok = !q || s.textContent.toLowerCase().indexOf(q) >= 0; s.style.display = ok ? '' : 'none'; if (ok) n++;
+      var b = host.querySelector('.fcm-toc button[data-sec="' + s.dataset.s + '"]'); if (b) b.style.display = ok ? '' : 'none';
+    });
+    host.querySelector('.fcm-nomatch').hidden = n > 0;
+  }
+  function stopRun() { if (runCtl) { var c = runCtl; runCtl = null; c.stop(true); } resetRunUI(); }
+  function resetRunUI() {
+    if (runBtn) { runBtn.textContent = '▶ Run on the calculator'; runBtn.classList.remove('stop'); runBtn = null; }
+    host && host.querySelectorAll('.fcm-key.cur').forEach(function (k) { k.classList.remove('cur'); });
+  }
+  function runEx(id, btn) {
+    var e = EX[id]; if (!e) return;
+    if (runCtl && runBtn === btn) { stopRun(); return; }
+    stopRun();
+    var pre = resetFirst ? '2ND RESET ENTER ' : '', npre = resetFirst ? FC.parse(pre).length : 0, its = items(e.keys), starts = [], acc = 0;
+    its.forEach(function (c) { starts.push(acc); acc += c.n; });
+    var box = btn.closest('.fcm-ex'), chips = box.querySelectorAll('.fcm-key');
+    runBtn = btn; btn.textContent = '■ Stop'; btn.classList.add('stop');
+    var narrow = window.innerWidth < 900;
+    if (narrow) { host.hidden = true; pill.hidden = false; }
+    runCtl = FC.run(pre + e.keys, {
+      delay: 300,
+      onStep: function (i) {
+        var k = i - npre; chips.forEach(function (c) { c.classList.remove('cur'); });
+        if (k < 0) return; for (var j = its.length - 1; j >= 0; j--) if (starts[j] <= k) { chips[j].classList.add('cur'); break; }
+      },
+      onDone: function () { runCtl = null; if (narrow) pill.querySelector('span').textContent = 'Done — read the result on the calculator'; resetRunUI(); }
+    });
+  }
+  function onClick(e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-x')) return FM.close();
+    if (b.dataset.sec) return go(b.dataset.sec);
+    if (b.dataset.go) return go(b.dataset.go);
+    if (b.dataset.run) return runEx(b.dataset.run, b);
+  }
+  var FM = window.FinCalcManual = {
+    open: function (id) { if (!host) build(); pill.hidden = true; host.hidden = false; if (id) go(id); host.focus({ preventScroll: true }); },
+    close: function () { stopRun(); if (host) host.hidden = true; if (pill) pill.hidden = true; },
+    toggle: function () { if (host && !host.hidden) FM.close(); else FM.open(); }
+  };
+})();
 </script>
 </body>
 </html>
