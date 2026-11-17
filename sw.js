@@ -6,7 +6,7 @@
  *    In the background the worker asks the server whether the page changed (a tiny conditional request).
  *    Only when it really changed is the new copy stored, and the open page shows "A new version is ready · Reload".
  *    First visit, or nothing saved yet: network first.
- *  - The Supabase library (CDN) is cached on first use and then served from the cache.
+ *  - The Supabase library (vendor/supabase.js on your own site, or the CDN as a fallback) is cached on first use and then served from the cache.
  *  - The PDF engine (pdf.js + pdf.worker.js, about 1.5 MB) is fetched right after sign-in (v24), kept in its own cache
  *    (cfa-l1-vendor) that survives a VERSION bump, served from that cache — also offline — and refreshed quietly in the background.
  *    v25 · pdf.js and pdf.worker.js are refreshed TOGETHER as a pair (both downloaded OK, then both stored), and only after the
@@ -15,7 +15,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v27';
+const VERSION = 'v28';
 const VENDOR = 'cfa-l1-vendor';                     // v24 · PDF engine lives in its own cache: a new VERSION no longer drops it
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
@@ -148,7 +148,7 @@ self.addEventListener('message', event => {
     } catch (e) { /* retried on the next visit */ }
     for (const u of d.urls) {
       try {
-        if (!String(u).includes(LIB_MARK) || await cache.match(u, { ignoreVary: true })) continue;
+        if (!(String(u).includes(LIB_MARK) || /\/vendor\/supabase\.js$/.test(String(u))) || await cache.match(u, { ignoreVary: true })) continue;   // v28 · also the own copy vendor/supabase.js
         const r = await fetch(u, { mode: 'cors' });
         if (r.ok) await cache.put(u, r);
       } catch (e) { /* retried on the next visit */ }

@@ -2788,7 +2788,8 @@ body.rd-resizing * { cursor: col-resize !important; }
 })();
 </script>
 <!-- P6 · library pinned to an exact version (a CDN change can no longer swap the code under you). To upgrade: change the version here AND in SB_LIB_FALLBACK. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" crossorigin="anonymous" defer></script>
+<!-- v39 · put supabase.js (the UMD build of supabase-js 2.119.0) in vendor/ : it then loads from your own site, works offline and no CDN is needed. Without it the page falls back to jsDelivr, then unpkg. -->
+<script src="vendor/supabase.js" defer></script>
 <style id="cr-css">
 .cr-ban{margin:0 0 .75rem;padding:.7rem .9rem;border-radius:.9rem;background:#fff7ed;border:1.5px solid #fb923c;color:#9a3412;font-size:.875rem;line-height:1.45}
 .cr-hold{display:block;margin-top:.25rem;font-size:.8125rem;font-weight:600}
@@ -3402,8 +3403,58 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
 .lp-shell[data-tab="perf"] [data-lpa="done"] { display: none !important; }
 
 </style>
+<style id="v39-css">
+/* ================= v39 · one progress system · touch targets · readability · contrast ================= */
+.skip-link{position:absolute;left:8px;top:-70px;z-index:100;padding:.55rem .9rem;border-radius:.6rem;background:#1e1b4b;color:#fff;font-weight:700;font-size:14px;transition:top .15s}
+.skip-link:focus{top:8px;outline:2px solid #a5b4fc;outline-offset:2px}
+#view:focus{outline:none}
+/* module page: the lesson summary is shown only when the side panel is not (narrow screens or panel closed) */
+.lp-narrow-only{display:block}
+@media (min-width:900px){.lp-shell:not(.lp-closed) .lp-narrow-only{display:none}}
+.step-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:640px){.step-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.g6{grid-template-columns:repeat(auto-fit,minmax(5.5rem,1fr))}
+.dk-more{margin-bottom:1rem}
+.dk-more>summary{cursor:pointer;font-weight:700;font-size:.9rem;padding:.4rem .2rem;min-height:44px;display:flex;align-items:center;gap:.4rem}
+/* 12 px is the smallest text */
+.dk-i{width:18px;height:18px;font-size:12px}
+.rd-i{font-size:12px}
+/* sync indicator: a short number on phones */
+#sync .sync-n{font-weight:700;color:#be123c}
+.dark #sync .sync-n{color:#fb7185}
+@media (max-width:480px){#sync .sync-w{display:none}#calcBtn,.topbar a[href="#/search"]{display:none}}
+@media (max-width:380px){#sync .sync-txt{display:inline}}
+/* touch targets: a real 44 px area for small links and buttons (the ::after enlarges the tap area without moving anything) */
+@media (pointer:coarse){
+  a.mx,button.mx{min-height:44px;display:inline-flex;align-items:center}
+  button.link{min-width:44px;justify-content:center}
+  .dk-tb{width:44px;height:44px}
+  .qchip{min-height:44px}
+  #sync{min-width:44px;justify-content:center}
+  .brand-link,a.as-brand{min-height:44px;min-width:44px;display:inline-flex;align-items:center}
+  .crumbs a,a.link,.lp-back,.lp-lecchip,.th-next,.th-pill a{position:relative}
+  .crumbs a::after,a.link::after,.lp-back::after,.th-next::after,.th-pill a::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:44px;transform:translate(-50%,-50%)}
+}
+/* contrast (WCAG AA 4.5:1 for small text) */
+#sync:not([data-state="synced"]) .sync-txt{color:#be123c}
+.dark #sync:not([data-state="synced"]) .sync-txt{color:#fb7185}
+.dk-gh>span:not(.ic){color:#55657d}
+.dark .dk-gh>span:not(.ic){color:#a3b0c4}
+.dk-tb{color:#64748b}
+.dk-nd{color:#5b6b82}
+.dark .dk-nd{color:#a3b0c4}
+.dtr-v.nd,.pf-los-v.nd{color:#64748b!important}
+.dark .dtr-v.nd,.dark .pf-los-v.nd{color:#a3b0c4!important}
+.dark .dk-tb{color:#a3b0c4}
+.dark .lp-grp,.dark .lp-grp span,.dark .lp-empty,.dark .lp-sub{color:#a3b0c4}
+.rd-i{min-height:18px}
+@media (pointer:coarse){.rd-i{min-height:18px!important;height:18px;min-width:18px}}
+.dk-more>summary::before{content:"▸";display:inline-block;transition:transform .15s}
+.dk-more[open]>summary::before{transform:rotate(90deg)}
+</style>
 </head>
 <body class="has-side bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<button type="button" class="skip-link" onclick="var v=document.getElementById('view');v&&v.focus()">Skip to content</button>
 <aside id="appSide" aria-label="Sidebar"></aside><div id="sideBack" aria-hidden="true"></div>
 <header class="topbar sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
   <div class="max-w-6xl mx-auto flex items-center gap-2 px-3 h-12">
@@ -3414,7 +3465,7 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
     <button id="calcBtn" class="ib" type="button" title="Financial calculator" aria-label="Financial calculator" aria-haspopup="dialog">🧮</button><button id="cmdBtn" class="ib" title="Command palette (Ctrl+K)" aria-label="Command palette" style="font-weight:700;font-size:15px">⌘</button><a href="#/search" class="ib" title="Search everything" aria-label="Search everything">🔍</a><button id="fsBtn" class="ib" title="Text size" aria-label="Text size" aria-expanded="false" style="font-weight:700;font-size:13px">Aa</button><button id="themeBtn" class="ib" title="Dark / light" aria-label="Dark / light mode">🌓</button>
   </div>
 </header>
-<main id="view" class="max-w-6xl mx-auto p-3 sm:p-5 pb-24"></main>
+<main id="view" class="max-w-6xl mx-auto p-3 sm:p-5 pb-24" tabindex="-1"></main>
 <nav class="bottomnav sm:hidden fixed bottom-0 inset-x-0 z-30 grid bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-[11px]" id="bottomNav" aria-label="Main (phone)"></nav>
 
 
@@ -3438,7 +3489,8 @@ function open() {
       d.createObjectStore('notes', { keyPath: 'id' }).createIndex('moduleId', 'moduleId');
       d.createObjectStore('outbox', { autoIncrement: true });
     };
-    r.onsuccess = () => { _db = r.result; res(_db); };
+    r.onblocked = () => { try { toast('Close the other tabs of this site, then reload.'); } catch { } };
+    r.onsuccess = () => { _db = r.result; _db.onversionchange = () => { try { _db.close(); } catch { } _db = null; try { toast('The site was updated in another tab — reload this page.'); } catch { } }; res(_db); };
     r.onerror = () => rej(r.error);
   });
 }
@@ -3447,10 +3499,16 @@ function tx(store, mode, fn) {
   return open().then(d => new Promise((res, rej) => {
     const t = d.transaction(store, mode); const s = t.objectStore(store); let out;
     Promise.resolve(fn(s)).then(v => { out = v; });
-    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    const fail = () => { const e = t.error; if (e && e.name === 'QuotaExceededError') storageFull(); rej(e); };
+    t.oncomplete = () => res(out); t.onerror = fail; t.onabort = fail;
   }));
 }
 
+// v39 · the browser refused to store more: say it once, with the way out
+let _fullToast = 0;
+function storageFull() { if (Date.now() - _fullToast < 60000) return; _fullToast = Date.now(); try { toast('This device is out of storage space. Free some space (or remove books you do not need on this device) — your cloud copy is not affected.'); } catch { } }
+// v39 · ask the browser not to clear the study data when the device runs low on space
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { }); } catch { }
 // raw local access (no sync)
 const local = {
   get: (s, k) => tx(s, 'readonly', st => req(st.get(k))),
@@ -3475,8 +3533,10 @@ let cloud = null, userId = null;
 const SYNCED = new Set(['notes', 'highlights', 'kv', 'files']);
 // v31 · keys merged entry by entry with the cloud copy (3-way: last synced · this device · cloud), like question statistics
 const MERGE_KV = new Set(['qedits']);
+// v39 · progress keys are merged key by key as well (a tick made on the tablet no longer erases a tick made on the desktop)
+const DEEP_KV = new Set(['modTrack', 'fsaLos', 'lessonSteps']);
 const mbKey = id => String(id).startsWith('qstats:') ? 'qsbase:' + String(id).slice(7) : 'mbase:' + id;
-const isMergeKv = id => String(id).startsWith('qstats:') || MERGE_KV.has(String(id));
+const isMergeKv = id => String(id).startsWith('qstats:') || MERGE_KV.has(String(id)) || DEEP_KV.has(String(id));
 const LOCAL_KV = new Set(['zoom', 'sideOpen', '__owner', 'aiZoom', 'navMobile']); // device-specific preferences
 function setClient(client, uid) { cloud = client; userId = uid; }
 
@@ -3535,7 +3595,7 @@ function flush() {
           const cm = new Map((cr || []).map(r => [r.id, r.data]));
           for (const u of qsUps) {
             const key = mbKey(u.id), b0 = await local.get('kv', key), base = b0 || (u.id.startsWith('qstats:') ? {} : cm.get(u.id) || {}), sent = JSON.stringify(u.data);   // no base yet (first sync after the update): this device wins, as before
-            u.data = (u.id.startsWith('qstats:') ? qsMerge3 : objMerge3)(base, u.data || {}, cm.get(u.id) || {});
+            u.data = (u.id.startsWith('qstats:') ? qsMerge3 : DEEP_KV.has(u.id) ? deepMerge3 : objMerge3)(base, u.data || {}, cm.get(u.id) || {});
             qsMerged.push({ id: u.id, key, merged: u.data, sent });
           }
         }
@@ -3783,6 +3843,7 @@ const db = {
 };
 
 const kvCache = new Map();
+const SKIP_SAME_KV = new Set(['lastModule', 'lastModBy', 'lastRead', 'nav', 'navSideV1', 'kcVer', 'cmpHist2']);
 const kv = {
   async get(k, def = null) {
     if (k === 'qstats') return qsGet();
@@ -3791,7 +3852,11 @@ const kv = {
     const out = v === undefined ? def : v;
     kvCache.set(k, out); return out;
   },
-  async set(k, v) { if (k === 'qstats') return qsSet(v); dataBump(k); kvCache.set(k, v); await db.put('kv', v, k); },
+  async set(k, v) {
+    if (k === 'qstats') return qsSet(v);
+    if (SKIP_SAME_KV.has(k)) { try { if (JSON.stringify(await local.get('kv', k)) === JSON.stringify(v)) { kvCache.set(k, v); return; } } catch { } }   // v39 · browsing must not fill the upload queue with unchanged values
+    dataBump(k); kvCache.set(k, v); await db.put('kv', v, k);
+  },
 };
 // v22 · data epoch — bumped whenever stored study data changes (not on reads, not on volatile UI keys).
 // route() rebuilds packs, card decks, mini-exam config and question edits only when the epoch moved.
@@ -3898,6 +3963,25 @@ function objMerge3(base, mine, theirs) {
     out[id] = objTs(r) > objTs(l) ? r : l;
   }
   return out;
+}
+function deepMerge3(base, mine, theirs) {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b), plain = v => v && typeof v === 'object' && !Array.isArray(v);
+  const go = (b, l, r) => {
+    if (same(l, r)) return l;
+    if (same(l, b)) return r;                                   // not touched here → what the other device has
+    if (same(r, b)) return l;                                   // not touched there → mine
+    if (plain(l) && plain(r)) {
+      const out = {}, bb = plain(b) ? b : {};
+      for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) { const v = go(bb[k], l[k], r[k]); if (v !== undefined) out[k] = v; }
+      return out;
+    }
+    if (l === undefined) return r;                              // removed here, changed there → keep the change (never lose progress)
+    if (r === undefined) return l;
+    if (typeof l === 'number' && typeof r === 'number') return Math.max(l, r);
+    return objTs(r) > objTs(l) ? r : l;
+  };
+  const out = go(base || {}, mine || {}, theirs || {});
+  return plain(out) ? out : (mine || {});
 }
 function qsMerge3(base, mine, theirs) {
   const out = {}, ids = new Set([...Object.keys(mine), ...Object.keys(theirs)]);
@@ -5072,7 +5156,7 @@ const SB_KEY = 'sb_publishable_3Wh7j632JsbqOW9tgUIWwQ__uerRywK';
 // ---- Supabase client ----
 // The library comes from a CDN (cached by sw.js after the first visit). If it cannot be loaded we try a second CDN,
 // and if that fails too the app still opens in offline mode (everything is stored on the device and uploads later).
-const SB_LIB_FALLBACK = 'https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';
+const SB_LIB_FALLBACKS = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js', 'https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js'];
 const SB_STORE_KEY = 'sb-' + new URL(SB_URL).hostname.split('.')[0] + '-auth-token';
 function storedSession() {            // the session Supabase keeps in localStorage — readable without the library or network
   try { const v = JSON.parse(localStorage.getItem(SB_STORE_KEY) || 'null'), x = v?.currentSession || v; return x?.user?.id ? x : null; } catch { return null; }
@@ -5091,15 +5175,16 @@ function makeOfflineClient() {
       signOut: async () => { clearStoredSession(); return { error: null }; },
     } };
 }
-function loadSbFallback() {
+function loadSbOne(src) {
   return new Promise(res => {
-    const el = document.createElement('script'); el.src = SB_LIB_FALLBACK; el.crossOrigin = 'anonymous';
+    const el = document.createElement('script'); el.src = src; el.crossOrigin = 'anonymous';
     const t = setTimeout(() => res(false), 8000);
     el.onload = () => { clearTimeout(t); res(!!window.supabase?.createClient); };
     el.onerror = () => { clearTimeout(t); res(false); };
     document.head.appendChild(el);
   });
 }
+async function loadSbFallback() { for (const u of SB_LIB_FALLBACKS) if (await loadSbOne(u)) return true; return false; }
 const sbLibOk = window.__SB_MOCK || window.supabase?.createClient ? true : (navigator.onLine ? await loadSbFallback() : false);
 let sb;
 try { sb = window.__SB_MOCK ? window.__SB_MOCK() : sbLibOk ? window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : makeOfflineClient(); }
@@ -5285,7 +5370,7 @@ async function lpVids(modId) { const t = (await kv.get('modTrack', {})) || {}; r
 function lpLecHTML(mid, vs) {
   const n = vs.filter(v => v.done).length, groups = [...new Set(vs.map(v => v.src || ''))];
   const head = `<li class="lp-grp lp-grp-l" role="presentation"><span>Lectures</span><span class="lp-gc">${vs.length ? `${n}/${vs.length} watched` : ''}</span><button type="button" class="lp-gm" data-vids="${esc(mid)}" title="Add, reorder or remove the lecture videos of this module">${vs.length ? 'Manage' : '+ Add'}</button></li>`;
-  if (!vs.length) return head + '<li class="lp-empty">No lecture video linked to this module yet.</li>';
+  if (!vs.length) { const ld = !!((typeof TRACK !== 'undefined' && TRACK[mid]) || {}).lec; return head + `<li class="lp-empty">No lecture video linked to this module yet. <button type="button" class="link text-xs" data-trk="${esc(mid)}|lec">${ld ? '✓ Lecture watched · undo' : 'Mark lecture as watched'}</button></li>`; }
   return head + groups.map(g => (groups.length > 1 && g ? `<li class="lp-sub" role="presentation">${esc(g)}</li>` : '') + vs.map((v, i) => (v.src || '') !== g ? '' :
     `<li class="lp-row lp-vid${v.done ? ' done' : ''}"><span class="lp-vdot" aria-hidden="true">${v.done ? LP_CHECK : '▶'}</span><a class="lp-lbl" href="#/video/${encodeURIComponent(mid)}/${i}" title="${esc(v.name || v.file || '')}">${esc(v.name || v.file || 'Video ' + (i + 1))}</a></li>`).join('')).join('');
 }
@@ -5489,13 +5574,13 @@ async function modulePerfTab(body, x) {
   const delta = (a, b, unit = '') => a == null || b == null ? '' : `<span class="dk-d ${a - b >= 0 ? 'up' : 'dn'}">${a - b >= 0 ? '▲' : '▼'} ${Math.abs(a - b)}${unit}</span>`;
   const cTot = Object.values(conf).reduce((a, z) => a + z[0] + z[1], 0);
   const rings = `<div class="flex flex-wrap gap-5 items-start">
-    <div class="text-center" data-tip="Completeness — every step done and every question solved correctly at least once">${ring(p.complete, 72, 7, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div>
+    <div class="text-center" data-tip="Completeness — the lesson steps you ticked in the module outline (side panel)">${ring(p.complete, 72, 7, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div>
     <div class="text-center" data-tip="Readiness — the share of exam questions on this module you would most likely get right today">${rdRing(rd, rdK, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, est.W, rdK)}</div></div>
     <div class="text-center" data-tip="First try — share right the FIRST time you met each question. Retries never count.">${ring(ft.n ? ftv : 0, 72, 7, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers yet'}</div></div>
     <div class="min-w-[220px] flex-1"><div class="mb-2">${diagChip(rd, p.complete)}</div>
       <div class="grid grid-cols-3 gap-2 text-center text-xs"><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${cov}%</div>Coverage</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${acc == null ? '—' : acc + '%'}</div>Accuracy</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${miniScore == null ? '—' : miniScore + '%'}</div>${mini ? 'Mini-exam' : 'No mini-exam'}</div></div>
       ${mini ? `<div class="text-[11px] text-slate-500 mt-1">${esc(mini.label)}${miniScore == null ? ' · not taken yet' : ''} — it also counts in this topic’s readiness.</div>` : ''}</div></div>
-    <div class="step-grid mt-4">${stepBar('Lecture', p.lecture)}${stepBar('Reading', p.reading)}${stepBar('Extras', p.extras)}${stepBar('Summary', p.summary)}${stepBar('Practice', p.questions)}</div>
+    <div class="step-grid mt-4">${stepBar('Lectures', p.lecture)}${stepBar('Reading', grpPct(p, 'Reading'))}${stepBar('Consolidate', grpPct(p, 'Consolidate'))}${stepBar('Practice', grpPct(p, 'Practice'))}</div>
     <div class="text-xs mt-3 flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>🔴 ${mustN} Must improve</span><span>🟡 ${R.list.filter(z => z.rate === 'good').length} Good</span><span>🟢 ${R.list.filter(z => z.rate === 'exc').length} Excellent</span><span class="text-slate-500">⚪ ${R.list.filter(z => z.rate === 'few').length} not rated yet</span></div>`;
 
   body.innerHTML = `<div class="space-y-4 pf-wrap">
@@ -5547,7 +5632,7 @@ async function fsaModule(subj, num, tab = 'map') {
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
       ${reading ? `<a href="${esc(backHref(`${x.href}/map`))}" class="ib" data-back="1" title="Back to where you came from">←</a>` : ''}
       <div class="mod-num ${reading ? 'scale-75' : ''}">${m.id}</div>
-      <h1 class="${reading ? 'font-semibold text-sm sm:text-base' : 'text-xl sm:text-2xl font-bold'} truncate">${esc(m.title)}</h1>
+      <h1 class="${reading ? 'font-semibold text-sm sm:text-base truncate' : 'text-xl sm:text-2xl font-bold leading-tight'} min-w-0">${esc(m.title)}</h1>
       ${lpHeadBtns()}
     </div>
     ${reading || tab === 'perf' ? '' : '<div id="mTrack"></div>'}
@@ -8027,7 +8112,7 @@ async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="text-center" data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(p.complete, 52, 6, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] text-slate-500 mt-0.5">complete</div></div><div class="flex-1">${trackRows(p, modId)}</div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="flex-1 min-w-0 lp-narrow-only" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div>
     
     <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div>
     <div class="text-center hidden sm:block" data-tip="First try — share right the FIRST time you met each question of this module. Retries never count.">${ring(ft.n ? ftv : 0, 52, 6, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] text-slate-500 mt-0.5">first try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div>
@@ -8312,7 +8397,7 @@ function studyStats(c, lastBy, lastGlobal) {
     const weakList = rated.filter(r => r.z.rate !== 'exc').sort((a, b) => a.z.acc - b.z.acc || b.z.n - a.z.n);
     const gs = miniGroups(sj.id), avgR = ms.length ? rdAvg(ms, c).r : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
-    out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: part('reading'), extras: part('extras'), summary: part('summary'), questions: part('questions') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
+    out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: grpAvg(P, 'Reading'), consolidate: grpAvg(P, 'Consolidate'), practice: grpAvg(P, 'Practice') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
       n: qs.length, a: ans.length, cor: cor.length, cov: pct(ans.length, qs.length), acc: ans.length ? pct(cor.length, ans.length) : null,
       avgT: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null, spark: days.map(d => act[d] || 0), sure: ans.filter(q => isSureWrong(q, st)).length,
       due: ans.filter(q => st[q.id].due <= now).length, flag: qs.filter(q => st[q.id]?.flag).length, top: top ? { name: reasonName(top[0]), p: pct(top[1], tally.tagged) } : null,
@@ -8329,10 +8414,10 @@ function studyCardHTML(z) {
     <div class="flex items-start gap-3"><span class="sj-tile sj-${sj.id}" aria-hidden="true">${sj.icon}</span>
       <div class="flex-1 min-w-0"><h2 id="${id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2><div class="text-xs text-slate-500 mt-0.5">Exam weight ${W_RANGE[sj.id]}</div></div></div>
     <div class="grid grid-cols-3 gap-3 items-start">
-      <div class="text-center" data-tip="The share of exam questions on this topic you would most likely get right today, from your answers (recent, spaced attempts count most) with mini-exam scores mixed in. Shown after about 5 answers — tap i for how it works. It is not a pass probability."><div class="flex justify-center gap-2"><div data-tip="Completeness: every step done and every question solved correctly">${ring(z.complete, 52, 6, z.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold mt-1">Complete</div></div><div>${rdRing(z.readiness, z.rdW >= RM.MIN, 52, 6)}<div class="text-[12px] font-semibold mt-1">Readiness ${rdI()}</div></div></div><div class="mt-1">${diagChip(z.readiness, z.complete)}</div></div>
+      <div class="text-center" data-tip="The share of exam questions on this topic you would most likely get right today, from your answers (recent, spaced attempts count most) with mini-exam scores mixed in. Shown after about 5 answers — tap i for how it works. It is not a pass probability."><div class="flex justify-center gap-2"><div data-tip="Completeness: lesson steps ticked in the module outlines">${ring(z.complete, 52, 6, z.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold mt-1">Complete</div></div><div>${rdRing(z.readiness, z.rdW >= RM.MIN, 52, 6)}<div class="text-[12px] font-semibold mt-1">Readiness ${rdI()}</div></div></div><div class="mt-1">${diagChip(z.readiness, z.complete)}</div></div>
       <div class="min-w-0" data-tip="Share of this topic's questions that you have answered at least once."><div class="text-2xl font-bold leading-none">${z.cov}%</div><div class="text-xs font-semibold mt-1">Coverage</div>${bar(z.cov, 'bg-indigo-500')}<div class="text-[11px] text-slate-500 mt-1">${z.n ? `${z.a} of ${z.n} answered` : 'no questions yet'}</div></div>
       <div class="min-w-0" data-tip="Accuracy on the questions you have answered, using your latest answer on each."><div class="text-2xl font-bold leading-none">${z.acc === null ? '0%' : z.acc + '%'}</div><div class="text-xs font-semibold mt-1">Accuracy</div>${bar(z.acc || 0, accCls)}<div class="text-[11px] text-slate-500 mt-1">${z.a ? `${z.cor} of ${z.a} correct` : '—'}</div></div></div>
-    <div class="step-grid">${stepBar('Lecture', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Extras', z.steps.extras)}${stepBar('Summary', z.steps.summary)}${stepBar('Practice', z.steps.questions)}</div>
+    <div class="step-grid">${stepBar('Lectures', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Consolidate', z.steps.consolidate)}${stepBar('Practice', z.steps.practice)}</div>
     <div class="text-xs flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>\uD83D\uDD34 ${cb.must} Must improve</span><span>\uD83D\uDFE1 ${cb.good} Good</span><span>\uD83D\uDFE2 ${cb.exc} Excellent</span><span class="text-slate-500">⚪ ${cb.few} not rated yet</span></div>
     ${w ? `<div class="flex flex-wrap items-center gap-2 text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-900"><span class="min-w-0 flex-1"><b>Weakest:</b> LM${w.m.num} · LOS ${esc(w.z.id)} — ${w.z.acc}% <span class="text-slate-500">· ${w.z.n} of ${w.z.of} answered</span></span><button type="button" class="btn-ghost text-xs" data-weakgo="${esc(w.m.id)}|${esc(w.z.id)}">Practice it</button></div>`
       : z.allExc ? '<div class="text-xs p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">✅ Every rated LOS is Excellent.</div>' : ''}
@@ -8354,8 +8439,11 @@ async function startLosPractice(mid, los, back) {
   const qs = c.FQ.filter(q => q.m === m.id && q.los === los && inScope(q, false)); if (!qs.length) return toast('No questions for this LOS yet');
   const st = c.st; await startQSession([...qs.filter(q => !st[q.id]?.n || !st[q.id].last), ...qs.filter(q => st[q.id]?.last)], 'practice', 'all', back, { title: `${m.short} · LOS ${los}`, reasons: true, keepOrder: true });
 }
+function notFoundView(what) {
+  view.innerHTML = crumbs([['Today', '#/'], ['Not found']]) + `<div class="card text-center py-10 max-w-xl mx-auto"><div class="text-4xl" aria-hidden="true">🧭</div><h1 class="h1 mt-2">This page does not exist</h1><p class="text-sm text-slate-600 dark:text-slate-300 mt-1">${esc(what || 'The address may be old or mistyped.')}</p><div class="flex flex-wrap justify-center gap-2 mt-4"><a class="btn-primary" href="#/">Go to Today</a><a class="btn-ghost" href="#/study">Open Study</a></div></div>`;
+}
 async function subjectHome(subj) {
-  const sj = SUBJECTS.find(s => s.id === subj); if (!sj) return study();
+  const sj = SUBJECTS.find(s => s.id === subj); if (!sj) return notFoundView('There is no topic with this name.');
   const c = await progressCtx(), ms = moduleList().filter(m => m.subject === subj);
   const ps = ms.map(m => modProgress(m, c)), avg = ps.length ? Math.round(ps.reduce((a, p) => a + p.overall, 0) / ps.length) : 0;
   const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdA = rdAvg(ms, c), rdyS = mixMini(subj, ms.length ? rdA.r : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
@@ -8363,13 +8451,13 @@ async function subjectHome(subj) {
   const loaded = ms.filter(m => m.x).length;
   const gs = miniGroups(subj), Qs = await allQs(), taken = gs.filter(g => MINIRES[g.key]), mAvg = taken.length ? Math.round(taken.reduce((a, g) => a + MINIRES[g.key].score, 0) / taken.length) : null;
   const faS = Qs.filter(q => inStat(q) && modInfo(modKey(q))?.subject === subj).reduce((a, q) => { const f = firstAtt(c.st[q.id]); if (f) { a.n++; if (f.ok) a.c++; } return a; }, { n: 0, c: 0 }), faSP = faS.n ? Math.round(100 * faS.c / faS.n) : 0;
-  const tiles = [['\uD83C\uDFAC Lecture', part('lecture') + '%', '', 'Share of lecture videos watched'], ['\uD83D\uDCD6 Reading', part('reading') + '%', '', 'LOS read (ticked in the Study Map)'], ['➕ Extras', part('extras') + '%', '', 'LOS whose extras you reviewed (ticked in the Extras tab)'], ['✍ Summary', part('summary') + '%', '', 'Mohd Summary progress'], ['\uD83C\uDFAF Practice', part('questions') + '%', '', 'Module questions answered'],
+  const tiles = [['\uD83C\uDFAC Lectures', part('lecture') + '%', '', 'Share of lecture videos watched'], ['\uD83D\uDCD6 Reading', grpAvg(ps, 'Reading') + '%', '', 'Reading steps ticked in the module outlines (Study Map, Schweser, Curriculum, Extras…)'], ['✍ Consolidate', grpAvg(ps, 'Consolidate') + '%', '', 'Flashcards, AI Summary and Mohd Summary steps ticked in the module outlines'], ['\uD83C\uDFAF Practice', grpAvg(ps, 'Practice') + '%', '', 'Questions & Mistakes step ticked in the module outlines'],
     ['\uD83D\uDCDD Mini-exams', mAvg == null ? '—' : mAvg + '%', `${taken.length}/${gs.length} taken`, 'Average score of the mini-exams you have taken. They also count in readiness.']];
   const endOf = new Map(gs.map(g => [g.mods[g.mods.length - 1].id, g]));
   const cells = ms.map((m, i) => (m.x ? moduleCard(m, ps[i], c) : notLoadedCard(m)) + (endOf.has(m.id) ? miniRowHTML(endOf.get(m.id), Qs, c) : '')).join('');
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name]]) + `
   <div class="card flex flex-wrap items-center gap-5 mb-4">
-    <div class="flex gap-3 text-center"><div data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div>${evS >= RM.MIN && rdA.used ? `<div class="text-[12px] text-slate-500">${rdA.used}/${rdA.tot} modules</div>` : ''}</div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
+    <div class="flex gap-3 text-center"><div data-tip="Completeness — the lesson steps you ticked in the module outline (side panel)">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div>${evS >= RM.MIN && rdA.used ? `<div class="text-[12px] text-slate-500">${rdA.used}/${rdA.tot} modules</div>` : ''}</div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
     <div class="flex-1 min-w-[260px]"><h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2"><span class="sj-tile sj-sm sj-${sj.id}" aria-hidden="true">${sj.icon}</span>${sj.name}</h1><p class="text-sm text-slate-500">Exam weight ${W_RANGE[subj]} · ${loaded}/${ms.length} modules loaded · ${ps.filter(p => p.overall >= 100).length} complete</p>
       <div class="g6 mt-3 text-center text-xs">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div></div>
     <div class="flex flex-wrap gap-2 w-full"><a href="#/qbank/stats/${subj}" class="btn-primary text-xs">\uD83D\uDCCA Qbank stats</a><button class="btn-ghost text-xs text-rose-600" data-weak="${subj}">\uD83C\uDFAF Weakest LOS</button><a href="#/formulas/${subj}" class="btn-ghost text-xs">∑ Formulas</a><button class="btn-ghost text-xs" data-pack="${subj}">\uD83D\uDCE6 Final review pack</button><a href="#/summary/${subj}" class="btn-ghost text-xs">\uD83D\uDCC4 Full Mohd Summary</a><a href="#/library" class="btn-ghost text-xs">\uD83D\uDCC1 Books</a></div>
@@ -8385,7 +8473,7 @@ async function studyModule(subj, num, tab) {
   if (PACKS[id]) return fsaModule(subj, num, tab || 'map');
   const m = moduleList().find(z => z.subject === subj && z.num === +num);
   if (m && m.kind === 'legacy') { location.hash = m.href + '/' + (['schweser', 'curriculum', 'diff', 'cards', 'ai', 'mohd', 'mistakes', 'qbank', 'perf'].includes(tab) ? tab : 'ai'); return; }
-  const sj = SUBJECTS.find(s => s.id === subj); if (!sj || !m) return study();
+  const sj = SUBJECTS.find(s => s.id === subj); if (!sj || !m) return notFoundView('There is no module with this number.');
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Module ' + num]]) + `
   <div class="flex items-center gap-2 mb-4"><div class="mod-num bg-slate-400">${num}</div><h1 class="text-xl sm:text-2xl font-bold">${esc(m.title)}</h1></div>
   <div class="card max-w-2xl">
@@ -8415,7 +8503,7 @@ async function resetDialog(mid, onDone) {
       <label class="flex items-center gap-2"><input type="checkbox" id="rsReason" class="accent-indigo-600"> Mistake reasons</label>
       <label class="flex items-center gap-2"><input type="checkbox" id="rsNote" class="accent-indigo-600"> My notes on the questions</label>
     </div>
-    <p class="text-[11px] text-slate-500">Unticked items are kept. If you keep mistake reasons, the site still tells you "you got this wrong before because…" after the reset. This cannot be undone — <a class="link" href="#/settings">download a backup</a> first if unsure.</p>
+    <p class="text-[11px] text-slate-500">Unticked items are kept. If you keep mistake reasons, the site still tells you "you got this wrong before because…" after the reset. You can undo it for 10 seconds right after, or later from Settings → Restore points.</p>
     <div class="flex gap-2 justify-end"><button class="btn-ghost" data-r="x">Cancel</button><button class="btn-primary bg-rose-600" data-r="go">Reset</button></div></div>`;
   document.body.append(bg);
   bg.onclick = async e => {
@@ -9072,11 +9160,33 @@ async function progressCtx() {
   return p;
 }
 async function progressCtx0() {
-  const [los, fl, track, st, FQ, notes, MQ] = await Promise.all([kv.get('los', {}), kv.get('fsaLos', {}), kv.get('modTrack', {}), kv.get('qstats', {}), extQ(), db.all('notes'), allMockPlusTq()]);
+  const [los, fl, track, st, FQ, notes, MQ, ls] = await Promise.all([kv.get('los', {}), kv.get('fsaLos', {}), kv.get('modTrack', {}), kv.get('qstats', {}), extQ(), db.all('notes'), allMockPlusTq(), kv.get('lessonSteps', {})]);
   const CS = {}; await Promise.all(moduleList().filter(m => m.x).map(async m => { CS[m.id] = await cardStats(m.id); }));
-  return { los, fl, track, st, FQ, notes, MQ, CS };
+  return { los, fl, track, st, FQ, notes, MQ, CS, ls: ls || {} };
 }
+// v39 · ONE progress system: the steps ticked in the module's side panel (kv "lessonSteps").
+// Complete = ticked steps ÷ steps of that module (7 for the Economics files, 9 for module files). Lecture / reading / questions
+// keep being measured (plan, smart session, readiness) but they no longer define "Complete".
+const lessonKeysFor = m => lpSteps(m.kind === 'pack' ? FSA_TABS : TABS).map(z => z[0]);
+const lessonLabel = (m, k) => ((m.kind === 'pack' ? FSA_TABS : TABS).find(z => z[0] === k) || [k, k])[1];
 function modProgress(m, c) {
+  const p = modProgress0(m, c);
+  if (p.none) return Object.assign(p, { lsDone: 0, lsTot: 0, lsNext: null, grp: {} });
+  const keys = lessonKeysFor(m), st = ((c && c.ls) || {})[m.id] || {}, grp = {};
+  let done = 0;
+  for (const k of keys) { const g = LP_GROUP[k] || 'Reading', o = grp[g] || (grp[g] = { d: 0, t: 0 }); o.t++; if (st[k]) { o.d++; done++; } }
+  const pc = keys.length ? Math.round(100 * done / keys.length) : 0;
+  return Object.assign(p, { overall0: p.overall, complete0: p.complete, overall: pc, complete: pc, lsDone: done, lsTot: keys.length, lsNext: keys.find(k => !st[k]) || null, grp });
+}
+const grpAvg = (P, g) => { let d = 0, t = 0; for (const p of P) if (p.grp && p.grp[g]) { d += p.grp[g].d; t += p.grp[g].t; } return t ? Math.round(100 * d / t) : 0; };
+const grpPct = (p, g) => p.grp && p.grp[g] && p.grp[g].t ? Math.round(100 * p.grp[g].d / p.grp[g].t) : 0;
+function lessonSummaryHTML(p, m) {
+  const nx = p.lsNext ? lessonLabel(m, p.lsNext) : null, col = p.complete >= 100 ? '#10b981' : '#6366f1';
+  return `<div class="text-xs flex justify-between gap-2"><b>${p.lsDone}/${p.lsTot} lesson steps</b><span class="text-slate-500">${p.complete}%</span></div>
+    <div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mt-1" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.complete}"><div class="h-full" style="width:${p.complete}%;background:${col}"></div></div>
+    ${nx ? `<a class="link text-xs mt-1 inline-block" href="${m.href}/${p.lsNext}">Next: ${esc(lessonLabel(m, p.lsNext))} ›</a>` : '<div class="text-xs text-emerald-700 dark:text-emerald-300 mt-1">✓ Every step ticked</div>'}`;
+}
+function modProgress0(m, c) {
   if (!m.x) return { lecture: 0, reading: 0, extras: 0, summary: 0, questions: 0, overall: 0, solved: 0, complete: 0, rDone: 0, rTot: 0, nNotes: 0, qTot: 0, qAns: 0, qCor: 0, acc: null, sumDone: false, lecDone: false, xtraDone: false, nVid: 0, none: true, xAuto: false, xTot: 0, xDone: 0, cards: 0, cTot: 0, cMas: 0, cFlag: 0 };
   let rDone = 0; const rTot = m.x.m.los.length;
   if (m.kind === 'legacy') rDone = m.x.m.los.filter((_, i) => c.los[`${m.id}-${i}`]).length;
@@ -9237,9 +9347,9 @@ async function reviewPack(subj) {
   downloadBlob(`Final-review-pack-${subj || 'all'}.docx`, makeDocx(B));
 }
 
-// ---------- mini-exams: after every N modules (N is chosen per topic: 2–6, or Auto) ----------
+// ---------- mini-exams: after every N modules (N is chosen per topic: 2–4, or Auto) ----------
 let MINICFG = {};
-const MINI_SIZES = [2, 3, 4, 5, 6];
+const MINI_SIZES = [2, 3, 4];
 const miniSizeOf = subj => { const v = MINICFG[subj] ?? MINICFG['*']; return MINI_SIZES.includes(+v) ? +v : 'auto'; };
 // sizes of the groups for n modules: Auto = 3 or more balanced groups of about 4 (the original rule); N = groups of N, and a last group of one module joins the group before it
 function miniSplit(n, size) {
@@ -9667,11 +9777,11 @@ function moduleCard(m, p, c) {
   return `<div class="card hover:border-indigo-400 relative">
     <a href="${m.href}" class="absolute inset-0" aria-label="${esc(m.title)}"></a>
     <div class="flex items-start gap-3">
-      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — every study step done and every question solved correctly at least once">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div><div class="relative z-10" data-tip="${ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet'}">${ring(ft.n ? ftv : 0, 46, 5, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div></div>
+      <div class="relative"><div class="flex flex-col gap-1 text-center mod-rings"><div data-tip="Completeness — the lesson steps you ticked in the module outline (side panel)">${ring(p.complete, 46, 5, p.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div><div class="relative z-10" data-tip="${evK ? `Readiness ${rv}% ± ${rdSe(e.p, ev)}` : `Readiness appears after about ${rdNeed(e)} more answers`}">${rdRing(rv, evK, 46, 5)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div></div><div class="relative z-10" data-tip="${ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet'}">${ring(ft.n ? ftv : 0, 46, 5, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div></div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1 min-w-0" style="overflow-wrap:anywhere">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
-        <div class="mt-2 relative z-10">${trackRows(p, m.id, true)}</div>
+        <div class="mt-2 relative z-10">${lessonSummaryHTML(p, m)}</div>
       </div>
     </div></div>`;
 }
@@ -10925,7 +11035,7 @@ const DAYMS = 864e5;
 const CLOUD_HELP = 'The site cannot reach your cloud account. If you have not used it for about a week, Supabase may have paused the free project: open supabase.com/dashboard, choose your project and press “Resume project”. Your work is safe on this device — do not press Sign out until the cloud icon shows “Saved”.';
 async function noticeBannersHTML() {
   const parts = [], st = document.getElementById('sync')?.dataset.state;
-  if (st === 'error') parts.push(`<div class="notice notice-warn" role="alert"><b>Cloud sync is not working.</b> ${esc(CLOUD_HELP)} <a class="link ml-1" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase</a></div>`);
+  if (st === 'error') parts.push(`<div class="notice notice-warn" role="alert"><b>Cloud sync is not working.</b> Your work is safe on this device. <details class="inline-block align-top"><summary class="link text-xs cursor-pointer">What to do</summary><div class="mt-1">${esc(CLOUD_HELP)} <a class="link ml-1" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase</a></div></details></div>`);
   const last = await kv.get('lastBackup', null); let snooze = 0; try { snooze = +(localStorage.getItem('backupSnoozeUntil') || 0); } catch { }
   if (Date.now() > snooze && (!last || Date.now() - last > 7 * DAYMS)) {
     const has = (await db.keys('notes')).length || Object.keys(await kv.get('qstats', {})).length || (await kv.get('packIds', [])).length;
@@ -11154,7 +11264,7 @@ const KPI_INFO = {
   mock: { t: 'Mock average', goal: 'Your score under exam conditions.', how: 'Average of your last 3 full mocks, first attempts only, adjusted by your provider offsets if you entered any.', f: 'Mock avg = mean(last 3 first-attempt full mocks)', read: [['≥ 70 %', 'g', 'exam-ready'], ['60–69 %', 'a', 'close'], ['< 60 %', 'r', 'more work needed']], min: 'One full mock.', lim: 'Providers differ in difficulty; retakes never count.' },
   trend: { t: 'Mock trend', goal: 'Tells you whether your mocks are improving.', how: 'Average change per mock across your last three full mocks.', f: 'Trend = (Mock n − Mock n−2) ÷ 2', read: [['≥ +2', 'g', 'improving'], ['0 to +2', 'a', 'flat'], ['< 0', 'r', 'going down — check fatigue and method']], min: 'Three full mocks (same provider if possible).', lim: 'Different providers can fake a trend; compare like with like.' },
   gap: { t: 'Mock–Qbank gap', goal: 'Detects scores inflated by familiar questions.', how: 'First-attempt Qbank accuracy (topic-weighted) minus your mock average.', f: 'Gap = First-attempt Qbank − Mock average', read: [['≤ 5', 'g', 'honest'], ['5–10', 'a', 'some familiarity'], ['> 10', 'r', 'Qbank flatters you — more new questions and mocks']], min: 'One full mock and 10+ first attempts in a topic.', lim: 'Provider difficulty also creates a gap — use the offsets in Mock calibration.' },
-  cmp: { t: 'Completeness', goal: 'Shows whether anything is left undone.', how: 'The five study steps of every module; the question step counts questions you have answered correctly at least once. A later miss does not lower it (that shows in Readiness). A module whose questions are not loaded yet gets 0 % for that step, so missing content never looks finished. 100 % only when everything is done.', f: 'Module = (lecture + reading + extras + summary + solved-at-least-once %) ÷ 5;  total = average of modules', read: [['100 %', 'g', 'all done'], ['80–99 %', 'a', 'nearly'], ['< 80 %', '', 'in progress']], min: 'None.', lim: 'Says nothing about memory — pair it with Readiness.' },
+  cmp: { t: 'Completeness', goal: 'Shows whether anything is left undone.', how: 'The steps you tick in the side panel of each module (7 steps for the Economics files, 9 for the module files). A module that is not loaded yet counts 0 %, so missing content never looks finished. 100 % only when every step of every module is ticked. Your answers do not change it — they show in Readiness.', f: 'Module = ticked steps ÷ steps of the module;  total = average of modules', read: [['100 %', 'g', 'all done'], ['80–99 %', 'a', 'nearly'], ['< 80 %', '', 'in progress']], min: 'None.', lim: 'Says nothing about memory — pair it with Readiness.' },
   days: { t: 'Days to exam', goal: 'Compares the work done with the time used.', how: 'Days left to your exam date; below it, completeness compared with the share of your study calendar already used.', f: 'Pace = completeness vs (today − plan start) ÷ (exam − plan start)', read: [['done ≥ time used', 'g', 'on schedule'], ['up to 10 pts behind', 'a', 'slightly behind'], ['> 10 pts behind', 'r', 'behind']], min: 'Exam date (and a plan for the pace line).', lim: '' },
   finish: { t: 'Finish forecast', goal: 'Tells you when you will finish everything at your current speed.', how: 'Completeness gained over the last 28 days, projected forward until 100 %.', f: 'Finish = today + (100 − completeness) ÷ (gain per day)', read: [['≥ 42 days before exam', 'g', '6 weeks of review left'], ['21–41 days', 'a', 'compressed review'], ['< 21 days', 'r', 'decide: more time or trim low-weight topics']], min: 'Two weeks of history (it starts recording now).', lim: 'Assumes your recent speed continues.' },
   plan: { t: 'Plan adherence', goal: 'Checks whether your plan is realistic.', how: 'Minutes of plan tasks done ÷ minutes planned, last 14 days.', f: 'Adherence = minutes done ÷ minutes planned', read: [['≥ 85 %', 'g', 'realistic plan'], ['65–84 %', 'a', 'slipping'], ['< 65 %', 'r', 'plan too heavy — lower the daily minutes']], min: 'A study plan with tasks in the last 14 days.', lim: 'Work done outside the plan does not count here.' },
@@ -11194,12 +11304,13 @@ function kpiPopup(key) {
 addEventListener('hashchange', () => document.querySelectorAll('.kp-box').forEach(b => b.closest('.modal-bg')?.remove()));
 // P10 · favourites / hidden metrics (display only — every KPI is still calculated and still feeds "Do this week")
 document.addEventListener('click', async e => {
-  const b = e.target.closest && e.target.closest('[data-kfav],[data-khide],[data-kshow],[data-kreset]'); if (!b) return;
+  const b = e.target.closest && e.target.closest('[data-kfav],[data-khide],[data-kshow],[data-kreset],[data-kcompact]'); if (!b) return;
   e.preventDefault(); e.stopPropagation();
   const P = { fav: [], hidden: [], ...((await kv.get('kpiPrefs', null)) || {}) }, f = new Set(P.fav), h = new Set(P.hidden);
   if (b.dataset.kfav) { const k = b.dataset.kfav; if (f.has(k)) P.fav = P.fav.filter(x => x !== k); else { P.fav = [...P.fav, k]; h.delete(k); P.hidden = [...h]; } }
   else if (b.dataset.khide) { const k = b.dataset.khide; P.hidden = [...h, k].filter((x, i, a) => a.indexOf(x) === i); P.fav = P.fav.filter(x => x !== k); toast(`${KPI_INFO[k]?.t || 'Metric'} hidden — it is still calculated. Show it again from the bar at the bottom.`); }
   else if (b.dataset.kshow) { P.hidden = b.dataset.kshow === '*' ? [] : P.hidden.filter(x => x !== b.dataset.kshow); }
+  else if (b.dataset.kcompact !== undefined) { P.compact = b.dataset.kcompact === '1'; }
   else if (b.dataset.kreset) { if (!confirm('Show all metrics in their default groups and clear your favourites?')) return; P.fav = []; P.hidden = []; }
   await kv.set('kpiPrefs', P); window.__keepScroll = true; route();
 }, true);
@@ -11220,7 +11331,8 @@ function perfKpisHTML(D, delta, wkDelta) {
   const c3 = (v, g, a, hi = true) => v == null ? '' : hi ? (v >= g ? 'g' : v >= a ? 'a' : 'r') : (v <= g ? 'g' : v <= a ? 'a' : 'r');
   const faP = D.faAll.n ? pct(D.faAll.c, D.faAll.n) : null, sgn = v => (v > 0 ? '+' : '') + v;
   const fin = K.finish.done ? ['✓', 'everything complete', 'g'] : K.finish.t ? [new Date(K.finish.t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), K.finish.lead != null ? `${K.finish.lead >= 0 ? K.finish.lead + ' days before' : -K.finish.lead + ' days AFTER'} the exam · +${K.finish.perWk} pts/week` : `+${K.finish.perWk} pts/week`, K.finish.lead == null ? '' : K.finish.lead >= 42 ? 'g' : K.finish.lead >= 21 ? 'a' : 'r'] : ['—', nd(null), ''];
-  const grp = (title, sub, keys) => { const ks = keys.filter(k => !HID.has(k) && !FAV.has(k)); return ks.length ? `<section class="dk-grp"><h3 class="dk-gh">${title}<span>${sub}</span></h3><div class="dk-grid">${ks.map(k => ALLC[k]).join('')}</div></section>` : ''; };
+  const COMPACT = P.compact !== false, CORE = ['ready', 'pred', 'days', 'week', 'los'];
+  const grp = (title, sub, keys) => { const ks = keys.filter(k => !HID.has(k) && !FAV.has(k) && !(COMPACT && CORE.includes(k))); return ks.length ? `<section class="dk-grp"><h3 class="dk-gh">${title}<span>${sub}</span></h3><div class="dk-grid">${ks.map(k => ALLC[k]).join('')}</div></section>` : ''; };
   const groups =
   grp('🧭 Path', 'will I finish in time?', [
     card('cmp', `${D.complete}%`, `${D.modsDone}/${D.nMods} modules complete`, D.complete >= 100 ? 'g' : D.complete >= 80 ? 'a' : ''),
@@ -11257,7 +11369,8 @@ function perfKpisHTML(D, delta, wkDelta) {
   const favs = P.fav.filter(k => ALLC[k] && !HID.has(k)), hid = P.hidden.filter(k => KPI_INFO[k]);
   return `<div class="dk-hint">Tap a card to see what it measures · ☆ add to favourites (shown first) · ✕ hide (it keeps being calculated).</div>` +
     (favs.length ? `<section class="dk-grp dk-fav"><h3 class="dk-gh">⭐ Favourites<span>your chosen metrics</span></h3><div class="dk-grid">${favs.map(k => ALLC[k]).join('')}</div></section>` : '') +
-    groups +
+    (COMPACT ? ((() => { const core = CORE.filter(k => ALLC[k] && !HID.has(k) && !FAV.has(k)); return core.length ? `<section class="dk-grp"><h3 class="dk-gh">Key metrics<span>the five that matter most</span></h3><div class="dk-grid">${core.map(k => ALLC[k]).join('')}</div></section>` : ''; })() + (groups ? `<details class="dk-more"><summary>All other metrics</summary>${groups}</details>` : '')) : groups) +
+    `<div class="text-right mb-2"><button type="button" class="link text-xs" data-kcompact="${COMPACT ? 0 : 1}">${COMPACT ? 'Show every metric' : 'Show key metrics only'}</button></div>` +
     (hid.length ? `<div class="dk-hidbar"><span>👁 ${hid.length} hidden metric${hid.length > 1 ? 's' : ''}:</span>${hid.map(k => `<button type="button" class="chip" data-kshow="${k}" title="Show again">${esc(KPI_INFO[k].t)} ＋</button>`).join('')}<button type="button" class="link text-xs" data-kshow="*">Show all</button></div>` : '') +
     (favs.length || hid.length ? `<div class="text-right mb-3"><button type="button" class="link text-xs" data-kreset="1">Reset metrics to default</button></div>` : '');
 }
@@ -11540,7 +11653,7 @@ async function dshExcel(D) {
     k('Projected score', D.pred, D.pred == null ? 'Needs about 5 answers in a topic, or a full mock' : `Range ${Math.max(0, D.pred - D.band)}–${Math.min(100, D.pred + D.band)}% · based on ${D.covN}/10 topics${D.examR != null ? ` (readiness ${D.examR}%)` : ''}${D.mockAvg != null ? ' blended with first-attempt mocks' : ''}`),
     k('Exam pace (median s/question)', D.pace2 ? D.pace2.med : null, D.pace2 ? `${D.pace2.slow}% over 90 s · ${D.pace2.src}` : 'No timed answers yet'),
     k('Days to exam', D.days == null ? '—' : String(Math.max(0, D.days)), D.exam ? `Exam ${new Date(D.exam).toLocaleDateString('en-GB')}` : 'Set the exam date in Settings'),
-    k('Completeness', D.complete, `${D.modsDone}/${D.nMods} modules fully complete (all steps + every question solved correctly)`),
+    k('Completeness', D.complete, `${D.modsDone}/${D.nMods} modules with every lesson step ticked`),
     k('Study steps done', D.overall, D.pace ? `${D.pace.need}% of the calendar used` : ''),
     k('Mock average (last 3)', D.mockAvg, `${D.doneFull.length} full mock${D.doneFull.length === 1 ? '' : 's'} done`),
     k('First-attempt accuracy', D.faAll.n ? pct(D.faAll.c, D.faAll.n) : null, `${D.faAll.n} first attempts · latest answers ${D.ans.length ? pct(D.cor.length, D.ans.length) : 0}%`),
@@ -11765,7 +11878,7 @@ const moreSessionsHTML = () => `<details class="sess-more"><summary>More session
 function smartCardHTML(id = 'smartCard') {
   return `<div class="card smart-card" id="${id}"><div class="flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[220px]"><div class="font-bold text-lg">✨ Smart session</div><div class="text-xs smart-sub" data-smart-sub aria-live="polite">Choosing the best questions for you…</div></div>
     <button class="btn-primary" data-b2="smart" disabled>▶ Start</button></div>
-    ${moreSessionsHTML()}<div class="mt-2"><a class="link text-xs" href="#/errors">\uD83D\uDCD2 Error log</a></div></div>`;
+    ${moreSessionsHTML()}</div>`;
 }
 async function fillSmartCard(id = 'smartCard') {
   const el = document.getElementById(id); if (!el) return;
@@ -11776,7 +11889,7 @@ async function fillSmartCard(id = 'smartCard') {
     const sub = el.querySelector('[data-smart-sub]'), go = el.querySelector('[data-b2="smart"]'), rn = el.querySelector('[data-rq-n]');
     sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — new questions come from modules whose lecture or reading is finished. Mark a module’s reading done, or use Custom practice to choose any module.';
     go.disabled = !r.n; if (!go.hasAttribute('data-keep')) go.textContent = `▶ Start (${r.n})`;
-    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } catch { } }
+    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) { if (go.hasAttribute('data-keep')) { go.disabled = false; go.removeAttribute('data-b2'); go.textContent = '▶ Continue ' + nx.short; go.onclick = () => { location.hash = nx.href; }; sub.textContent = 'No questions yet — they unlock as you finish the reading or lecture of a module.'; } else sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } } catch { } }
     rn.textContent = r.rq.due.length ? `${r.rq.due.length} due${r.rq.backlog ? ' (' + r.rq.backlog + ' backlog)' : ''}` : '0 due ✓';
   } catch (e) { const sub = el.querySelector('[data-smart-sub]'); if (sub) sub.textContent = 'Could not prepare the session'; console.warn(e); }
 }
@@ -12002,14 +12115,38 @@ async function navLoad() {
 }
 async function navSave(p, m) { if (p) await kv.set('nav', navClean(p)); if (m) await kv.set('navMobile', navMobClean(m)); await navLoad(); }
 function closeManage() { const m = document.getElementById('manageMenu'), b = document.getElementById('manageBtn'); if (m) m.hidden = true; if (b) b.setAttribute('aria-expanded', 'false'); }
+// v39 · Tab stays inside the open dialog (modal sheets and pop-ups), Shift+Tab wraps round
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.defaultPrevented) return;
+  const vis = d => d.getClientRects().length > 0;
+  const ds = [...document.querySelectorAll('.modal-bg, [role="dialog"][aria-modal="true"]')].filter(vis), d = ds[ds.length - 1]; if (!d) return;
+  const f = [...d.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(x => vis(x));
+  if (!f.length) { e.preventDefault(); return; }
+  const a = document.activeElement, first = f[0], last = f[f.length - 1];
+  if (!d.contains(a)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+}, true);
+// v39 · every form control gets an accessible name (known controls by id, otherwise the placeholder or the text before it)
+{
+  const KNOWN = { cLos: 'Filter by LOS', cSt: 'Filter by status', cfLos: 'LOS of the new card', cfF: 'Front of the new card', cfB: 'Back of the new card', qc: 'Number of questions', pStart: 'Plan start date', pMin: 'Study minutes per day', sq: 'Search', sSyn: 'Synonyms and abbreviations', csScope: 'What to delete', exam: 'Exam date', pw: 'New password', qmS: 'Search questions' };
+  const label = () => {
+    document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),select,textarea').forEach(e => {
+      if (e.hasAttribute('aria-label') || e.hasAttribute('aria-labelledby') || e.title || e.closest('label') || (e.id && document.querySelector('label[for="' + CSS.escape(e.id) + '"]'))) return;
+      const pv = e.previousElementSibling, t = KNOWN[e.id] || e.placeholder || (pv && /^(LABEL|SPAN|DIV|B)$/.test(pv.tagName) ? pv.textContent.trim().slice(0, 60) : '');
+      if (t) e.setAttribute('aria-label', t);
+    });
+  };
+  let tm = 0; new MutationObserver(() => { clearTimeout(tm); tm = setTimeout(label, 400); }).observe(document.body, { childList: true, subtree: true }); label();
+}
 function moreSheet() {
   document.getElementById('moreSheet')?.remove();
   const rest = NAV_ALL.filter(id => !NAVM.includes(id)), link = (l, h) => `<a class="more-it" href="${h}">${esc(l)}</a>`;
   const bg = document.createElement('div'); bg.className = 'modal-bg sheet'; bg.id = 'moreSheet'; bg.setAttribute('role', 'dialog'); bg.setAttribute('aria-modal', 'true'); bg.setAttribute('aria-label', 'More pages');
   bg.innerHTML = `<div class="card modal-box sheet-box"><div class="flex items-center mb-2"><h3 class="font-bold">More</h3><button class="ib ml-auto" data-x="1" aria-label="Close">✕</button></div>
-    <div class="more-grid">${rest.map(id => link(NAV_PAGES[id].label, NAV_PAGES[id].href)).join('')}${NAV_EXTRA.map(([l, h]) => link(l, h)).join('')}</div>
+    <div class="more-grid"><button type="button" class="more-it" data-calc>🧮 Financial calculator</button>${rest.map(id => link(NAV_PAGES[id].label, NAV_PAGES[id].href)).join('')}${NAV_EXTRA.map(([l, h]) => link(l, h)).join('')}</div>
     <a class="more-it more-cust" href="#/layout">⚙ Customize menu &amp; layout…</a></div>`;
-  bg.onclick = e => { if (e.target === bg || e.target.closest('[data-x]') || e.target.closest('a')) bg.remove(); };
+  bg.onclick = e => { if (e.target.closest('[data-calc]')) { bg.remove(); document.getElementById('calcBtn')?.click(); return; } if (e.target === bg || e.target.closest('[data-x]') || e.target.closest('a')) bg.remove(); };
   bg.onkeydown = e => { if (e.key === 'Escape') bg.remove(); };
   document.body.append(bg); bg.querySelector('[data-x]').focus();
 }
@@ -12200,7 +12337,7 @@ async function home() {
     exam: await examTodayHTML(days, exam, MR),
     resume: noData ? '' : `<div class="card"><h3 class="sec">Pick up where you left off</h3><div class="flex flex-wrap gap-2">${lastFile ? `<a class="btn-ghost" href="#/read/${encodeURIComponent(last.fileId)}?p=${last.page || 1}">▶️ Continue reading · ${esc(lastFile.label || lastFile.name)}</a>` : ''}${lastMod ? `<a class="btn-ghost" href="${lastMod.href}">▶ Continue ${esc(lastMod.short)} · ${esc(lastMod.title)}</a>` : ''}<a class="btn-ghost" href="#/lecnotes">\uD83C\uDFAC Lecture notes</a><a class="btn-ghost" href="#/remember">\uD83D\uDCA1 Things to remember</a></div></div>`,
   };
-  const defs = [{ id: 'setup', label: 'Plan setup', full: true }, { id: 'exam', label: 'Exam countdown (last six weeks)', full: true }, { id: 'plan', label: "Today's plan" }, { id: 'due', label: 'Due now', full: !plan }, { id: 'resume', label: 'Continue', full: true }];
+  const defs = [{ id: 'exam', label: 'Exam countdown (last six weeks)', full: true }, { id: 'plan', label: "Today's plan" }, { id: 'due', label: 'Due now', full: !plan }, { id: 'setup', label: 'Plan setup', full: true }, { id: 'resume', label: 'Continue', full: true }];
   view.innerHTML = hero + (edit ? layEditBar() : '') + layHTML('today', defs, secs, await layGet('today', defs), edit);
   fillSmartCard('smartHero'); wzBind(document.getElementById('wzBox'));
   view.onclick = async e => {
@@ -12231,7 +12368,7 @@ function studyRowHTML(z) {
   return `<section class="card st-row" aria-labelledby="st-${sj.id}"><div class="flex items-center gap-3 flex-wrap"><span class="sj-tile sj-${sj.id}" aria-hidden="true">${sj.icon}</span>
     <div class="flex-1 min-w-[200px]"><h2 id="st-${sj.id}" class="font-semibold leading-tight"><a href="#/study/${sj.id}" class="hover:underline">${esc(sj.name)}</a></h2>
       <div class="text-xs text-slate-500">Exam weight ${W_RANGE[sj.id]} · ${z.loaded}/${z.total} modules loaded · ${z.done} complete</div>
-      <div class="st-m mt-2"><div class="st-mi" data-tip="Completeness — every study step done and every question solved correctly at least once"><span>Complete</span><div role="progressbar" aria-label="${esc(sj.name)} completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.avg}">${bar(z.avg, 'bg-indigo-500')}</div><b>${z.avg}%</b></div>
+      <div class="st-m mt-2"><div class="st-mi" data-tip="Completeness — the lesson steps you ticked in the module outline (side panel)"><span>Complete</span><div role="progressbar" aria-label="${esc(sj.name)} completeness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.avg}">${bar(z.avg, 'bg-indigo-500')}</div><b>${z.avg}%</b></div>
         <div class="st-mi" data-tip="Readiness — the share of exam questions on this topic you would most likely get right today (shown after about 5 answers)"><span>Readiness ${rdI()}</span><div role="progressbar" aria-label="${esc(sj.name)} readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${z.ev < RM.MIN ? 0 : z.ready}">${bar(z.ev < RM.MIN ? 0 : z.ready, z.ev < 5 ? 'bg-slate-400' : z.ready >= MPS ? 'bg-emerald-500' : z.ready >= 50 ? 'bg-amber-500' : 'bg-rose-500')}</div><b>${z.ev < 5 ? '—' : z.ready + '%'}</b></div>
         <div>${z.ev < 5 && z.avg < 5 ? `<span class="dg dg-new">${DIAG.new.icon} ${DIAG.new.name}</span>` : diagChip(z.ready, z.avg)}</div></div>
       ${t ? `<div class="text-xs text-slate-500 mt-1 truncate">Next: LM${t.num} · ${esc(t.title)}</div>` : ''}</div>
@@ -12250,7 +12387,7 @@ async function study() {
     <div class="flex flex-wrap items-end justify-between gap-2 mb-1"><h1 class="h1 mb-0">Study</h1>
       <div class="flex flex-wrap items-center gap-2">${edit ? '' : `<span class="text-xs text-slate-500">Order</span>${seg('mine', 'My order', 'The order you chose with Edit order')}${seg('weak', 'Weakest first', 'Lowest readiness first')}${seg('weight', 'By weight', 'Highest exam weight first')}`}
         ${edit ? '<button class="link text-xs" id="ordReset">Reset to default</button><button class="btn-primary text-xs" id="ordDone">✓ Done</button>' : '<button class="btn-ghost text-xs" id="ordEdit" data-tip="Choose your own order of the topics. Settings → Layout can apply it on every page.">↕ Edit order</button>'}</div></div>
-    ${edit ? '' : '<p class="text-xs text-slate-500 mb-4">Pick a topic and carry on where you stopped. <b>Complete</b> = everything done and every question solved correctly · <b>Readiness</b> = how ready you are today · the label combines both. Details are in <a class="link" href="#/progress">Performance</a>.</p>'}
+    ${edit ? '' : '<p class="text-xs text-slate-500 mb-4">Pick a topic and carry on where you stopped. <b>Complete</b> = lesson steps ticked in each module’s outline · <b>Readiness</b> = how ready you are today · the label combines both. Details are in <a class="link" href="#/progress">Performance</a>.</p>'}
     ${edit ? `<p class="text-xs text-slate-500 mb-2">Drag a topic or use ▲ ▼. The order is saved automatically.</p><div class="space-y-2 max-w-xl" id="ordList">${SUBJECTS.map(row).join('')}</div>`
       : `<div class="grid grid-cols-1 gap-3">${ordered().map(s => studyRowHTML(S[s.id])).join('')}</div>`}`;
   }
@@ -13072,7 +13209,14 @@ const routes = [
   [/^#\/traps$/, trapsView],
   [/^#\/explore(?:\/(\w+))?$/, exploreView],
 ];
-async function route() {
+// v39 · one route run at a time: a second hash change during a run is queued, and the LAST hash is rendered when the run ends
+let _routeP = null, _routeAgain = false;
+function route() {
+  if (_routeP) { _routeAgain = true; return _routeP; }
+  _routeP = (async () => { try { do { _routeAgain = false; try { await route0(); } catch (e) { console.warn('route failed', e); window.__diag && __diag.log('route-fail', (e && e.message) || String(e)); } } while (_routeAgain); } finally { _routeP = null; } })();
+  return _routeP;
+}
+async function route0() {
   cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
   if (_prepEp !== DATA_EP) {             // only when something was saved / synced since the last page
     const t0 = performance.now();
@@ -13095,7 +13239,8 @@ async function route() {
     const m = h.match(re);
     if (m) { const keepY = window.__keepScroll ? window.scrollY : null; window.__keepScroll = false; if (keepY === null) { view.scrollTop = 0; window.scrollTo(0, 0); } const c = await fn(...m.slice(1)); if (typeof c === 'function') cleanup = c; if (keepY !== null) window.scrollTo(0, keepY); showNotices(); return; }
   }
-  home(); showNotices();
+  if (/^#\//.test(h)) notFoundView('The address may be old or mistyped.'); else home();
+  showNotices();
 }
 const isReadHash = h => /\/(schweser|curriculum|aipdf)$|#\/read\//.test(h || '');
 window.addEventListener('hashchange', e => {
@@ -13109,7 +13254,7 @@ document.addEventListener('click', e => { if (e.target.closest('[data-back]')) s
 // ---------------- helpers ----------------
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const bar = (p, cls = 'bg-indigo-600') => `<div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full ${cls}" style="width:${p}%"></div></div>`;
-const crumbs = (items) => `<nav class="text-xs text-slate-500 dark:text-slate-400 mb-3 flex flex-wrap gap-1">${items.map(([t, h], i) => h ? `<a class="hover:underline" href="${h}">${esc(t)}</a><span>›</span>` : `<span class="text-slate-800 dark:text-slate-200 font-medium">${esc(t)}</span>`).join('')}</nav>`;
+const crumbs = (items) => `<nav class="crumbs text-xs text-slate-500 dark:text-slate-400 mb-3 flex flex-wrap gap-1" aria-label="Breadcrumb">${items.map(([t, h], i) => h ? `<a class="hover:underline" href="${h}">${esc(t)}</a><span>›</span>` : `<span class="text-slate-800 dark:text-slate-200 font-medium">${esc(t)}</span>`).join('')}</nav>`;
 async function losStats(prefix) {
   const los = await kv.get('los', {});
   let done = 0, total = 0;
@@ -13146,14 +13291,14 @@ async function moduleView(num, tab = 'ai') {
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
   const tabK = tab === 'mistakes' ? 'qbank' : tab;
-  const lpo = { x, tabs: TABS, tab: tabK, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id, titleHTML: m.title, st: await lpDone(x.id), vids: await lpVids(x.id) };
+  const lpo = { x, tabs: TABS, tab: tabK, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id - 11, titleHTML: m.title, st: await lpDone(x.id), vids: await lpVids(x.id) };
   view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}" data-mid="${x.id}" data-tab="${tabK}">${lpHTML(lpo)}
   <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
-    ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], ['Economics', '#/study/econ'], ['Module ' + m.id]])}
+    ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], ['Economics', '#/study/econ'], ['Module ' + (m.id - 11)]])}
     <div class="flex items-center gap-2 ${reading ? 'px-2 pt-2' : 'mb-3'}">
       ${reading ? `<a href="${esc(backHref('#/study/econ'))}" class="ib" data-back="1" title="Back to where you came from">←</a>` : ''}
-      <div class="mod-num ${reading ? 'scale-75' : ''}">${m.id}</div>
-      <h1 class="${reading ? 'font-semibold text-sm sm:text-base' : 'text-xl sm:text-2xl font-bold'} truncate">${m.title}</h1>
+      <div class="mod-num ${reading ? 'scale-75' : ''}">${m.id - 11}</div>
+      <h1 class="${reading ? 'font-semibold text-sm sm:text-base truncate' : 'text-xl sm:text-2xl font-bold leading-tight'} min-w-0">${m.title}</h1>
       <div class="ml-auto flex gap-1 items-center">${lpHeadBtns()}
         ${m.id > 12 ? `<a class="ib" title="Previous module" href="#/study/econ/${m.id - 1}/${tab}">‹</a>` : ''}
         ${m.id < 19 ? `<a class="ib" title="Next module" href="#/study/econ/${m.id + 1}/${tab}">›</a>` : ''}
@@ -13198,7 +13343,7 @@ async function bookTab(body, x, kind, extra) {
   body.innerHTML = `<div class="max-w-xl mx-auto p-4">
     <div class="card">
       <h2 class="font-bold text-lg">Link your ${kind === 'schweser' ? 'Schweser Notes' : 'Curriculum'} PDF</h2>
-      <p class="text-sm text-slate-500 mt-1">Choose the book that contains <b>Module ${x.m.id}</b> and the page where it starts. You only do this once per module — next time it opens directly.</p>
+      <p class="text-sm text-slate-500 mt-1">Choose the book that contains <b>Module ${/^econ-\d+$/.test(x.id) && x.m.id > 11 ? x.m.id - 11 : x.m.id}</b> and the page where it starts. You only do this once per module — next time it opens directly.</p>
       ${files.length ? `
       <label class="lbl mt-4">Book</label>
       <select id="bkSel" class="inp">${files.map(f => `<option value="${esc(f.id)}">${esc(f.label || f.name)} ${f.kind ? '(' + f.kind + ')' : ''}</option>`).join('')}</select>
@@ -13232,7 +13377,7 @@ async function aiTab(body, x) {
       <div class="card"><h3 class="sec">Formulas</h3>${m.formulas.map(f => `<div class="formula">${esc(f)}</div>`).join('')}</div>
       <div class="card"><h3 class="sec">LOS checklist</h3>
         ${m.los.map((l, i) => `<label class="flex gap-2 py-1.5 text-sm cursor-pointer"><input type="checkbox" data-los="${x.id}-${i}" ${los[`${x.id}-${i}`] ? 'checked' : ''} class="mt-1 accent-indigo-600"><span>${esc(l)}</span></label>`).join('')}</div>
-      <a href="#/qbank/m/${x.id}" class="btn-primary block text-center" id="practiceBtn">🎯 Practice Module ${m.id} questions</a>
+      <a href="#/qbank/m/${x.id}" class="btn-primary block text-center" id="practiceBtn">🎯 Practice Module ${/^econ-\d+$/.test(x.id) && m.id > 11 ? m.id - 11 : m.id} questions</a>
     </div>
   </div>
   <p class="text-[11px] text-slate-500 mt-4">AI Summary = original study notes for revision. Always verify against your 2027 curriculum LOS.</p>`;
@@ -13594,8 +13739,8 @@ async function refreshSyncLabel() {
   const st = el.dataset.state || 'synced', last = +(localStorage.getItem('lastSyncAt') || 0);
   let parked = 0; try { parked = JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch (e) { parked = 0; }   // v24 · rows the server kept rejecting are shown, not hidden in Diagnostics
   const icon = parked && st !== 'saving' ? '⚠️' : ({ synced: '☁️', saving: '⏳', offline: '\uD83D\uDCF4', error: '⚠️' }[st] || '☁️');
-  const txt = n ? `${n} pending` : parked ? `${parked} not uploaded` : st === 'synced' ? (last ? fmtSyncT(last) : '') : st === 'offline' ? 'offline' : '';
-  el.innerHTML = `<span aria-hidden="true">${icon}</span>${txt ? `<span class="sync-txt">${esc(txt)}</span>` : ''}`;
+  const txt = n ? `<b class="sync-n">${n}</b><span class="sync-w"> pending</span>` : parked ? `<b class="sync-n">${parked}</b><span class="sync-w"> not uploaded</span>` : st === 'synced' ? (last ? `<span class="sync-w">${esc(fmtSyncT(last))}</span>` : '') : st === 'offline' ? 'offline' : '';
+  el.innerHTML = `<span aria-hidden="true">${icon}</span>${txt ? `<span class="sync-txt">${txt}</span>` : ''}`;
   el.setAttribute('role', 'button'); el.tabIndex = 0;
   el.title = `${window.__syncTitle || 'Saved to cloud'} · ${n} pending · last sync ${fmtSyncT(last)} — click for details`;
 }
@@ -14986,7 +15131,7 @@ window.addEventListener('offline', () => { if (user) toast('Offline — your wor
       document.body.appendChild(b);
     });
     navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) {
-      var urls = [].map.call(document.querySelectorAll('script[src*="supabase-js"]'), function (e) { return e.src; });
+      var urls = [].map.call(document.querySelectorAll('script[src*="supabase"]'), function (e) { return e.src; });
       // v24 · also fetch the PDF engine now (vendor/ or next to index.html — the worker keeps whichever exists), so books open offline
       ['vendor/pdf.js', 'pdf.js', 'vendor/pdf.worker.js', 'pdf.worker.js'].forEach(function (p) { urls.push(new URL(p, document.baseURI).href); });
       if (reg.active && urls.length) reg.active.postMessage({ type: 'precache', urls: urls });
