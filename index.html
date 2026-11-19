@@ -3557,7 +3557,7 @@ const local = {
 let cloud = null, userId = null;
 const SYNCED = new Set(['notes', 'highlights', 'kv', 'files']);
 // v31 · keys merged entry by entry with the cloud copy (3-way: last synced · this device · cloud), like question statistics
-const MERGE_KV = new Set(['qedits']);
+const MERGE_KV = new Set(['qedits', 'vpos', 'vsubs']);   // v42 · video positions and subtitles: entry by entry, the newest wins
 // v39 · progress keys are merged key by key as well (a tick made on the tablet no longer erases a tick made on the desktop)
 const DEEP_KV = new Set(['modTrack', 'fsaLos', 'lessonSteps']);
 const mbKey = id => String(id).startsWith('qstats:') ? 'qsbase:' + String(id).slice(7) : 'mbase:' + id;
@@ -3886,7 +3886,7 @@ const kv = {
 // v22 · data epoch — bumped whenever stored study data changes (not on reads, not on volatile UI keys).
 // route() rebuilds packs, card decks, mini-exam config and question edits only when the epoch moved.
 var CTX_VER = 0; let DATA_EP = 1, _prepEp = 0;   // CTX_VER (P1) moves on every saved change, including answers
-const VOLATILE_KV = new Set(['vpos', 'vUI', 'subStyle', 'theme', 'lastRead', 'lastModule', 'qsetup', 'syncIdx', 'fsaCurLos', 'rdHist', 'rdHist2', 'rdHist3', 'kpiPrefs', 'modPeak', 'cmpHist', 'cmpHist2', 'qsession', 'weekGoal', 'mockRes', 'feyn', 'kcVer', 'nav', 'navMobile', 'studySort', 'mockCal', 'calcDrill', 'ethLab', 'examChk', 'examTime', 'learnPath']);
+const VOLATILE_KV = new Set(['vdirHint', 'vpos', 'vUI', 'subStyle', 'theme', 'lastRead', 'lastModule', 'qsetup', 'syncIdx', 'fsaCurLos', 'rdHist', 'rdHist2', 'rdHist3', 'kpiPrefs', 'modPeak', 'cmpHist', 'cmpHist2', 'qsession', 'weekGoal', 'mockRes', 'feyn', 'kcVer', 'nav', 'navMobile', 'studySort', 'mockCal', 'calcDrill', 'ethLab', 'examChk', 'examTime', 'learnPath']);
 function dataBump(k) { if (k == null || !(VOLATILE_KV.has(k) || /^(qstats|curLos:|teach:|layout:)/.test(String(k)))) DATA_EP++; }
 { const _d = kvCache.delete.bind(kvCache), _c = kvCache.clear.bind(kvCache);
   kvCache.delete = k => { dataBump(k); CTX_VER++; return _d(k); };
@@ -3995,6 +3995,15 @@ function deepMerge3(base, mine, theirs) {
     if (same(l, r)) return l;
     if (same(l, b)) return r;                                   // not touched here → what the other device has
     if (same(r, b)) return l;                                   // not touched there → mine
+    // v42 · a list of items that have an id (the lecture videos of a module): merged video by video, so two devices that both added a video keep both
+    const idList = a => Array.isArray(a) && a.every(x => x && typeof x === 'object' && !Array.isArray(x) && x.id !== undefined);
+    if (idList(l) && idList(r) && (b === undefined || idList(b))) {
+      const bm = new Map((b || []).map(x => [x.id, x])), lm = new Map(l.map(x => [x.id, x])), rm = new Map(r.map(x => [x.id, x])), out = [];
+      for (const x of l) { if (rm.has(x.id)) out.push(go(bm.get(x.id), x, rm.get(x.id))); else if (!bm.has(x.id)) out.push(x); }   // gone there (was in the last synced copy) → removed; new here → kept
+      for (const x of r) if (!lm.has(x.id) && !bm.has(x.id)) out.push(x);                                                        // new there → kept
+      return out;
+    }
+    if (typeof l === 'boolean' && typeof r === 'boolean') return l || r;                    // a watched / done flag set on either device stays set
     if (plain(l) && plain(r)) {
       const out = {}, bb = plain(b) ? b : {};
       for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) { const v = go(bb[k], l[k], r[k]); if (v !== undefined) out[k] = v; }
@@ -5454,11 +5463,12 @@ function lpBind(root, o) {
       if (nx) location.hash = o.hrefOf(nx[0]); else toast('🎉 Every step of this lesson is complete');
     }
   });
-  root.__lp = { o, paint };
+  root.__lp = { o, paint, setSt: n => { for (const k of Object.keys(st)) delete st[k]; Object.assign(st, n || {}); } };
   paint();
+  syncFresh(4000).then(ch => { if (ch) { dispatchEvent(new Event('lp:steps')); dispatchEvent(new Event('lp:vids')); } });
 }
 // the status block of the lesson header follows every tick of the outline and every change of the videos
-const lpRefreshHead = async () => { const root = document.querySelector('.lp-shell[data-mid]'), el = document.getElementById('mTrack'); if (!root || !el) return; try { el.innerHTML = await moduleTrackStrip(root.dataset.mid); } catch (e) { } try { if (root.__lp) { root.__lp.o.base = await lpBase(root.dataset.mid); root.__lp.paint(); } } catch (e) { } };
+const lpRefreshHead = async () => { const root = document.querySelector('.lp-shell[data-mid]'), el = document.getElementById('mTrack'); if (!root || !el) return; try { el.innerHTML = await moduleTrackStrip(root.dataset.mid); } catch (e) { } try { if (root.__lp) { root.__lp.setSt(await lpDone(root.dataset.mid)); root.__lp.o.base = await lpBase(root.dataset.mid); root.__lp.paint(); } } catch (e) { } };
 addEventListener('lp:steps', lpRefreshHead);
 addEventListener('lp:vids', () => setTimeout(lpRefreshHead, 60));
 // the Lectures list refreshes by itself when videos are added, removed or reordered in the dialog
@@ -9844,18 +9854,35 @@ const vstem = n => vbase(n).replace(/\.[^.]+$/, '');
 const canDir = () => 'showDirectoryPicker' in window;
 async function vdirRec() { return (await local.get('blobs', 'vdir')) || null; }
 async function vdirPerm(h, ask) { try { const o = { mode: 'read' }; if ((await h.queryPermission(o)) === 'granted') return true; if (ask) return (await h.requestPermission(o)) === 'granted'; } catch {} return false; }
-let VIDX = null;   // name → file handle (this session)
+let VIDX = null, VIDX_T = 0, VSESS = null;   // VIDX: name → file handle of the LINKED folder (this session) · VSESS: folder picked for this session only (browsers that cannot keep a folder linked)
+// v41 · a folder handle lives in the browser of ONE device (browsers never share it, so it cannot sync). What does sync: the video list (file names) and the name of the folder (kv "vdirHint").
+const vlook = (idx, fn) => (idx && fn && idx.get(fn)) || null;   // the whole file name must match (capital letters do not matter)
 async function vdirIndex(h) {
-  const out = new Map();
-  async function walk(d, depth) { for await (const [n, x] of d.entries()) { if (x.kind === 'file' && (VID_RE.test(n) || SUB_RE.test(n))) { if (!out.has(n.toLowerCase())) out.set(n.toLowerCase(), x); } else if (x.kind === 'directory' && depth < 4) await walk(x, depth + 1); } }
+  const out = new Map(); out.errs = 0;
+  async function walk(d, depth) {
+    try { for await (const [n, x] of d.entries()) { if (x.kind === 'file' && (VID_RE.test(n) || SUB_RE.test(n))) { if (!out.has(n.toLowerCase())) out.set(n.toLowerCase(), x); } else if (x.kind === 'directory' && depth < 5) await walk(x, depth + 1); } }
+    catch (e) { out.errs++; }      // one unreadable sub-folder (cloud placeholder, no rights) no longer hides the rest
+  }
   await walk(h, 0); return out;
 }
-async function vdirReady(ask) {
-  const r = await vdirRec(); if (!r?.handle) return null;
-  if (!(await vdirPerm(r.handle, ask))) return false;
-  if (!VIDX) VIDX = await vdirIndex(r.handle);
-  return VIDX;
+function vsessSet(files) {      // folder chosen with the plain folder picker: kept in memory until the tab is closed
+  const out = new Map(); out.errs = 0;
+  for (const f of files) if (VID_RE.test(f.name) || SUB_RE.test(f.name)) { const k = f.name.toLowerCase(); if (!out.has(k)) out.set(k, { kind: 'file', name: f.name, getFile: async () => f }); }
+  const rel = (files[0] && files[0].webkitRelativePath) || ''; out.folder = rel.split('/')[0] || '';
+  VSESS = out.size ? out : null; return VSESS;
 }
+async function vdirReady(ask) {
+  const r = await vdirRec();
+  if (r?.handle) {
+    if (await vdirPerm(r.handle, ask)) {
+      if (!VIDX) { VIDX = await vdirIndex(r.handle); VIDX_T = Date.now(); }
+      return VIDX;
+    }
+    return VSESS || false;
+  }
+  return VSESS || null;
+}
+async function vdirRescan(ask) { VIDX = null; return vdirReady(ask); }
 async function vcopies() { return (await local.all('blobs')).filter(b => typeof b.id === 'string' && b.id.startsWith('vid:')); }
 async function vcopyPut(file) { await local.put('blobs', { id: 'vid:' + file.name.toLowerCase(), name: file.name, blob: file, size: file.size, ts: Date.now() }); }
 const vfileOf = v => v.file || (v.url ? '' : v.name || '');
@@ -9868,40 +9895,76 @@ async function vresolve(v, ask) {
     return null; };
   if (fn) {
     const c = await local.get('blobs', 'vid:' + fn); if (c) return { url: URL.createObjectURL(c.blob), how: 'copy', sub: await findSub(null), local: true };
-    const idx = await vdirReady(ask);
-    if (idx && idx.get(fn)) { const f = await idx.get(fn).getFile(); return { url: URL.createObjectURL(f), how: 'folder', sub: await findSub(idx), local: true }; }
+    let idx = await vdirReady(ask), hit = vlook(idx, fn);
+    if (idx && !hit && idx === VIDX && Date.now() - VIDX_T > 15000) { idx = await vdirRescan(ask); hit = vlook(idx, fn); }   // the folder may have received new files since the index was built
+    if (idx && hit) { let f; try { f = await hit.getFile(); } catch (e) { f = null; } if (f) return { url: URL.createObjectURL(f), how: 'folder', sub: await findSub(idx), local: true }; }
     if (idx === false && !v.url) return { how: 'ask' };
   }
   if (v.url) return { url: directUrl(v.url), how: 'link', sub: null };
-  return { how: (await vdirRec()) ? 'missing' : 'none' };
+  return { how: ((await vdirRec()) || VSESS) ? 'missing' : 'none' };
 }
 const fmtT = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
 const fmtMB = b => b > 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.round(b / 1048576) + ' MB';
 
 // Library card (per device)
+// every module video that points at a file name (a copy or the folder must supply it on each device)
+async function vidAllFiles() {
+  const t = (await kv.get('modTrack', {})) || {}, out = [];
+  for (const [mid, z] of Object.entries(t)) (z && z.videos || []).forEach(v => { if (v.file) out.push({ mid, v, fn: vbase(v.file), label: (modInfo(mid)?.short || mid) + ' · ' + (v.name || v.file) }); });
+  return out;
+}
+function vcapNote() {          // why a folder cannot be linked on THIS device
+  const bits = [];
+  if (!canDir()) bits.push('this browser has no folder-linking feature (Safari / iPad, Firefox and some Android browsers)');
+  if (window.top !== window.self) bits.push('the site is opened inside another page or app (the folder picker is blocked there — open it directly in Chrome / Edge)');
+  if (!window.isSecureContext) bits.push('the page is not opened over https');
+  return bits;
+}
 async function vidLibHTML() {
-  const r = await vdirRec(), cps = await vcopies(), tot = cps.reduce((a, b) => a + (b.size || 0), 0);
+  const r = await vdirRec(), cps = await vcopies(), tot = cps.reduce((a, b) => a + (b.size || 0), 0), hint = await kv.get('vdirHint', null), why = vcapNote();
+  const sessBtn = `<label class="btn-ghost text-xs cursor-pointer">\uD83D\uDCC2 Choose lectures folder (this session)<input type="file" webkitdirectory multiple class="hidden" id="vSessUp"></label>`;
+  const state = r?.handle ? '' : hint && hint.name ? `<div class="notice notice-warn text-xs mt-2">Your lectures folder on your other device is <b>${esc(hint.name)}</b>. A folder link cannot travel between devices — link the same folder here too (the file names must be the same).</div>` : '';
   return `<div class="card mb-4" id="vlib"><h3 class="sec">\uD83C\uDFAC Lecture videos on this device</h3>
     ${canDir() ? `<div class="flex flex-wrap items-center gap-2 text-sm">${r?.handle ? `<span>\uD83D\uDCC1 <b>${esc(r.name || r.handle.name)}</b></span><span class="text-xs text-slate-500">linked ${fmtD(r.ts)}</span>
-        <button class="btn-ghost text-xs" data-vl="pick">Change folder</button><button class="link text-xs text-rose-600" data-vl="unlink">Unlink</button>` : `<button class="btn-primary text-xs" data-vl="pick">\uD83D\uDCC1 Link lectures folder</button>`}</div>
-      <p class="text-[11px] text-slate-500 mt-1">Pick the folder that holds your lecture videos on <b>this device</b> (sub-folders are searched too). Videos play straight from the folder — nothing is copied or uploaded. A .srt file with the same name as the video is loaded automatically. Each device keeps its own folder. If the browser asks once after a refresh, choose <b>Allow on every visit</b>.</p>`
-      : `<p class="text-xs text-slate-500">This browser cannot link a folder (tablets / Safari). Save the lectures you are studying as copies instead.</p>`}
+        <button class="btn-ghost text-xs" data-vl="pick">Change folder</button><button class="btn-ghost text-xs" data-vl="rescan">↻ Rescan</button><button class="link text-xs text-rose-600" data-vl="unlink">Unlink</button>` : `<button class="btn-primary text-xs" data-vl="pick">\uD83D\uDCC1 Link lectures folder</button>`}</div>
+      <p class="text-[11px] text-slate-500 mt-1">Pick the folder that holds your lecture videos on <b>this device</b> (sub-folders are searched too). Videos play straight from the folder — nothing is copied or uploaded. A .srt file with the same name as the video is loaded automatically. <b>Each device links its own folder</b> (a browser never shares folder access between devices) — the video list and your place in each video are shared. If the browser asks once after a refresh, choose <b>Allow on every visit</b>.</p>`
+      : `<div class="text-xs text-slate-500">This browser cannot keep a folder linked. Two ways to use your lectures here:</div>
+         <div class="flex flex-wrap items-center gap-2 mt-2">${sessBtn}<span class="text-[11px] text-slate-500">Pick the folder each time you study — nothing is copied.${VSESS ? ` <b>Now: ${esc(VSESS.folder || 'folder')} · ${[...VSESS.keys()].filter(n => VID_RE.test(n)).length} videos</b>` : ''}</span></div>`}
+    ${state}
     <div class="flex flex-wrap items-center gap-2 mt-3 text-sm"><label class="btn-ghost text-xs cursor-pointer">\uD83D\uDCBE Keep copies on this device<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vcopyUp"></label>
-      <span class="text-xs text-slate-500">${cps.length ? `${cps.filter(b => VID_RE.test(b.name)).length} videos · ${fmtMB(tot)}` : 'No copies'}</span></div>
+      <span class="text-xs text-slate-500">${cps.length ? `${cps.filter(b => VID_RE.test(b.name)).length} videos · ${fmtMB(tot)}` : 'No copies'}</span>
+      <button class="btn-ghost text-xs ml-auto" data-vl="check" data-tip="Checks every video of every module against this device: which file is found, which is missing">\uD83D\uDD0D Check this device</button></div>
     ${cps.length ? `<details class="mt-2"><summary class="text-xs cursor-pointer text-indigo-600">Copies on this device</summary><div class="mt-1 space-y-1">${cps.map(b => `<div class="flex items-center gap-2 text-xs"><span class="flex-1 truncate">${esc(b.name)}</span><span class="text-slate-500">${fmtMB(b.size || 0)}</span><button class="link text-rose-600" data-vcdel="${esc(b.id)}">Remove</button></div>`).join('')}</div></details>` : ''}
-    <div id="vlMsg" class="text-xs mt-2"></div></div>`;
+    ${why.length ? `<p class="text-[11px] text-amber-600 mt-2">Folder linking is limited here: ${why.map(esc).join('; ')}.</p>` : ''}
+    <div id="vlMsg" class="text-xs mt-2" role="status" aria-live="polite"></div></div>`;
+}
+async function vidCheck(msgEl) {
+  msgEl.textContent = 'Checking…';
+  const all = await vidAllFiles(), cps = new Set((await vcopyNames()).map(n => n.toLowerCase()));
+  let idx = null, st = '';
+  try { idx = await vdirRescan(false); } catch (e) { idx = false; }
+  if (idx === false) st = 'The linked folder needs permission — tap “Change folder” or reopen it with Allow.';
+  const src = idx ? (idx === VSESS ? 'the folder chosen for this session' : 'the linked folder') : 'no folder';
+  let ok = 0, link = 0; const miss = [];
+  for (const z of all) { const fn = z.fn; if (cps.has(fn)) ok++; else if (idx && vlook(idx, fn)) ok++; else if (z.v.url) link++; else miss.push(z.label); }
+  const nv = idx ? [...idx.keys()].filter(n => VID_RE.test(n)).length : 0;
+  msgEl.innerHTML = `<div><b>${ok}</b> of ${all.length} videos found on this device (${esc(src)}${idx ? ` · ${nv} video files seen${idx.errs ? ` · ${idx.errs} sub-folder(s) could not be read` : ''}` : ''}).${link ? ` ${link} more can play from their link.` : ''}</div>${st ? `<div class="text-amber-600">${esc(st)}</div>` : ''}${miss.length ? `<div class="text-rose-600 mt-1">Not found here (${miss.length}): ${miss.slice(0, 8).map(esc).join(' · ')}${miss.length > 8 ? ' …' : ''}</div><div class="text-slate-500">The file name on this device must be exactly the same as on your other device, including the extension (capital letters do not matter).</div>` : all.length ? '<div class="text-emerald-600">✓ Everything is available on this device.</div>' : '<div class="text-slate-500">No module has a video yet.</div>'}`;
 }
 function bindVidLib(el, redraw) {
   if (!el) return;
   el.onclick = async e => {
-    const a = e.target.dataset.vl, d = e.target.dataset.vcdel;
+    const btn = e.target.closest('[data-vl],[data-vcdel]'); if (!btn) return; const a = btn.dataset.vl, d = btn.dataset.vcdel;
     try {
-      if (a === 'pick') { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; const idx = await vdirReady(true); toast(`Folder linked · ${[...(idx || new Map()).keys()].filter(n => VID_RE.test(n)).length} videos found`); redraw(); }
+      if (a === 'pick') { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (x) { } const idx = await vdirReady(true); toast(`Folder linked · ${[...(idx || new Map()).keys()].filter(n => VID_RE.test(n)).length} videos found`); redraw(); }
+      if (a === 'rescan') { const idx = await vdirRescan(true); toast(idx ? `${[...idx.keys()].filter(n => VID_RE.test(n)).length} videos found in the folder` : 'The folder needs permission'); redraw(); }
+      if (a === 'check') await vidCheck(el.querySelector('#vlMsg'));
       if (a === 'unlink' && confirm('Unlink the lectures folder on this device? Your videos and notes are not touched.')) { await local.del('blobs', 'vdir'); VIDX = null; redraw(); }
       if (d) { await local.del('blobs', d); redraw(); }
-    } catch (err) { if (err.name !== 'AbortError') el.querySelector('#vlMsg').innerHTML = `<span class="text-rose-600">${esc(err.message)}</span>`; }
+    } catch (err) { if (err.name !== 'AbortError') el.querySelector('#vlMsg').innerHTML = `<span class="text-rose-600">${esc(err.message)}${/unsafe|system|sensitive/i.test(err.message || '') ? ' — choose a normal sub-folder (Chrome refuses Desktop, Documents, Downloads and system folders themselves).' : ''}</span>`; }
   };
-  el.onchange = async e => { if (e.target.id !== 'vcopyUp') return; const fs = [...e.target.files]; const m = el.querySelector('#vlMsg');
+  el.onchange = async e => {
+    if (e.target.id === 'vSessUp') { const fs = [...e.target.files]; e.target.value = ''; const idx = vsessSet(fs), m = el.querySelector('#vlMsg'); if (!idx) { m.innerHTML = '<span class="text-rose-600">No video files were found in that folder.</span>'; return; } toast(`${[...idx.keys()].filter(n => VID_RE.test(n)).length} videos available for this session`); redraw(); return; }
+    if (e.target.id !== 'vcopyUp') return; const fs = [...e.target.files]; const m = el.querySelector('#vlMsg');
     for (let i = 0; i < fs.length; i++) { m.textContent = `Saving ${i + 1}/${fs.length} · ${fs[i].name}…`; try { await vcopyPut(fs[i]); } catch (err) { m.innerHTML = `<span class="text-rose-600">Not enough browser storage for ${esc(fs[i].name)}.</span>`; return; } }
     toast(`Saved ${fs.length} file(s) on this device`); redraw(); };
 }
@@ -9927,7 +9990,7 @@ async function videosDialog(mid) {
     const vs = (t[mid] && t[mid].videos) || [], idx = S.idx || null, cps = (S.copies || []).map(n => n.toLowerCase());
     const am = new Map(); (idx ? [...idx.values()].map(h => h.name) : []).concat(S.copies || []).forEach(n => am.set(n.toLowerCase(), n));
     const avail = [...am.entries()].filter(([k]) => VID_RE.test(k) && !vs.some(v => vbase(v.file) === k)).map(([, n]) => n).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    const here = v => { const f = vbase(vfileOf(v)); return !!f && (cps.includes(f) || !!(idx && idx.has && idx.has(f))); };
+    const here = v => { const f = vbase(vfileOf(v)); return !!f && (cps.includes(f) || !!(idx && idx.get && vlook(idx, f))); };
     const groups = [...new Set(vs.map(v => v.src || 'Other'))];
     const srcOpts = cur => VSRC.map(x => `<option${x === cur ? ' selected' : ''}>${x}</option>`).join('');
     const rowHTML = (v, i) => {
@@ -9941,15 +10004,19 @@ async function videosDialog(mid) {
         ${pos[v.id] && pos[v.id].t && !v.done ? `<span class="text-[11px] text-slate-500">${fmtT(pos[v.id].t)}</span>` : ''}${v.file ? `<span class="chip" title="${esc(v.file)}">${here(v) ? '\uD83D\uDCC1 on device' : '\uD83D\uDCC1 not on this device'}</span>` : ''}${v.url ? '<span class="chip">\uD83D\uDD17 link</span>' : ''}${subs[mid + ':' + i] ? '<span class="chip">CC</span>' : ''}
         <button type="button" class="ib text-xs" data-ed="${i}" title="Edit title, source, file name or link" aria-label="Edit">✎</button><button type="button" class="ib text-xs" data-up="${i}" ${i ? '' : 'disabled'} title="Move up" aria-label="Move up">▲</button><button type="button" class="ib text-xs" data-dn="${i}" ${i < vs.length - 1 ? '' : 'disabled'} title="Move down" aria-label="Move down">▼</button><button type="button" class="link text-rose-600 text-xs" data-del="${i}" title="Remove from this module" aria-label="Remove">✕</button></div>`;
     };
-    const folderPart = !canDir() ? '<p class="text-xs text-slate-500">This browser cannot link a folder (tablets / Safari). Use “Choose video files” above, or a link.</p>'
-      : S.rec === undefined ? '<p class="text-xs text-slate-500">Checking the lectures folder…</p>'
-      : !S.rec || !S.rec.handle ? '<div class="flex flex-wrap items-center gap-2"><button type="button" class="btn-ghost text-xs" data-v="pick">\uD83D\uDCC1 Link my lectures folder</button><span class="text-[11px] text-slate-500">Then pick videos from a list. Nothing is copied or uploaded.</span></div>'
-      : S.idx === undefined ? `<p class="text-xs text-slate-500">\uD83D\uDCC1 Reading “${esc(S.rec.name || 'lectures')}”… the list appears here when it is ready (you can add videos meanwhile).</p>`
-      : S.idx === false ? '<button type="button" class="link text-sm" data-v="allow">Allow access to the lectures folder</button> <span class="text-xs text-slate-500">to list its videos.</span>'
-      : avail.length ? `<details open><summary class="text-sm cursor-pointer font-medium">\uD83D\uDCC1 Add from your folder / copies (${avail.length})</summary>
+    const hasH = !!(S.rec && S.rec.handle), sessBtn = `<label class="btn-ghost text-xs cursor-pointer">\uD83D\uDCC2 Choose lectures folder (this session)<input type="file" webkitdirectory multiple class="hidden" id="vSessPick"></label>`;
+    const list = () => `<details open><summary class="text-sm cursor-pointer font-medium">\uD83D\uDCC1 Add from your folder / copies (${avail.length})</summary>
           <input id="vFilt" class="inp mt-2" placeholder="Filter… e.g. FSA LM2" value="${esc(S.filt)}"><div id="vList" class="max-h-56 overflow-auto mt-1 space-y-0.5">${avail.map(n => `<label class="flex items-center gap-2 text-xs" data-n="${esc(n.toLowerCase())}"><input type="checkbox" value="${esc(n)}" class="accent-indigo-600"> ${esc(n)}</label>`).join('')}</div>
-          <button type="button" class="btn-primary w-full mt-2" data-v="addf">+ Add selected</button></details>`
-      : '<p class="text-xs text-slate-500">No new videos found in the linked folder. <button type="button" class="link" data-v="pick">Change folder</button></p>';
+          <button type="button" class="btn-primary w-full mt-2" data-v="addf">+ Add selected</button></details>`;
+    const hint = S.hint && S.hint.name && !hasH && !VSESS ? `<p class="text-[11px] text-amber-600">Your folder on your other device is “${esc(S.hint.name)}”. Link the same folder on this device too.</p>` : '';
+    const folderPart = hint + (
+      canDir() && S.rec === undefined ? '<p class="text-xs text-slate-500">Checking the lectures folder…</p>'
+      : !canDir() && !VSESS ? `<div class="flex flex-wrap items-center gap-2">${sessBtn}</div><p class="text-[11px] text-slate-500">This browser cannot keep a folder linked. Pick the folder when you study (nothing is copied), or use “Choose video files” above to keep copies.</p>`
+      : canDir() && !hasH && !VSESS ? '<div class="flex flex-wrap items-center gap-2"><button type="button" class="btn-ghost text-xs" data-v="pick">\uD83D\uDCC1 Link my lectures folder</button><span class="text-[11px] text-slate-500">Then pick videos from a list. Nothing is copied or uploaded. Each device links its own folder.</span></div>'
+      : S.idx === undefined ? `<p class="text-xs text-slate-500">\uD83D\uDCC1 Reading “${esc(hasH ? (S.rec.name || 'lectures') : (VSESS.folder || 'folder'))}”… the list appears here when it is ready (you can add videos meanwhile).</p>`
+      : S.idx === false ? '<button type="button" class="link text-sm" data-v="allow">Allow access to the lectures folder</button> <span class="text-xs text-slate-500">to list its videos.</span>'
+      : avail.length ? list() + (hasH ? '<div class="mt-1"><button type="button" class="link text-xs" data-v="rescan">↻ Rescan folder</button></div>' : '')
+      : `<p class="text-xs text-slate-500">No new videos found in the ${hasH ? 'linked' : 'chosen'} folder. ${hasH ? '<button type="button" class="link" data-v="rescan">↻ Rescan</button> · <button type="button" class="link" data-v="pick">Change folder</button>' : ''}</p>${!canDir() ? sessBtn : ''}`);
     bg.innerHTML = box(`
       ${groups.map(g => `<div><div class="text-xs font-semibold text-slate-500 mb-1">${esc(g)}</div><div class="space-y-1.5">${vs.map((v, i) => (v.src || 'Other') !== g ? '' : rowHTML(v, i)).join('')}</div></div>`).join('') || '<p class="text-sm text-slate-500">No videos yet — add the first one below.</p>'}
       <div class="grid gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
@@ -9991,9 +10058,10 @@ async function videosDialog(mid) {
       if (v === 'go') { bg.remove(); return; }
       if (v === 'pick') {       // first await = the picker (it needs the tap that just happened)
         const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' });
-        await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; S.rec = { handle: h, name: h.name }; S.idx = undefined; await render(); loadDevice(true); return;
+        await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (e) { } S.rec = { handle: h, name: h.name }; S.idx = undefined; await render(); loadDevice(true); return;
       }
       if (v === 'allow') { S.idx = undefined; await render(); S.idx = await vdTimeout(vdirReady(true), 60000, false); await render(); return; }
+      if (v === 'rescan') { S.idx = undefined; await render(); S.idx = await vdTimeout(vdirRescan(true), 120000, false); await render(); return; }
       if (v === 'ecancel') { S.edit = -1; await render(); return; }
       if (v === 'add') {
         const url = bg.querySelector('#vUrl').value.trim(), file = bg.querySelector('#vFile').value.trim(), name = bg.querySelector('#vName').value.trim();
@@ -10019,13 +10087,19 @@ async function videosDialog(mid) {
       if (el.dataset.dn !== undefined) { const i = +el.dataset.dn; await mutate(vs => { if (i < vs.length - 1) [vs[i + 1], vs[i]] = [vs[i], vs[i + 1]]; }); return; }
     } catch (err) { if (err && err.name === 'AbortError') return; say('Something went wrong: ' + (err && err.message || err), true); }
   };
-  bg.onchange = e => { if (e.target.id === 'vPick') { const fs = [...e.target.files]; e.target.value = ''; addPicked(fs).catch(err => say('Something went wrong: ' + (err && err.message || err), true)); } };
+  bg.onchange = async e => {
+    if (e.target.id === 'vSessPick') { const fs = [...e.target.files]; e.target.value = ''; const idx = vsessSet(fs); if (!idx) return say('No video files were found in that folder.', true); S.idx = idx; await render(); say(`✅ ${[...idx.keys()].filter(n => VID_RE.test(n)).length} videos available until you close this tab.`); return; }
+    if (e.target.id === 'vPick') { const fs = [...e.target.files]; e.target.value = ''; addPicked(fs).catch(err => say('Something went wrong: ' + (err && err.message || err), true)); }
+  };
   async function loadDevice(rec) {      // the scan of this device never blocks the window
     if (!rec) S.rec = await vdTimeout(vdirRec(), 4000, null);
     S.copies = await vdTimeout(vcopyNames(), 4000, []); await render();
-    if (S.rec && S.rec.handle) { S.idx = undefined; const r = await vdTimeout(vdirReady(false), 120000, null); S.idx = r === null ? false : r; if (bg.isConnected) await render(); }
+    try { S.hint = await kv.get('vdirHint', null); } catch (e) { S.hint = null; }
+    if ((S.rec && S.rec.handle) || VSESS) { S.idx = undefined; const r = await vdTimeout(vdirReady(false), 120000, null); S.idx = r === null ? false : r; }
+    if (bg.isConnected) await render();
   }
   await render(); loadDevice(false);
+  syncFresh(4000).then(async ch => { if (ch && bg.isConnected) { S.edit = -1; await render(); dispatchEvent(new Event('lp:vids')); } });
 }
 
 // ---------- in-site video player ----------
@@ -10048,6 +10122,7 @@ function directUrl(u) {
 const VKEYS = [['Space / K', 'Play / pause'], ['← / →', 'Back / forward 10 seconds'], ['Shift + ← / →', 'Previous / next subtitle line'], ['[ / ]', 'Slower / faster'], ['C', 'Subtitles on / off'], ['N', 'Notes panel on / off (also in full screen)'], ['W', 'Video + notes view'], ['F', 'Full screen'], ['Ctrl + Enter', 'Save the note you are typing'], ['?', 'Show these shortcuts']];
 async function videoPlayer(mid, idx, tq) {
   mid = decodeURIComponent(mid); idx = +idx;
+  await syncFresh(2500, 2000);      // v42 · the list and the place where you stopped on your other device
   const m = modInfo(mid), T = await kv.get('modTrack', {}), vs = T[mid]?.videos || [], v = vs[idx];
   if (!m || !v) { location.hash = m ? m.href + '/map' : '#/study'; return; }
   if (!v.id) { v.id = uid(); await kv.set('modTrack', T); }
@@ -10102,15 +10177,22 @@ async function videoPlayer(mid, idx, tq) {
   async function load(ask) {
     const r = await vresolve(v, ask); gate.hidden = true;
     if (r.how === 'ask') { gate.hidden = false; gate.innerHTML = `<div>The lectures folder needs your permission after a refresh.</div><button class="btn-primary" data-a="allow">Allow access</button><div class="text-[11px] opacity-70">Tip: choose “Allow on every visit” so it is not asked again.</div>`; return; }
-    if (r.how === 'none' || r.how === 'missing') { gate.hidden = false; gate.innerHTML = r.how === 'none' ? `<div>No source for this video on this device.</div><div class="flex gap-2 flex-wrap justify-center">${canDir() ? '<a class="btn-primary" href="#/library">\uD83D\uDCC1 Link lectures folder</a>' : ''}<label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label></div>` : `<div><b>${esc(v.file)}</b> was not found in your folder on this device.</div><label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label>`; return; }
+    if (r.how === 'none' || r.how === 'missing') {
+      gate.hidden = false;
+      const pickBtn = `<label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label>`;
+      const folderBtn = canDir() ? `<button type="button" class="btn-primary" data-a="linkdir">\uD83D\uDCC1 ${(await vdirRec()) ? 'Change lectures folder' : 'Link lectures folder'}</button>` : `<label class="btn-primary cursor-pointer">\uD83D\uDCC2 Choose lectures folder<input type="file" webkitdirectory multiple class="hidden" id="vSessPick"></label>`;
+      const rescan = (await vdirRec()) ? '<button type="button" class="btn-ghost text-slate-900" data-a="rescan">↻ Rescan folder</button>' : '';
+      gate.innerHTML = `<div>${r.how === 'none' ? 'This video is not on this device yet.' : `<b>${esc(v.file)}</b> was not found in the folder on this device.`}</div><div class="text-[11px] opacity-70">Link your lectures folder on this device — the video opens when a file in it has exactly this name${v.file ? ': <b>' + esc(v.file) + '</b>' : ''}.</div><div class="flex gap-2 flex-wrap justify-center">${folderBtn}${rescan}${pickBtn}</div>`;
+      return;
+    }
     if (objUrl) URL.revokeObjectURL(objUrl); objUrl = r.local ? r.url : null; vid.src = r.url;
     err.textContent = { copy: '\uD83D\uDCBE Playing the copy saved on this device.', folder: '\uD83D\uDCC1 Playing from your lectures folder.', link: '\uD83D\uDD17 Playing from the link.' }[r.how];
     if (subs[key]) { cues = parseSRT(subs[key].srt); subName = subs[key].name; subFrom = 'uploaded'; } else if (r.sub) { cues = parseSRT(r.sub.srt); subName = r.sub.name; subFrom = r.how === 'copy' ? 'copy' : 'folder'; }
     $('subInfo').textContent = cues.length ? `\uD83D\uDCC4 ${subName} · ${cues.length} lines (${subFrom === 'uploaded' ? 'uploaded' : 'same name, loaded automatically'})` : 'No subtitles — put a .srt with the same name next to the video, or upload one.';
     drawTr(); ccSt();
   }
-  vid.onloadedmetadata = async () => { vid.playbackRate = UI.rate; const p = (await kv.get('vpos', {}))[v.id]; const st = tq ? +tq : (p?.t && !(p.t > vid.duration - 5) ? p.t : 0); if (st) { vid.currentTime = st; if (!tq) toast('Resumed at ' + fmtT(st)); } };
-  vid.onerror = () => { if (vid.src) err.innerHTML = '⚠ This link cannot be played inside the site. Link your lectures folder in <b>Library</b> or save a copy on this device.'; };
+  vid.onloadedmetadata = async () => { vid.playbackRate = UI.rate; const p = (await kv.get('vpos', {}))[v.id]; const st = tq ? +tq : (p?.t && !(p.t > vid.duration - 5) ? p.t : 0); if (st) { vid.currentTime = st; if (!tq) toast('Resumed at ' + fmtT(st) + (p && p.dev && p.dev !== devLabel() ? ' · where you stopped on ' + p.dev : '')); } };
+  vid.onerror = () => { if (vid.src) err.innerHTML = objUrl ? '⚠ The browser cannot play this file format here. Try another browser, or convert the video to MP4 (H.264).' : '⚠ This link cannot be played inside the site. Link your lectures folder in <b>Library</b> or save a copy on this device.'; };
   // ---- subtitles ----
   const fill = () => view.querySelectorAll('[data-s]').forEach(el => { const k = el.dataset.s; el.type === 'checkbox' ? el.checked = !!S[k] : el.value = S[k]; });
   const apply = () => {
@@ -10127,9 +10209,12 @@ async function videoPlayer(mid, idx, tq) {
     if (noteMarks.length) { let on = -1; for (let k = 0; k < noteMarks.length; k++) if (noteMarks[k] <= vid.currentTime + .5) on = k; if (on !== lastNoteOn) { lastNoteOn = on; $('nList')?.querySelectorAll('[data-nt]').forEach((el, k) => el.classList.toggle('nt-on', k === on)); } }
     if (i !== lastTr) { lastTr = i; const tl = $('trList'); tl?.querySelectorAll('.tr-on').forEach(x => x.classList.remove('tr-on')); const el = tl?.querySelector(`[data-ti="${i}"]`); if (el) { el.classList.add('tr-on'); if (!$('trQ').value && !tl.closest('[hidden]')) el.scrollIntoView({ block: 'nearest' }); } }
     const now = Date.now(); if (now - lastSave > 8000 && vid.currentTime > 3) { lastSave = now; savePos(); } };
-  async function savePos() { const P = await kv.get('vpos', {}); P[v.id] = { t: Math.floor(vid.currentTime), d: Math.floor(vid.duration || 0), ts: Date.now() }; await kv.set('vpos', P);
+  async function savePos() {
+    if (!vid.src || vid.readyState < 1 || !(vid.duration > 0) || vid.currentTime < 3) return;      // v42 · never overwrite the saved place with 0:00 (video not loaded / not started)
+    const P = await kv.get('vpos', {}); P[v.id] = { t: Math.floor(vid.currentTime), d: Math.floor(vid.duration || 0), ts: Date.now(), dev: devLabel() }; await kv.set('vpos', P);
     if (vid.duration && vid.currentTime / vid.duration >= 0.9 && !v.done) { const T2 = await kv.get('modTrack', {}), w = (T2[mid]?.videos || []).find(z => z.id === v.id); if (w) { w.done = v.done = true; if (T2[mid].videos.every(z => z.done)) { T2[mid].lec = true; toast('All lecture videos watched — Lecture marked done ✓'); } else toast('Video marked as watched ✓'); await kv.set('modTrack', T2); } } }
   vid.ontimeupdate = tick; vid.onseeked = tick; vid.onpause = () => savePos(); vid.onended = () => savePos();
+  const onHide = () => { if (document.visibilityState === 'hidden') savePos().then(() => flush()).catch(() => { }); }; document.addEventListener('visibilitychange', onHide);
   function drawTr() { const q = ($('trQ').value || '').toLowerCase();
     $('trList').innerHTML = cues.length ? cues.map((c, i) => q && !c.text.toLowerCase().includes(q) ? '' : `<div class="tr-line" data-ti="${i}" data-tt="${c.s}"><span class="text-slate-400 tabular-nums mr-1">${fmtT(c.s)}</span>${esc(c.text)}</div>`).join('') : '<div class="text-slate-500">No subtitles for this video.</div>'; lastTr = -1; tick(); }
   // ---- notes ----
@@ -10166,6 +10251,7 @@ async function videoPlayer(mid, idx, tq) {
   view.onchange = async e => {
     if (e.target.id === 'vRate') setRate(+e.target.value);
     if (e.target.id === 'nAuto') { UI.autoPause = e.target.checked; kv.set('vUI', UI); }
+    if (e.target.id === 'vSessPick') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs)) return toast('No video files were found in that folder'); return load(false); }
     if (e.target.id === 'vPick' && e.target.files[0]) { const f = e.target.files[0]; if (confirm(`Keep a copy of ${f.name} on this device so it opens directly next time?`)) { await vcopyPut(f); if (!v.file) { const T2 = await kv.get('modTrack', {}); const w = T2[mid].videos.find(z => z.id === v.id); w.file = v.file = f.name; await kv.set('modTrack', T2); } return load(false); } if (objUrl) URL.revokeObjectURL(objUrl); objUrl = vid.src = URL.createObjectURL(f); gate.hidden = true; err.textContent = 'Playing ' + f.name + ' (this session only).'; }
     if (e.target.id === 'srtUp' && e.target.files[0]) { const f = e.target.files[0], txt = await f.text(), c = parseSRT(txt); if (!c.length) return toast('No subtitle lines found in this file');
       const all = await kv.get('vsubs', {}); all[key] = { name: f.name, srt: txt }; await kv.set('vsubs', all); toast(`Subtitles added · ${c.length} lines`); videoPlayer(mid, idx); }
@@ -10180,6 +10266,8 @@ async function videoPlayer(mid, idx, tq) {
     if (tl) { vid.currentTime = +tl.dataset.tt + S.offset + 0.01; vid.play(); return; }
     if (e.target.dataset.ndel && confirm('Delete this note from Mohd Summary?')) { await db.del('notes', e.target.dataset.ndel); notify(mid); return drawNotes(); }
     if (a === 'allow') return load(true);
+    if (a === 'rescan') { await vdirRescan(true); return load(false); }
+    if (a === 'linkdir') { try { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (x) { } return load(false); } catch (x) { if (x && x.name !== 'AbortError') toast(x.message || 'Could not open the folder'); return; } }
     if (a === 'back') seekBy(-10); if (a === 'fwd') seekBy(10);
     if (a === 'cc') { UI.cc = !UI.cc; kv.set('vUI', UI); lastTxt = null; tick(); ccSt(); }
     if (a === 'lay-normal') setLayout('normal'); if (a === 'lay-wide') setLayout('wide');
@@ -10202,7 +10290,7 @@ async function videoPlayer(mid, idx, tq) {
   document.addEventListener('keydown', onKey);
   showKeys('video', VKEYS);
   await load(false); drawNotes();
-  return () => { document.removeEventListener('keydown', onKey); view.oninput = view.onchange = view.onclick = null; savePos(); vid.pause(); document.body.classList.remove('vwide-on'); if (document.fullscreenElement) document.exitFullscreen(); if (objUrl) URL.revokeObjectURL(objUrl); };
+  return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onHide); view.oninput = view.onchange = view.onclick = null; savePos().then(() => flush()).catch(() => { }); vid.pause(); document.body.classList.remove('vwide-on'); if (document.fullscreenElement) document.exitFullscreen(); if (objUrl) URL.revokeObjectURL(objUrl); };
 }
 
 // ---------- keyboard shortcut help (⌨️ / ?) ----------
@@ -14783,7 +14871,19 @@ function showUpdateBar() {
   document.body.append(b);
   window.addEventListener('hashchange', () => b.remove(), { once: true });
 }
+// v42 · pull what the other devices saved just before it is needed (lesson page, video list, video player). Never blocks longer than maxMs.
+async function syncFresh(maxMs = 2500, minGap = 10000) {
+  try {
+    if (!cloud || !user || recovering || !navigator.onLine || window.__busy > 0) return false;
+    if (Date.now() - lastPull < minGap) return false;
+    const n = await Promise.race([pull(), new Promise(r => setTimeout(() => r('timeout'), maxMs))]);
+    if (n === 'timeout' || n === false) return false;
+    lastPull = Date.now(); return !!n;
+  } catch (e) { return false; }
+}
+const devLabel = () => { const u = navigator.userAgent || ''; return /iPad/.test(u) ? 'iPad' : /iPhone/.test(u) ? 'iPhone' : /Android/.test(u) ? (/Mobile/.test(u) ? 'Android phone' : 'Android tablet') : /Windows/.test(u) ? 'Windows' : /Macintosh|Mac OS/.test(u) ? 'Mac' : /Linux/.test(u) ? 'Linux' : ''; };
 function afterPullChanged() {
+  try { dispatchEvent(new Event('lp:steps')); dispatchEvent(new Event('lp:vids')); } catch (e) { }      // an open lesson page updates its outline / videos in place
   const h = location.hash || '#/', typing = /TEXTAREA|INPUT|SELECT/.test(document.activeElement?.tagName || '');
   const busy = window.__busy > 0 || typing || document.body.classList.contains('reading') || h.startsWith('#/qbank/run') || !!document.querySelector('.modal-bg');
   if (!busy && /^#\/(study|plan)?$/.test(h)) { window.__keepScroll = true; route(); } else showUpdateBar();
