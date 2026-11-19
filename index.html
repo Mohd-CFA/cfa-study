@@ -3451,6 +3451,31 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
 @media (pointer:coarse){.rd-i{min-height:18px!important;height:18px;min-width:18px}}
 .dk-more>summary::before{content:"▸";display:inline-block;transition:transform .15s}
 .dk-more[open]>summary::before{transform:rotate(90deg)}
+/* ---- v40 · Dashboard topics: Completeness and Readiness as two bars, one under the other ---- */
+.dtr, .dtr[aria-expanded] { grid-template-columns: minmax(0, 10rem) 3.4rem minmax(0, 1fr) 2.4rem; align-items: center; }
+@media (min-width: 1024px) { .dtr { grid-template-columns: minmax(0, 12rem) 3.4rem minmax(0, 1fr) 2.4rem; } }
+@media (max-width: 520px) { .dtr { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .dtr-w, .dtr-s { display: none; } }
+.dbars { display: grid; gap: .45rem; min-width: 0; }
+.dbx { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; row-gap: 3px; column-gap: .5rem; }
+.dbx em { font-style: normal; font-size: 12px; color: #64748b; white-space: nowrap; }
+.dark .dbx em { color: #a3b1c6; }
+.dbx .dbullet { grid-column: 1 / -1; height: .6rem; }
+.dbx .dbp { background: #6366f1; }
+.dark .dbx .dbp { background: #818cf8; }
+.dbx .dbr { top: 0; bottom: 0; }
+.dbx em { grid-column: 1; grid-row: 1; }
+.dbx b { grid-column: 2; grid-row: 1; text-align: right; font-size: 12px; }
+.dbx .dbullet { grid-row: 2; }
+/* v40 · five parts */
+.step-grid.sg5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .step-grid.sg5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* v40 · outline: Flashcards · AI Summary · Mohd Summary follow Reading directly, with a gap instead of a label */
+.lp-grp-gap { margin: .35rem 0 .1rem; height: 0; border-top: 1px solid #e2e8f0; padding: 0; }
+.dark .lp-grp-gap { border-top-color: #1e293b; }
+/* v40 · lecture videos dialog */
+.vd-edit { display: grid; gap: .4rem; padding: .5rem; margin-top: .4rem; border-radius: .6rem; background: rgba(99,102,241,.08); }
+.vd-load { padding: 1.2rem; text-align: center; font-size: 13px; color: #64748b; }
+
 </style>
 </head>
 <body class="has-side bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -5362,6 +5387,9 @@ const LP_HIDE = new Set(['mistakes']);                                   // v38 
 const lpShown = tabs => tabs.filter(([k]) => !LP_HIDE.has(k));
 const lpSteps = tabs => lpShown(tabs).filter(([k]) => k !== 'perf');     // Performance is a view, not a step you tick
 const LP_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+async function lpBase(modId) {   // v40 · the two parts of Complete that are not outline ticks, so the outline shows the same % as the lesson header
+  try { const m = modInfo(modId), p = modProgress(m, await progressCtx()); return { lecture: p.lecture, solved: p.solved }; } catch (e) { return { lecture: 0, solved: 0 }; }
+}
 async function lpDone(modId) { const all = (await kv.get('lessonSteps', {})) || {}; return { ...(all[modId] || {}) }; }
 const lpClosedNow = () => { try { return localStorage.getItem('lpClosed') === '1'; } catch (e) { return false; } };
 const lpHeadBtns = () => `<span class="lp-hb"><button type="button" class="ib lp-tgl" data-lpa="panel" title="Show / hide the lesson outline" aria-label="Show or hide the lesson outline">☰</button><button type="button" class="btn-primary text-xs lp-hdone" data-lpa="done"></button></span>`;
@@ -5380,10 +5408,10 @@ function lpStrip(o) {       // the tab strip shown on narrow screens (the outlin
   return `<button type="button" class="lp-lecchip" data-vids="${esc(o.x.id)}" title="Lecture videos of this module">${lpChipTxt(vs)}</button>` + lpShown(o.tabs).map(([k, l]) => `<a href="${o.hrefOf(k)}" class="${k === o.tab ? 'on' : ''}${o.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('');
 }
 function lpHTML(o) {
-  const { tabs, tab, hrefOf, st } = o, steps = lpSteps(tabs), n = steps.filter(([k]) => st[k]).length, pct = steps.length ? Math.round(100 * n / steps.length) : 0;
+  const { tabs, tab, hrefOf, st } = o, steps = lpSteps(tabs), n = steps.filter(([k]) => st[k]).length, pct = lpPartsK(steps.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved).cmp;
   let last = '';
   const rows = lpShown(tabs).map(([k, l]) => {
-    const g = LP_GROUP[k] || '', head = g !== last ? `<li class="lp-grp" role="presentation">${g}</li>` : ''; last = g;
+    const g = LP_GROUP[k] || '', head = g !== last ? (g === 'Consolidate' ? '<li class="lp-grp lp-grp-gap" role="presentation"></li>' : `<li class="lp-grp" role="presentation">${g}</li>`) : ''; last = g;
     if (k === 'perf') return head + `<li class="lp-row lp-perf${k === tab ? ' on' : ''}" data-k="perf"><span class="lp-vdot" aria-hidden="true">📊</span><a class="lp-lbl" href="${hrefOf(k)}"${k === tab ? ' aria-current="page"' : ''}>${esc(l)}</a></li>`;
     return head + `<li class="lp-row${k === tab ? ' on' : ''}${st[k] ? ' done' : ''}" data-k="${k}"><button type="button" class="lp-dot" data-lpa="dot" data-k="${k}" aria-pressed="${!!st[k]}" aria-label="${esc(l)}: mark as complete">${LP_CHECK}</button><a class="lp-lbl" href="${hrefOf(k)}"${k === tab ? ' aria-current="step"' : ''}>${esc(l)}</a></li>`;
   }).join('');
@@ -5399,7 +5427,7 @@ function lpBind(root, o) {
   if (!root) return;
   const tabs = lpSteps(o.tabs), idx = tabs.findIndex(([k]) => k === o.tab), st = { ...o.st };
   const paint = () => {
-    const n = tabs.filter(([k]) => st[k]).length, pct = tabs.length ? Math.round(100 * n / tabs.length) : 0;
+    const n = tabs.filter(([k]) => st[k]).length, pct = lpPartsK(tabs.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved).cmp;
     root.querySelectorAll('.lp-row[data-k]').forEach(r => { const dot = r.querySelector('.lp-dot'); if (!dot) return; const d = !!st[r.dataset.k]; r.classList.toggle('done', d); dot.setAttribute('aria-pressed', String(d)); });
     root.querySelectorAll('.tabs a').forEach((a, i) => { if (tabs[i]) a.classList.toggle('lp-tick', !!st[tabs[i][0]]); });
     const bar = root.querySelector('.lp-bar'); if (bar) { bar.firstElementChild.style.width = pct + '%'; bar.setAttribute('aria-valuenow', String(pct)); }
@@ -5412,7 +5440,7 @@ function lpBind(root, o) {
       b.title = cur ? 'Click to undo' : lastStep ? 'Mark this step complete' : 'Mark this step complete and open the next one';
     });
   };
-  const save = async () => { const all = { ...((await kv.get('lessonSteps', {})) || {}) }; all[o.x.id] = { ...st }; await kv.set('lessonSteps', all); };
+  const save = async () => { const all = { ...((await kv.get('lessonSteps', {})) || {}) }; all[o.x.id] = { ...st }; await kv.set('lessonSteps', all); dispatchEvent(new Event('lp:steps')); };
   root.addEventListener('click', async e => {
     const b = e.target.closest('[data-lpa]'); if (!b || !root.contains(b)) return;
     const a = b.dataset.lpa;
@@ -5426,8 +5454,13 @@ function lpBind(root, o) {
       if (nx) location.hash = o.hrefOf(nx[0]); else toast('🎉 Every step of this lesson is complete');
     }
   });
+  root.__lp = { o, paint };
   paint();
 }
+// the status block of the lesson header follows every tick of the outline and every change of the videos
+const lpRefreshHead = async () => { const root = document.querySelector('.lp-shell[data-mid]'), el = document.getElementById('mTrack'); if (!root || !el) return; try { el.innerHTML = await moduleTrackStrip(root.dataset.mid); } catch (e) { } try { if (root.__lp) { root.__lp.o.base = await lpBase(root.dataset.mid); root.__lp.paint(); } } catch (e) { } };
+addEventListener('lp:steps', lpRefreshHead);
+addEventListener('lp:vids', () => setTimeout(lpRefreshHead, 60));
 // the Lectures list refreshes by itself when videos are added, removed or reordered in the dialog
 addEventListener('lp:vids', async () => {
   const root = document.querySelector('.lp-shell[data-mid]'); if (!root) return;
@@ -5580,7 +5613,7 @@ async function modulePerfTab(body, x) {
     <div class="min-w-[220px] flex-1"><div class="mb-2">${diagChip(rd, p.complete)}</div>
       <div class="grid grid-cols-3 gap-2 text-center text-xs"><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${cov}%</div>Coverage</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${acc == null ? '—' : acc + '%'}</div>Accuracy</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${miniScore == null ? '—' : miniScore + '%'}</div>${mini ? 'Mini-exam' : 'No mini-exam'}</div></div>
       ${mini ? `<div class="text-[11px] text-slate-500 mt-1">${esc(mini.label)}${miniScore == null ? ' · not taken yet' : ''} — it also counts in this topic’s readiness.</div>` : ''}</div></div>
-    <div class="step-grid mt-4">${stepBar('Lectures', p.lecture)}${stepBar('Reading', grpPct(p, 'Reading'))}${stepBar('Consolidate', grpPct(p, 'Consolidate'))}${stepBar('Practice', grpPct(p, 'Practice'))}</div>
+    <div class="step-grid sg5 mt-4">${stepBar('Lectures', p.lecture)}${stepBar('Reading', p.readS)}${stepBar('Flashcards', p.flashS)}${stepBar('Summary', p.sumS)}${stepBar('Qbank', p.solved)}</div>
     <div class="text-xs mt-3 flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>🔴 ${mustN} Must improve</span><span>🟡 ${R.list.filter(z => z.rate === 'good').length} Good</span><span>🟢 ${R.list.filter(z => z.rate === 'exc').length} Excellent</span><span class="text-slate-500">⚪ ${R.list.filter(z => z.rate === 'few').length} not rated yet</span></div>`;
 
   body.innerHTML = `<div class="space-y-4 pf-wrap">
@@ -5625,7 +5658,7 @@ async function fsaModule(subj, num, tab = 'map') {
   if (tab === 'print') return fsaPrint(x);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
   const tabK = tab === 'mistakes' ? 'qbank' : tab;                    // v38 · Mistakes is part of the Practice window
-  const lpo = { x, tabs: FSA_TABS, tab: tabK, hrefOf: k => `${x.href}/${k}`, back: ['#/study/' + subj, sj.name], num: m.id, titleHTML: esc(m.title), st: await lpDone(x.id), vids: await lpVids(x.id) };
+  const lpo = { x, tabs: FSA_TABS, tab: tabK, hrefOf: k => `${x.href}/${k}`, back: ['#/study/' + subj, sj.name], num: m.id, titleHTML: esc(m.title), st: await lpDone(x.id), vids: await lpVids(x.id), base: await lpBase(x.id) };
   view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}" data-mid="${x.id}" data-tab="${tabK}">${lpHTML(lpo)}
   <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name, '#/study/' + subj], ['Module ' + m.id]])}
@@ -8112,10 +8145,8 @@ async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex items-center gap-4"><div class="flex-1 min-w-0 lp-narrow-only" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div>
-    
-    <div class="text-center hidden sm:block" data-tip="Module readiness = the share of exam questions on this module you would most likely get right today. Built from your answers: first attempts and retries after 5+ days count fully, same-day retries hardly count, old answers fade, a right guess counts half, Sure-but-wrong counts against you. Shown after about 5 answers. Tap i for the full explanation.">${rdRing(rd, rdK, 52, 6)}<div class="text-[12px] text-slate-500 mt-0.5">readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rd, rdE.W, rdK)}</div></div>
-    <div class="text-center hidden sm:block" data-tip="First try — share right the FIRST time you met each question of this module. Retries never count.">${ring(ft.n ? ftv : 0, 52, 6, ftCol(ftv, ft.n), ft.n ? ftv + '%' : '—')}<div class="text-[12px] text-slate-500 mt-0.5">first try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.n ? `${ft.c}/${ft.n}` : 'no answers'}</div></div></div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex flex-wrap items-center gap-5">${statusRings({ size: 72, cmp: p.complete, cmpTip: STATUS_TIPS.cmp, rd, rdK, rdTip: rdK ? `Readiness ${rd}% ± ${rdSe(rdE.p, rdE.W)}` : `Readiness appears after about ${rdNeed(rdE)} more answers`, rdSub: rdSub(rd, rdE.W, rdK), ft: { n: ft.n, v: ftv, sub: ft.n ? `${ft.c}/${ft.n}` : 'no answers' }, ftTip: ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet' })}
+      <div class="flex-1 min-w-[260px]">${statusTiles(partTiles(k => p[k], false))}<div class="lp-narrow-only mt-2" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="One score per LOS — the same number as the LOS rating. Green ≥ 80 (Excellent) · amber 60–79 (Good to improve) · red < 60 (Must improve) · grey = not enough answers yet.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${prereqHTML(m, c)}${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
 
@@ -8397,7 +8428,7 @@ function studyStats(c, lastBy, lastGlobal) {
     const weakList = rated.filter(r => r.z.rate !== 'exc').sort((a, b) => a.z.acc - b.z.acc || b.z.n - a.z.n);
     const gs = miniGroups(sj.id), avgR = ms.length ? rdAvg(ms, c).r : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
-    out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: grpAvg(P, 'Reading'), consolidate: grpAvg(P, 'Consolidate'), practice: grpAvg(P, 'Practice') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
+    out[sj.id] = { sj, rdW: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), steps: { lecture: part('lecture'), reading: part('readS'), flash: part('flashS'), summary: part('sumS'), practice: part('solved') }, readiness: mixMini(sj.id, avgR), complete: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.round(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, solved: pct(cor.length, qs.length),
       n: qs.length, a: ans.length, cor: cor.length, cov: pct(ans.length, qs.length), acc: ans.length ? pct(cor.length, ans.length) : null,
       avgT: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null, spark: days.map(d => act[d] || 0), sure: ans.filter(q => isSureWrong(q, st)).length,
       due: ans.filter(q => st[q.id].due <= now).length, flag: qs.filter(q => st[q.id]?.flag).length, top: top ? { name: reasonName(top[0]), p: pct(top[1], tally.tagged) } : null,
@@ -8417,7 +8448,7 @@ function studyCardHTML(z) {
       <div class="text-center" data-tip="The share of exam questions on this topic you would most likely get right today, from your answers (recent, spaced attempts count most) with mini-exam scores mixed in. Shown after about 5 answers — tap i for how it works. It is not a pass probability."><div class="flex justify-center gap-2"><div data-tip="Completeness: lesson steps ticked in the module outlines">${ring(z.complete, 52, 6, z.complete >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold mt-1">Complete</div></div><div>${rdRing(z.readiness, z.rdW >= RM.MIN, 52, 6)}<div class="text-[12px] font-semibold mt-1">Readiness ${rdI()}</div></div></div><div class="mt-1">${diagChip(z.readiness, z.complete)}</div></div>
       <div class="min-w-0" data-tip="Share of this topic's questions that you have answered at least once."><div class="text-2xl font-bold leading-none">${z.cov}%</div><div class="text-xs font-semibold mt-1">Coverage</div>${bar(z.cov, 'bg-indigo-500')}<div class="text-[11px] text-slate-500 mt-1">${z.n ? `${z.a} of ${z.n} answered` : 'no questions yet'}</div></div>
       <div class="min-w-0" data-tip="Accuracy on the questions you have answered, using your latest answer on each."><div class="text-2xl font-bold leading-none">${z.acc === null ? '0%' : z.acc + '%'}</div><div class="text-xs font-semibold mt-1">Accuracy</div>${bar(z.acc || 0, accCls)}<div class="text-[11px] text-slate-500 mt-1">${z.a ? `${z.cor} of ${z.a} correct` : '—'}</div></div></div>
-    <div class="step-grid">${stepBar('Lectures', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Consolidate', z.steps.consolidate)}${stepBar('Practice', z.steps.practice)}</div>
+    <div class="step-grid sg5">${stepBar('Lectures', z.steps.lecture)}${stepBar('Reading', z.steps.reading)}${stepBar('Flashcards', z.steps.flash)}${stepBar('Summary', z.steps.summary)}${stepBar('Qbank', z.steps.practice)}</div>
     <div class="text-xs flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>\uD83D\uDD34 ${cb.must} Must improve</span><span>\uD83D\uDFE1 ${cb.good} Good</span><span>\uD83D\uDFE2 ${cb.exc} Excellent</span><span class="text-slate-500">⚪ ${cb.few} not rated yet</span></div>
     ${w ? `<div class="flex flex-wrap items-center gap-2 text-xs p-2 rounded-xl bg-slate-50 dark:bg-slate-900"><span class="min-w-0 flex-1"><b>Weakest:</b> LM${w.m.num} · LOS ${esc(w.z.id)} — ${w.z.acc}% <span class="text-slate-500">· ${w.z.n} of ${w.z.of} answered</span></span><button type="button" class="btn-ghost text-xs" data-weakgo="${esc(w.m.id)}|${esc(w.z.id)}">Practice it</button></div>`
       : z.allExc ? '<div class="text-xs p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">✅ Every rated LOS is Excellent.</div>' : ''}
@@ -8446,20 +8477,20 @@ async function subjectHome(subj) {
   const sj = SUBJECTS.find(s => s.id === subj); if (!sj) return notFoundView('There is no topic with this name.');
   const c = await progressCtx(), ms = moduleList().filter(m => m.subject === subj);
   const ps = ms.map(m => modProgress(m, c)), avg = ps.length ? Math.round(ps.reduce((a, p) => a + p.overall, 0) / ps.length) : 0;
-  const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdA = rdAvg(ms, c), rdyS = mixMini(subj, ms.length ? rdA.r : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
+  const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.round(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdA = rdAvg(ms, c), rdyS = mixMini(subj, ms.length ? rdA.r : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
   const part = k => ps.length ? Math.round(ps.reduce((a, p) => a + p[k], 0) / ps.length) : 0;
   const loaded = ms.filter(m => m.x).length;
   const gs = miniGroups(subj), Qs = await allQs(), taken = gs.filter(g => MINIRES[g.key]), mAvg = taken.length ? Math.round(taken.reduce((a, g) => a + MINIRES[g.key].score, 0) / taken.length) : null;
-  const faS = Qs.filter(q => inStat(q) && modInfo(modKey(q))?.subject === subj).reduce((a, q) => { const f = firstAtt(c.st[q.id]); if (f) { a.n++; if (f.ok) a.c++; } return a; }, { n: 0, c: 0 }), faSP = faS.n ? Math.round(100 * faS.c / faS.n) : 0;
-  const tiles = [['\uD83C\uDFAC Lectures', part('lecture') + '%', '', 'Share of lecture videos watched'], ['\uD83D\uDCD6 Reading', grpAvg(ps, 'Reading') + '%', '', 'Reading steps ticked in the module outlines (Study Map, Schweser, Curriculum, Extras…)'], ['✍ Consolidate', grpAvg(ps, 'Consolidate') + '%', '', 'Flashcards, AI Summary and Mohd Summary steps ticked in the module outlines'], ['\uD83C\uDFAF Practice', grpAvg(ps, 'Practice') + '%', '', 'Questions & Mistakes step ticked in the module outlines'],
-    ['\uD83D\uDCDD Mini-exams', mAvg == null ? '—' : mAvg + '%', `${taken.length}/${gs.length} taken`, 'Average score of the mini-exams you have taken. They also count in readiness.']];
+  const ftA = ms.filter(m => m.x).map(m => modFirstTry(m, c)).filter(f => f.n), ftS = { n: ftA.length, v: ftA.length ? Math.round(ftA.reduce((a, f) => a + 100 * f.c / f.n, 0) / ftA.length) : 0, sub: ftA.length ? `${ftA.length}/${loaded} lessons` : 'no answers yet' };
+  const tiles = partTiles(k => part(k), true).concat([
+    ['\uD83D\uDCDD Mini-exams', mAvg == null ? '—' : mAvg + '%', `${taken.length}/${gs.length} taken`, 'Average score of the mini-exams you have taken. They also count in readiness.']]);
   const endOf = new Map(gs.map(g => [g.mods[g.mods.length - 1].id, g]));
   const cells = ms.map((m, i) => (m.x ? moduleCard(m, ps[i], c) : notLoadedCard(m)) + (endOf.has(m.id) ? miniRowHTML(endOf.get(m.id), Qs, c) : '')).join('');
   view.innerHTML = crumbs([['Today', '#/'], ['Study', '#/study'], [sj.name]]) + `
   <div class="card flex flex-wrap items-center gap-5 mb-4">
-    <div class="flex gap-3 text-center"><div data-tip="Completeness — the lesson steps you ticked in the module outline (side panel)">${ring(cmpS, 72, 7, cmpS >= 100 ? '#10b981' : '#6366f1')}<div class="text-[11px] font-semibold text-slate-500 mt-1">Complete</div></div><div data-tip="Readiness — the share of exam questions you would most likely get right today">${rdRing(rdyS, evS >= RM.MIN, 72, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${rdSub(rdyS, evS, evS >= RM.MIN)}</div>${evS >= RM.MIN && rdA.used ? `<div class="text-[12px] text-slate-500">${rdA.used}/${rdA.tot} modules</div>` : ''}</div><div data-tip="First-attempt accuracy — share correct the FIRST time you met each question. Retries never count. The simplest and most honest number.">${ring(faS.n ? faSP : 0, 72, 7, !faS.n ? '#94a3b8' : faSP >= 70 ? '#10b981' : faSP >= 60 ? '#f59e0b' : '#f43f5e', faS.n ? faSP + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try <button type="button" class="rd-i" data-kpi="fa" aria-label="What is first-attempt accuracy">i</button></div><div class="text-[12px] text-slate-500">${faS.n ? `${faS.c}/${faS.n}` : 'no answers yet'}</div></div></div>
-    <div class="flex-1 min-w-[260px]"><h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2"><span class="sj-tile sj-sm sj-${sj.id}" aria-hidden="true">${sj.icon}</span>${sj.name}</h1><p class="text-sm text-slate-500">Exam weight ${W_RANGE[subj]} · ${loaded}/${ms.length} modules loaded · ${ps.filter(p => p.overall >= 100).length} complete</p>
-      <div class="g6 mt-3 text-center text-xs">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div></div>
+    ${statusRings({ size: 72, cmp: cmpS, cmpTip: STATUS_TIPS.cmp, rd: rdyS, rdK: evS >= RM.MIN, rdTip: 'Readiness — the average of the lessons that have enough answers', rdSub: rdSub(rdyS, evS, evS >= RM.MIN), rdExtra: evS >= RM.MIN && rdA.used ? `<div class="text-[12px] text-slate-500">${rdA.used}/${rdA.tot} lessons</div>` : '', ft: ftS, ftTip: 'First try — the average of the lessons that have answers. Retries never count.' })}
+    <div class="flex-1 min-w-[260px]"><h1 class="text-xl sm:text-2xl font-bold flex items-center gap-2"><span class="sj-tile sj-sm sj-${sj.id}" aria-hidden="true">${sj.icon}</span>${sj.name}</h1><p class="text-sm text-slate-500">Exam weight ${W_RANGE[subj]} · ${loaded}/${ms.length} modules loaded · ${ps.filter(p => p.complete >= 100).length} complete</p>
+      <div class="mt-3">${statusTiles(tiles)}</div></div>
     <div class="flex flex-wrap gap-2 w-full"><a href="#/qbank/stats/${subj}" class="btn-primary text-xs">\uD83D\uDCCA Qbank stats</a><button class="btn-ghost text-xs text-rose-600" data-weak="${subj}">\uD83C\uDFAF Weakest LOS</button><a href="#/formulas/${subj}" class="btn-ghost text-xs">∑ Formulas</a><button class="btn-ghost text-xs" data-pack="${subj}">\uD83D\uDCE6 Final review pack</button><a href="#/summary/${subj}" class="btn-ghost text-xs">\uD83D\uDCC4 Full Mohd Summary</a><a href="#/library" class="btn-ghost text-xs">\uD83D\uDCC1 Books</a></div>
   </div>
   ${loaded < ms.length ? `<p class="text-xs text-slate-500 mb-2">Grey modules are not loaded yet — they count as 0% in progress and start at 40% (about chance) in readiness until you answer their questions.</p>` : ''}
@@ -9169,17 +9200,38 @@ async function progressCtx0() {
 // keep being measured (plan, smart session, readiness) but they no longer define "Complete".
 const lessonKeysFor = m => lpSteps(m.kind === 'pack' ? FSA_TABS : TABS).map(z => z[0]);
 const lessonLabel = (m, k) => ((m.kind === 'pack' ? FSA_TABS : TABS).find(z => z[0] === k) || [k, k])[1];
+// v40 · Complete = the average of FIVE equal parts, the same on the lesson page, the lesson card, the topic page and the Dashboard:
+//   Lectures (videos watched) · Reading (outline steps ticked) · Flashcards (outline step ticked) · Summary (AI + Mohd Summary steps ticked) · Qbank (questions solved correctly at least once)
+function lpPartsK(keys, st, lecture, solved) {
+  const sh = ks => ks.length ? Math.round(100 * ks.filter(k => st[k]).length / ks.length) : 0;
+  const readS = sh(keys.filter(k => (LP_GROUP[k] || '') === 'Reading')), flashS = sh(keys.filter(k => k === 'cards')), sumS = sh(keys.filter(k => k === 'ai' || k === 'mohd'));
+  const lec = lecture || 0, sol = solved || 0, v = (lec + readS + flashS + sumS + sol) / 5;
+  return { lecture: lec, readS, flashS, sumS, solved: sol, cmp: lec >= 100 && readS >= 100 && flashS >= 100 && sumS >= 100 && sol >= 100 ? 100 : Math.min(99, Math.round(v)) };
+}
 function modProgress(m, c) {
   const p = modProgress0(m, c);
-  if (p.none) return Object.assign(p, { lsDone: 0, lsTot: 0, lsNext: null, grp: {} });
+  if (p.none) return Object.assign(p, { lsDone: 0, lsTot: 0, lsNext: null, grp: {}, readS: 0, flashS: 0, sumS: 0 });
   const keys = lessonKeysFor(m), st = ((c && c.ls) || {})[m.id] || {}, grp = {};
   let done = 0;
   for (const k of keys) { const g = LP_GROUP[k] || 'Reading', o = grp[g] || (grp[g] = { d: 0, t: 0 }); o.t++; if (st[k]) { o.d++; done++; } }
-  const pc = keys.length ? Math.round(100 * done / keys.length) : 0;
-  return Object.assign(p, { overall0: p.overall, complete0: p.complete, overall: pc, complete: pc, lsDone: done, lsTot: keys.length, lsNext: keys.find(k => !st[k]) || null, grp });
+  const P5 = lpPartsK(keys, st, p.lecture, p.solved), pc = P5.cmp;
+  return Object.assign(p, { overall0: p.overall, complete0: p.complete, overall: pc, complete: pc, readS: P5.readS, flashS: P5.flashS, sumS: P5.sumS, lsDone: done, lsTot: keys.length, lsNext: keys.find(k => !st[k]) || null, grp });
 }
 const grpAvg = (P, g) => { let d = 0, t = 0; for (const p of P) if (p.grp && p.grp[g]) { d += p.grp[g].d; t += p.grp[g].t; } return t ? Math.round(100 * d / t) : 0; };
 const grpPct = (p, g) => p.grp && p.grp[g] && p.grp[g].t ? Math.round(100 * p.grp[g].d / p.grp[g].t) : 0;
+// v40 · the same blocks draw the status of a lesson and of a topic, so both always look and read alike
+const STATUS_TIPS = { cmp: 'Complete = the average of Lectures, Reading, Flashcards, Summary and Qbank (equal weights). A topic is the average of its lessons.',
+  lec: 'Share of lecture videos watched', read: 'Reading steps ticked in the lesson outline (Study Map, Schweser Notes, Curriculum, Extras, Conflicts)',
+  flash: 'Flashcards step ticked in the lesson outline', sum: 'AI Summary and Mohd Summary steps ticked in the lesson outline', prac: 'Questions solved correctly at least once' };
+function statusRings(o) {
+  const S = o.size || 72, ft = o.ft;
+  return `<div class="flex gap-3 text-center"><div data-tip="${esc(o.cmpTip)}">${ring(o.cmp, S, 7, o.cmp >= 100 ? '#10b981' : '#6366f1')}<div class="text-[12px] font-semibold text-slate-500 mt-1">Complete</div></div>
+    <div data-tip="${esc(o.rdTip)}">${rdRing(o.rd, o.rdK, S, 7)}<div class="text-[12px] font-semibold text-slate-500 mt-1">Readiness ${rdI()}</div><div class="text-[12px] text-slate-500">${o.rdSub}</div>${o.rdExtra || ''}</div>
+    <div data-tip="${esc(o.ftTip)}">${ring(ft.n ? ft.v : 0, S, 7, ftCol(ft.v, ft.n), ft.n ? ft.v + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.sub}</div></div></div>`;
+}
+const statusTiles = tiles => `<div class="g6 text-center text-xs" style="grid-template-columns:repeat(auto-fit,minmax(104px,1fr))">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div>`;
+const partTiles = (g, avg) => [['\uD83C\uDFAC Lectures', g('lecture') + '%', '', STATUS_TIPS.lec + (avg ? ' · average of the lessons' : '')], ['\uD83D\uDCD6 Reading', g('readS') + '%', '', STATUS_TIPS.read + (avg ? ' · average of the lessons' : '')],
+  ['\uD83C\uDCCF Flashcards', g('flashS') + '%', '', STATUS_TIPS.flash + (avg ? ' · average of the lessons' : '')], ['✍ Summary', g('sumS') + '%', '', STATUS_TIPS.sum + (avg ? ' · average of the lessons' : '')], ['\uD83C\uDFAF Qbank', g('solved') + '%', '', STATUS_TIPS.prac + (avg ? ' · average of the lessons' : '')]];
 function lessonSummaryHTML(p, m) {
   const nx = p.lsNext ? lessonLabel(m, p.lsNext) : null, col = p.complete >= 100 ? '#10b981' : '#6366f1';
   return `<div class="text-xs flex justify-between gap-2"><b>${p.lsDone}/${p.lsTot} lesson steps</b><span class="text-slate-500">${p.complete}%</span></div>
@@ -9210,13 +9262,13 @@ function modProgress0(m, c) {
   return { lecture, reading, extras, summary, questions, xAuto, xTot, xDone, cards: pct(CSm.mast, CSm.tot), cTot: CSm.tot, cMas: CSm.mast, cFlag: CSm.flag, overall: Math.round((lecture + reading + extras + summary + questions) / 5),
     // completeness (v35): the same five steps; the question step counts questions answered correctly AT LEAST ONCE.
     // A module with no questions loaded gets 0 % for that step (it used to get 100 %), so missing content never looks finished.
-    solved: qs.length ? pct(everOk.length, qs.length) : 0, noQ: !qs.length, complete: (() => { const sv = qs.length ? everOk.length / qs.length * 100 : 0, v = (lecture + reading + extras + summary + sv) / 5; return qs.length && v >= 99.95 && everOk.length === qs.length ? 100 : Math.min(99, Math.floor(v)); })(), rDone, rTot, nNotes, qTot: qs.length, qAns: ans.length, qCor: cor.length,
+    solved: qs.length ? pct(everOk.length, qs.length) : 0, noQ: !qs.length, complete: (() => { const sv = qs.length ? everOk.length / qs.length * 100 : 0, v = (lecture + reading + extras + summary + sv) / 5; return qs.length && v >= 99.95 && everOk.length === qs.length ? 100 : Math.min(99, Math.round(v)); })(), rDone, rTot, nNotes, qTot: qs.length, qAns: ans.length, qCor: cor.length,
     acc: ans.length ? pct(cor.length, ans.length) : null, sumDone: !!t.sum, lecDone: !!t.lec, xtraDone: xAuto ? (xTot ? xDone >= xTot : true) : !!t.xtra, nVid: (t.videos || []).length };
 }
 function trackRows(p, modId, compact) {
-  // each step (label + bar + %) is a link to the matching page of this module; the right-hand column (Mark done, x/y LOS...) is unchanged
+  // v40 · the same five rows as the tiles of the lesson page and of the topic page; each row opens the matching page of the lesson
   const MI = modInfo(modId), base = MI?.href || '', leg = MI?.kind === 'legacy';
-  const GO = { Lecture: { vids: modId }, Reading: { href: `${base}/schweser` }, Extras: { href: leg ? `${base}/diff` : `${base}/xtra` }, Summary: { href: `${base}/mohd` }, Practice: { href: leg ? `#/qbank/m/${modId}` : `${base}/qbank` }, Flashcards: { href: `${base}/cards` } };
+  const GO = { Lectures: { vids: modId }, Reading: { href: `${base}/${leg ? 'schweser' : 'map'}` }, Flashcards: { href: `${base}/cards` }, Summary: { href: `${base}/mohd` }, Qbank: { href: leg ? `#/qbank/m/${modId}` : `${base}/qbank` } };
   const row = (icon, name, v, tip, extra = '') => {
     const g = GO[name], main = `<span class="w-24 shrink-0 truncate">${icon} ${name}</span><div class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full" style="width:${v}%;background:${pcol(v)}"></div></div><span class="w-9 text-right tabular-nums">${v}%</span>`;
     const lead = !g ? `<div class="flex flex-1 min-w-0 items-center gap-2">${main}</div>`
@@ -9224,15 +9276,13 @@ function trackRows(p, modId, compact) {
       : `<a class="trk-go flex flex-1 min-w-0 items-center gap-2" href="${esc(g.href)}">${main}</a>`;
     return `<div class="flex items-center gap-2 ${compact ? 'text-[11px]' : 'text-xs'}" data-tip="${esc(tip)}">${lead}<span class="w-24 text-right whitespace-nowrap">${extra}</span></div>`;
   };
-  const tg = (key, done, what) => `<button class="link text-[11px]" data-trk="${modId}|${key}" data-tip="${done ? 'Mark ' + what + ' as not done' : 'Mark ' + what + ' as done'}">${done ? '✓ Done' : 'Mark done'}</button>`;
+  const tg = (key, done, what) => `<button type="button" class="link text-[11px]" data-trk="${modId}|${key}" data-tip="${done ? 'Mark ' + what + ' as not done' : 'Mark ' + what + ' as done'}">${done ? '✓ Done' : 'Mark done'}</button>`;
   return `<div class="space-y-1.5">
-    ${row('🎬', 'Lecture', p.lecture, p.lecDone ? 'Lecture videos watched' : 'Watch the lecture videos, then mark done', `<button class="link text-[11px] mr-1" data-vids="${modId}" data-tip="Your lecture videos (OneDrive links)">▶ ${p.nVid}</button>${tg('lec', p.lecDone, 'lecture')}`)}
-    ${row('📖', 'Reading', p.reading, `LOS read: ${p.rDone}/${p.rTot} (ticked in the Study Map)`)}
-    ${p.xAuto ? row('➕', 'Extras', p.extras, p.xTot ? `${p.xDone}/${p.xTot} LOS with extras reviewed — calculated automatically from the ticks in the Extras tab` : 'This module has no extras, so the step counts as complete', p.xTot ? `<a class="link text-[11px]" href="${modInfo(modId)?.href}/xtra" data-tip="Open the Extras tab and tick each LOS when you finish its extras">${p.xDone}/${p.xTot} LOS</a>` : '<span class="text-[11px] text-slate-400">none</span>')
-      : row('➕', 'Extras', p.extras, p.xtraDone ? 'Curriculum extras read' : 'Read the extras listed for this module, then mark done', tg('xtra', p.xtraDone, 'extras'))}
-    ${row('✍', 'Summary', p.summary, p.sumDone ? 'Summary marked as complete' : p.nNotes ? `${p.nNotes} notes so far — mark done when finished` : 'No summary notes yet', tg('sum', p.sumDone, 'summary'))}
-    ${row('🎯', 'Practice', p.questions, p.noQ ? 'No questions loaded for this module yet' : `Answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`)}
-    ${p.cTot || !compact ? row('🃏', 'Flashcards', p.cards, p.cTot ? `${p.cMas}/${p.cTot} cards mastered${p.cFlag ? ` · ${p.cFlag} flagged` : ''} (shown here, not part of the 5-step total)` : 'No flashcards yet', p.cTot ? `<a class="link text-[11px]" href="${modInfo(modId)?.href}/cards">${p.cMas}/${p.cTot}${p.cFlag ? ' · ⚑' + p.cFlag : ''}</a>` : '') : ''}
+    ${row('\uD83C\uDFAC', 'Lectures', p.lecture, p.lecDone ? 'Lecture videos watched' : 'Watch the lecture videos, then mark done', `<button type="button" class="link text-[11px] mr-1" data-vids="${modId}" data-tip="Your lecture videos">▶ ${p.nVid}</button>${tg('lec', p.lecDone, 'lecture')}`)}
+    ${row('\uD83D\uDCD6', 'Reading', p.readS, STATUS_TIPS.read)}
+    ${row('\uD83C\uDCCF', 'Flashcards', p.flashS, p.cTot ? `Step ticked in the lesson outline · ${p.cMas}/${p.cTot} cards mastered${p.cFlag ? ` · ${p.cFlag} flagged` : ''}` : 'Flashcards step in the lesson outline · no flashcards yet', p.cTot ? `<a class="link text-[11px]" href="${base}/cards">${p.cMas}/${p.cTot}${p.cFlag ? ' · ⚑' + p.cFlag : ''}</a>` : '<span class="text-[11px] text-slate-400">none</span>')}
+    ${row('✍', 'Summary', p.sumS, STATUS_TIPS.sum, p.nNotes ? `<span class="text-[11px] text-slate-500">${p.nNotes} notes</span>` : '')}
+    ${row('\uD83C\uDFAF', 'Qbank', p.solved, p.noQ ? 'No questions loaded for this module yet' : `Solved correctly at least once: ${p.solved}% · answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`, p.noQ ? '' : `<span class="text-[11px] text-slate-500">${p.qAns}/${p.qTot} answered</span>`)}
   </div>`;
 }
 document.addEventListener('click', async e => {
@@ -9378,7 +9428,8 @@ async function migrateMiniKeys() {
   if (ch) await kv.set('miniRes', R);
   return R;
 }
-const mixMini = (subj, r) => { const keys = new Set(miniGroups(subj).map(g => g.key)), s = Object.entries(MINIRES).filter(([k]) => keys.has(k)).map(([, v]) => v.score); return s.length ? Math.round(0.8 * r + 0.2 * s.reduce((a, b) => a + b, 0) / s.length) : r; };
+const mixMini = (subj, r) => r;   // v40 · topic readiness = plain average of its lessons (mock / mini-exam questions already count inside each lesson's readiness)
+const mixMiniOld = (subj, r) => { const keys = new Set(miniGroups(subj).map(g => g.key)), s = Object.entries(MINIRES).filter(([k]) => keys.has(k)).map(([, v]) => v.score); return s.length ? Math.round(0.8 * r + 0.2 * s.reduce((a, b) => a + b, 0) / s.length) : r; };
 function miniState(g, c) {
   const loaded = g.mods.every(m => m.x), complete = g.mods.filter(m => m.x && modProgress(m, c).overall >= 100).length;
   return { loaded, complete, total: g.mods.length, ready: loaded && complete === g.mods.length };
@@ -9781,7 +9832,7 @@ function moduleCard(m, p, c) {
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2"><span class="mod-num scale-75 -ml-1">${m.num}</span><div class="font-semibold leading-tight flex-1 min-w-0" style="overflow-wrap:anywhere">${esc(m.title)}</div><span class="chip shrink-0" data-tip="Learning Module number in the 2027 curriculum">LM${m.num}</span></div>
         <div class="mt-1.5">${prioRoundsHTML(m.id, TRACK[m.id] || {})}</div>
-        <div class="mt-2 relative z-10">${lessonSummaryHTML(p, m)}</div>
+        <div class="mt-2 relative z-10">${trackRows(p, m.id, true)}<div class="text-[11px] text-slate-500 mt-1.5">${p.lsDone}/${p.lsTot} steps${p.lsNext ? ` · <a class="link" href="${m.href}/${p.lsNext}">Next: ${esc(lessonLabel(m, p.lsNext))} ›</a>` : ' · ✓ every step ticked'}</div></div>
       </div>
     </div></div>`;
 }
@@ -9856,54 +9907,125 @@ function bindVidLib(el, redraw) {
 }
 
 // Module videos dialog
+// v40 · names of the video copies kept on this device — keys only: the (large) videos and books are never read just to open this window
+async function vcopyNames() { return (await local.keys('blobs')).filter(k => typeof k === 'string' && k.startsWith('vid:')).map(k => k.slice(4)); }
+const vdTimeout = (p, ms, dflt) => Promise.race([Promise.resolve(p).catch(() => dflt), new Promise(r => setTimeout(() => r(dflt), ms))]);
+// v40 · Lecture videos window — opens at once (the device scan runs in the background), add / edit / reorder / remove / mark watched, every error shown inside the window
 async function videosDialog(mid) {
   const m = modInfo(mid); if (!m) return;
-  const bg = document.createElement('div'); bg.className = 'modal-bg';
-  async function draw() {
-    const t = await kv.get('modTrack', {}), vs = t[mid]?.videos || [], subs = await kv.get('vsubs', {}), pos = await kv.get('vpos', {});
-    const idx = await vdirReady(false), cps = await vcopies();
-    const am = new Map(); (idx ? [...idx.values()].map(h => h.name) : []).concat(cps.map(b => b.name)).forEach(n => am.set(n.toLowerCase(), n));
+  document.querySelectorAll('.modal-bg[data-vdlg]').forEach(x => x.remove());
+  const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.dataset.vdlg = mid;
+  const S = { src: 'Other', other: '', edit: -1, msg: '', msgBad: false, copies: null, idx: undefined, rec: undefined, filt: '' };
+  const box = inner => `<div class="card modal-box space-y-3" style="width:40rem;max-width:100%;max-height:90vh;overflow:auto"><div class="flex items-center"><h3 class="font-bold">\uD83C\uDFAC Lecture videos · ${esc(m.short)}</h3><button type="button" class="ib ml-auto" data-v="x" aria-label="Close">✕</button></div>${inner}</div>`;
+  bg.innerHTML = box('<div class="vd-load">Opening…</div>'); document.body.append(bg);
+  const say = (t, bad) => { S.msg = t; S.msgBad = !!bad; const el = bg.querySelector('#vdMsg'); if (el) { el.textContent = t; el.className = 'text-xs ' + (bad ? 'text-rose-600' : 'text-emerald-600'); } };
+  async function render() {
+    if (!bg.isConnected) return;
+    let t, subs, pos;
+    try { t = await kv.get('modTrack', {}); subs = await kv.get('vsubs', {}); pos = await kv.get('vpos', {}); }
+    catch (e) { bg.innerHTML = box(`<p class="text-sm text-rose-600">Could not read your videos: ${esc(e && e.message || e)}</p>`); return; }
+    const vs = (t[mid] && t[mid].videos) || [], idx = S.idx || null, cps = (S.copies || []).map(n => n.toLowerCase());
+    const am = new Map(); (idx ? [...idx.values()].map(h => h.name) : []).concat(S.copies || []).forEach(n => am.set(n.toLowerCase(), n));
     const avail = [...am.entries()].filter(([k]) => VID_RE.test(k) && !vs.some(v => vbase(v.file) === k)).map(([, n]) => n).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    const here = v => { const f = vbase(vfileOf(v)); return f && (cps.some(b => b.name.toLowerCase() === f) || idx?.has?.(f)); };
+    const here = v => { const f = vbase(vfileOf(v)); return !!f && (cps.includes(f) || !!(idx && idx.has && idx.has(f))); };
     const groups = [...new Set(vs.map(v => v.src || 'Other'))];
-    bg.innerHTML = `<div class="card modal-box space-y-3" style="width:40rem;max-height:90vh;overflow:auto">
-      <div class="flex items-center"><h3 class="font-bold">\uD83C\uDFAC Lecture videos · ${esc(m.short)}</h3><button class="ib ml-auto" data-v="x">✕</button></div>
-      ${groups.map(g => `<div><div class="text-xs font-semibold text-slate-500 mb-1">${esc(g)}</div><div class="space-y-1.5">${vs.map((v, i) => (v.src || 'Other') !== g ? '' : `<div class="flex items-center gap-2 text-sm p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-        <a class="link flex-1 min-w-0 truncate" href="#/video/${encodeURIComponent(mid)}/${i}" data-v="go">${v.done ? '✅' : '▶'} ${esc(v.name || v.file || 'Video ' + (i + 1))}</a>
-        ${pos[v.id]?.t && !v.done ? `<span class="text-[11px] text-slate-500">${fmtT(pos[v.id].t)}</span>` : ''}${v.file ? `<span class="chip" title="${esc(v.file)}">${here(v) ? '\uD83D\uDCC1 on device' : '\uD83D\uDCC1 not on this device'}</span>` : ''}${v.url ? '<span class="chip">\uD83D\uDD17 link</span>' : ''}${subs[mid + ':' + i] ? '<span class="chip">CC</span>' : ''}
-        <button class="ib text-xs" data-up="${i}" ${i ? '' : 'disabled'} title="Move up">▲</button><button class="link text-rose-600 text-xs" data-del="${i}">✕</button></div>`).join('')}</div></div>`).join('') || '<p class="text-sm text-slate-500">No videos yet.</p>'}
+    const srcOpts = cur => VSRC.map(x => `<option${x === cur ? ' selected' : ''}>${x}</option>`).join('');
+    const rowHTML = (v, i) => {
+      if (S.edit === i) return `<div class="rounded-lg border border-indigo-400 p-2"><div class="vd-edit">
+        <input id="eName" class="inp" value="${esc(v.name || '')}" placeholder="Title"><div class="flex gap-2"><select id="eSrc" class="inp w-auto">${srcOpts(VSRC.includes(v.src) ? v.src : 'Other')}</select><input id="eOther" class="inp" placeholder="Source name" value="${VSRC.includes(v.src) || !v.src ? '' : esc(v.src)}"></div>
+        <input id="eFile" class="inp" value="${esc(v.file || '')}" placeholder="File name in your folder, e.g. FSA LM2 Part 1.mp4"><input id="eUrl" class="inp" value="${esc(v.url || '')}" placeholder="Link (OneDrive / Google Drive share link)">
+        <div class="flex gap-2"><button type="button" class="btn-primary text-xs" data-ed-save="${i}">Save</button><button type="button" class="btn-ghost text-xs" data-v="ecancel">Cancel</button></div></div></div>`;
+      return `<div class="flex items-center gap-2 text-sm p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+        <button type="button" class="ib" data-w="${i}" aria-pressed="${!!v.done}" title="${v.done ? 'Watched — tap to undo' : 'Mark as watched'}">${v.done ? '✅' : '⚪'}</button>
+        <a class="link flex-1 min-w-0 truncate" href="#/video/${encodeURIComponent(mid)}/${i}" data-v="go">▶ ${esc(v.name || v.file || 'Video ' + (i + 1))}</a>
+        ${pos[v.id] && pos[v.id].t && !v.done ? `<span class="text-[11px] text-slate-500">${fmtT(pos[v.id].t)}</span>` : ''}${v.file ? `<span class="chip" title="${esc(v.file)}">${here(v) ? '\uD83D\uDCC1 on device' : '\uD83D\uDCC1 not on this device'}</span>` : ''}${v.url ? '<span class="chip">\uD83D\uDD17 link</span>' : ''}${subs[mid + ':' + i] ? '<span class="chip">CC</span>' : ''}
+        <button type="button" class="ib text-xs" data-ed="${i}" title="Edit title, source, file name or link" aria-label="Edit">✎</button><button type="button" class="ib text-xs" data-up="${i}" ${i ? '' : 'disabled'} title="Move up" aria-label="Move up">▲</button><button type="button" class="ib text-xs" data-dn="${i}" ${i < vs.length - 1 ? '' : 'disabled'} title="Move down" aria-label="Move down">▼</button><button type="button" class="link text-rose-600 text-xs" data-del="${i}" title="Remove from this module" aria-label="Remove">✕</button></div>`;
+    };
+    const folderPart = !canDir() ? '<p class="text-xs text-slate-500">This browser cannot link a folder (tablets / Safari). Use “Choose video files” above, or a link.</p>'
+      : S.rec === undefined ? '<p class="text-xs text-slate-500">Checking the lectures folder…</p>'
+      : !S.rec || !S.rec.handle ? '<div class="flex flex-wrap items-center gap-2"><button type="button" class="btn-ghost text-xs" data-v="pick">\uD83D\uDCC1 Link my lectures folder</button><span class="text-[11px] text-slate-500">Then pick videos from a list. Nothing is copied or uploaded.</span></div>'
+      : S.idx === undefined ? `<p class="text-xs text-slate-500">\uD83D\uDCC1 Reading “${esc(S.rec.name || 'lectures')}”… the list appears here when it is ready (you can add videos meanwhile).</p>`
+      : S.idx === false ? '<button type="button" class="link text-sm" data-v="allow">Allow access to the lectures folder</button> <span class="text-xs text-slate-500">to list its videos.</span>'
+      : avail.length ? `<details open><summary class="text-sm cursor-pointer font-medium">\uD83D\uDCC1 Add from your folder / copies (${avail.length})</summary>
+          <input id="vFilt" class="inp mt-2" placeholder="Filter… e.g. FSA LM2" value="${esc(S.filt)}"><div id="vList" class="max-h-56 overflow-auto mt-1 space-y-0.5">${avail.map(n => `<label class="flex items-center gap-2 text-xs" data-n="${esc(n.toLowerCase())}"><input type="checkbox" value="${esc(n)}" class="accent-indigo-600"> ${esc(n)}</label>`).join('')}</div>
+          <button type="button" class="btn-primary w-full mt-2" data-v="addf">+ Add selected</button></details>`
+      : '<p class="text-xs text-slate-500">No new videos found in the linked folder. <button type="button" class="link" data-v="pick">Change folder</button></p>';
+    bg.innerHTML = box(`
+      ${groups.map(g => `<div><div class="text-xs font-semibold text-slate-500 mb-1">${esc(g)}</div><div class="space-y-1.5">${vs.map((v, i) => (v.src || 'Other') !== g ? '' : rowHTML(v, i)).join('')}</div></div>`).join('') || '<p class="text-sm text-slate-500">No videos yet — add the first one below.</p>'}
       <div class="grid gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
-        <div class="flex gap-2"><select id="vSrc" class="inp w-auto">${VSRC.map(s => `<option>${s}</option>`).join('')}</select><input id="vOther" class="inp" placeholder="Source name (for Other)" hidden></div>
-        ${avail.length ? `<details ${vs.length ? '' : 'open'}><summary class="text-sm cursor-pointer font-medium">\uD83D\uDCC1 Add from your folder / copies (${avail.length})</summary>
-          <input id="vFilt" class="inp mt-2" placeholder="Filter… e.g. FSA LM2"><div id="vList" class="max-h-56 overflow-auto mt-1 space-y-0.5">${avail.map(n => `<label class="flex items-center gap-2 text-xs" data-n="${esc(n.toLowerCase())}"><input type="checkbox" value="${esc(n)}" class="accent-indigo-600"> ${esc(n)}</label>`).join('')}</div>
-          <button class="btn-primary w-full mt-2" data-v="addf">+ Add selected</button></details>` : `<p class="text-xs text-slate-500">${await vdirRec() ? (idx === false ? '<button class="link" data-v="allow">Allow access to the lectures folder</button> to list its videos.' : 'No new videos found in the linked folder.') : 'Tip: link your lectures folder in <b>Library</b> and pick videos from a list.'}</p>`}
-        <details><summary class="text-xs cursor-pointer text-indigo-600">Add by file name or link</summary><div class="grid gap-2 mt-2">
+        <div class="text-sm font-semibold">Add videos</div>
+        <div class="flex gap-2"><select id="vSrc" class="inp w-auto" aria-label="Source">${srcOpts(S.src)}</select><input id="vOther" class="inp" placeholder="Source name (for Other)" value="${esc(S.other)}" ${S.src === 'Other' ? '' : 'hidden'}></div>
+        <label class="btn-primary text-sm cursor-pointer text-center">\uD83D\uDCCE Choose video files from this device<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vPick"></label>
+        <div class="text-[11px] text-slate-500 -mt-1">A copy of each file is kept on this device (works offline, also on a tablet). Subtitles (.srt / .vtt) with the same name are picked up automatically.</div>
+        <div class="grid gap-2 mt-1"><div class="text-xs font-medium text-slate-500">Or add by link / file name</div>
           <input id="vName" class="inp" placeholder="Title (optional)"><input id="vFile" class="inp" placeholder="File name in your folder, e.g. FSA LM2 Part 1.mp4"><input id="vUrl" class="inp" placeholder="Link (optional): OneDrive / Google Drive share link">
-          <button class="btn-ghost" data-v="add">+ Add video</button></div></details></div>
-      <p class="text-[11px] text-slate-500">Each video is matched by file name on every device: the copy on this device → your linked folder → the link. Name the files the same on all devices.</p></div>`;
-    bg.querySelector('#vSrc').onchange = e => { bg.querySelector('#vOther').hidden = e.target.value !== 'Other'; };
-    const fl = bg.querySelector('#vFilt'); if (fl) fl.oninput = () => { const q = fl.value.toLowerCase().split(/\s+/).filter(Boolean); bg.querySelectorAll('#vList [data-n]').forEach(l => { l.hidden = !q.every(w => l.dataset.n.includes(w)); }); };
+          <button type="button" class="btn-ghost" data-v="add">+ Add video</button></div>
+        <div class="mt-1">${folderPart}</div>
+        <div id="vdMsg" class="text-xs ${S.msgBad ? 'text-rose-600' : 'text-emerald-600'}" role="status" aria-live="polite">${esc(S.msg)}</div>
+      </div>
+      <p class="text-[11px] text-slate-500">Each video is matched by file name on every device: the copy on this device → your linked folder → the link. Name the files the same on all devices.</p>`);
+    const sel = bg.querySelector('#vSrc'); if (sel) sel.onchange = e => { S.src = e.target.value; const o = bg.querySelector('#vOther'); if (o) o.hidden = S.src !== 'Other'; };
+    const oth = bg.querySelector('#vOther'); if (oth) oth.oninput = e => { S.other = e.target.value; };
+    const fl = bg.querySelector('#vFilt'); if (fl) fl.oninput = () => { S.filt = fl.value; const q = fl.value.toLowerCase().split(/\s+/).filter(Boolean); bg.querySelectorAll('#vList [data-n]').forEach(l => { l.hidden = !q.every(w => l.dataset.n.includes(w)); }); };
+  }
+  const srcNow = () => S.src === 'Other' ? (S.other.trim() || 'Other') : S.src;
+  async function mutate(fn) {          // every change goes through here: save → redraw → refresh the outline / header
+    const t = await kv.get('modTrack', {}); t[mid] = t[mid] || {}; const vs = t[mid].videos = t[mid].videos || [];
+    const r = await fn(vs, t); if (r === false) return false;
+    await kv.set('modTrack', t); dispatchEvent(new Event('lp:vids')); await render(); return true;
+  }
+  async function addPicked(files) {
+    const fs = [...files]; if (!fs.length) return; let n = 0;
+    for (let i = 0; i < fs.length; i++) {
+      say(`Saving ${i + 1}/${fs.length} · ${fs[i].name}…`);
+      try { await vcopyPut(fs[i]); } catch (err) { say(`Not enough browser storage for ${fs[i].name}. Free some space, or add it by link / folder instead.`, true); return; }
+      if (VID_RE.test(fs[i].name)) { const nm = fs[i].name, src = srcNow(); await mutate(vs => { if (!vs.some(v => vbase(v.file) === nm.toLowerCase())) { vs.push({ id: uid(), name: nm.replace(/\.[^.]+$/, ''), file: nm, src }); n++; } }); }
+    }
+    S.copies = await vdTimeout(vcopyNames(), 4000, S.copies || []); await render(); say(n ? `✅ Added ${n} video${n > 1 ? 's' : ''}.` : '✅ Saved on this device.');
   }
   bg.onclick = async e => {
-    if (e.target === bg || e.target.dataset.v === 'x') { bg.remove(); route(); return; }
-    if (e.target.dataset.v === 'go') { bg.remove(); return; }
-    if (e.target.dataset.v === 'allow') { await vdirReady(true); return draw(); }
-    const t = await kv.get('modTrack', {}); t[mid] = t[mid] || {}; const vs = t[mid].videos = t[mid].videos || [];
-    let src = bg.querySelector('#vSrc')?.value; if (src === 'Other') src = bg.querySelector('#vOther').value.trim() || 'Other';
-    if (e.target.dataset.v === 'addf') {
-      const picks = [...bg.querySelectorAll('#vList input:checked')].map(i => i.value); if (!picks.length) return toast('Tick at least one video');
-      picks.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => vs.push({ id: uid(), name: n.replace(/\.[^.]+$/, ''), file: n, src }));
-    } else if (e.target.dataset.v === 'add') {
-      const url = bg.querySelector('#vUrl').value.trim(), file = bg.querySelector('#vFile').value.trim(), name = bg.querySelector('#vName').value.trim();
-      if (!url && !file) return toast('Enter a file name or a link');
-      if (url && !/^https?:\/\//i.test(url)) return toast('Links must start with https://');
-      vs.push({ id: uid(), name: name || file.replace(/\.[^.]+$/, ''), file: file || '', url, src });
-    } else if (e.target.dataset.del !== undefined) vs.splice(+e.target.dataset.del, 1);
-    else if (e.target.dataset.up !== undefined) { const i = +e.target.dataset.up; [vs[i - 1], vs[i]] = [vs[i], vs[i - 1]]; }
-    else return;
-    await kv.set('modTrack', t); draw(); dispatchEvent(new Event('lp:vids'));
+    const el = e.target.closest('[data-v],[data-del],[data-up],[data-dn],[data-ed],[data-ed-save],[data-w]'); if (e.target === bg && !el) { bg.remove(); route(); return; } if (!el) return;
+    try {
+      const v = el.dataset.v;
+      if (v === 'x') { bg.remove(); route(); return; }
+      if (v === 'go') { bg.remove(); return; }
+      if (v === 'pick') {       // first await = the picker (it needs the tap that just happened)
+        const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' });
+        await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; S.rec = { handle: h, name: h.name }; S.idx = undefined; await render(); loadDevice(true); return;
+      }
+      if (v === 'allow') { S.idx = undefined; await render(); S.idx = await vdTimeout(vdirReady(true), 60000, false); await render(); return; }
+      if (v === 'ecancel') { S.edit = -1; await render(); return; }
+      if (v === 'add') {
+        const url = bg.querySelector('#vUrl').value.trim(), file = bg.querySelector('#vFile').value.trim(), name = bg.querySelector('#vName').value.trim();
+        if (!url && !file) return say('Type a file name or paste a link first.', true);
+        if (url && !/^https?:\/\//i.test(url)) return say('A link must start with https://', true);
+        const src = srcNow(); await mutate(vs => { vs.push({ id: uid(), name: name || file.replace(/\.[^.]+$/, '') || 'Video ' + (vs.length + 1), file: file || '', url, src }); }); say('✅ Video added.'); return;
+      }
+      if (v === 'addf') {
+        const picks = [...bg.querySelectorAll('#vList input:checked')].map(i => i.value); if (!picks.length) return say('Tick at least one video.', true);
+        const src = srcNow(); await mutate(vs => { picks.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(n => vs.push({ id: uid(), name: n.replace(/\.[^.]+$/, ''), file: n, src })); }); say(`✅ Added ${picks.length} video${picks.length > 1 ? 's' : ''}.`); return;
+      }
+      if (el.dataset.w !== undefined) { const i = +el.dataset.w; await mutate(vs => { if (vs[i]) vs[i].done = !vs[i].done; }); return; }
+      if (el.dataset.ed !== undefined) { S.edit = +el.dataset.ed; await render(); return; }
+      if (el.dataset.edSave !== undefined) {
+        const i = +el.dataset.edSave, name = bg.querySelector('#eName').value.trim(), file = bg.querySelector('#eFile').value.trim(), url = bg.querySelector('#eUrl').value.trim();
+        let src = bg.querySelector('#eSrc').value; if (src === 'Other') src = bg.querySelector('#eOther').value.trim() || 'Other';
+        if (!url && !file) return say('A video needs a file name or a link.', true);
+        if (url && !/^https?:\/\//i.test(url)) return say('A link must start with https://', true);
+        S.edit = -1; await mutate(vs => { if (vs[i]) Object.assign(vs[i], { name: name || file.replace(/\.[^.]+$/, '') || vs[i].name, file, url, src }); }); say('✅ Saved.'); return;
+      }
+      if (el.dataset.del !== undefined) { const i = +el.dataset.del; if (!confirm('Remove this video from the module? (Your file is not deleted.)')) return; S.edit = -1; await mutate(vs => { vs.splice(i, 1); }); say('Removed.'); return; }
+      if (el.dataset.up !== undefined) { const i = +el.dataset.up; if (i > 0) await mutate(vs => { [vs[i - 1], vs[i]] = [vs[i], vs[i - 1]]; }); return; }
+      if (el.dataset.dn !== undefined) { const i = +el.dataset.dn; await mutate(vs => { if (i < vs.length - 1) [vs[i + 1], vs[i]] = [vs[i], vs[i + 1]]; }); return; }
+    } catch (err) { if (err && err.name === 'AbortError') return; say('Something went wrong: ' + (err && err.message || err), true); }
   };
-  document.body.append(bg); draw();
+  bg.onchange = e => { if (e.target.id === 'vPick') { const fs = [...e.target.files]; e.target.value = ''; addPicked(fs).catch(err => say('Something went wrong: ' + (err && err.message || err), true)); } };
+  async function loadDevice(rec) {      // the scan of this device never blocks the window
+    if (!rec) S.rec = await vdTimeout(vdirRec(), 4000, null);
+    S.copies = await vdTimeout(vcopyNames(), 4000, []); await render();
+    if (S.rec && S.rec.handle) { S.idx = undefined; const r = await vdTimeout(vdirReady(false), 120000, null); S.idx = r === null ? false : r; if (bg.isConnected) await render(); }
+  }
+  await render(); loadDevice(false);
 }
 
 // ---------- in-site video player ----------
@@ -11396,13 +11518,13 @@ async function dshData() {
     const zs = ps.filter(z => z.m.subject === sj.id), zl = zs.filter(z => z.m.x), qs = Q.filter(q => modInfo(modKey(q))?.subject === sj.id);
     const a = qs.filter(q => st[q.id]?.n), k = a.filter(q => st[q.id].last), r = mixMini(sj.id, avgR(zs));
     const ev = zs.reduce((a, z) => a + modEstimate(z.m, c).W, 0), ok = ev >= RM.MIN;      // v31 · no numbers for a topic you have not touched
-    return { sj, ev, ok, fa: faOf(qs, st), w: CFA_W[sj.id], range: W_RANGE[sj.id], r, prog: zs.length ? (zs.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.floor(zs.reduce((t, z) => t + z.p.complete, 0) / zs.length))) : 0,
+    return { sj, ev, ok, fa: faOf(qs, st), w: CFA_W[sj.id], range: W_RANGE[sj.id], r, prog: zs.length ? (zs.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.round(zs.reduce((t, z) => t + z.p.complete, 0) / zs.length))) : 0,
       loaded: zl.length, total: zs.length, qn: qs.length, qa: a.length, acc: a.length ? pct(k.length, a.length) : null, stake: ok ? Math.max(0, MPS - r) * CFA_W[sj.id] / 100 : 0 };
   });
   // v31 · exam readiness only from topics with enough answers (≈ 5); untouched topics never count as 40 %
   const subjOk = subj.filter(z => z.ok), Wt = subjOk.reduce((a, z) => a + z.w, 0), examR = Wt ? Math.round(subjOk.reduce((a, z) => a + z.w * z.r, 0) / Wt) : null;
   const overall = ps.length ? Math.round(ps.reduce((a, z) => a + z.p.overall, 0) / ps.length) : 0;
-  const complete = ps.length ? (ps.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.floor(ps.reduce((a, z) => a + z.p.complete, 0) / ps.length))) : 0, modsDone = ps.filter(z => z.p.complete >= 100).length;
+  const complete = ps.length ? (ps.every(z => z.p.complete >= 100) ? 100 : Math.min(99, Math.round(ps.reduce((a, z) => a + z.p.complete, 0) / ps.length))) : 0, modsDone = ps.filter(z => z.p.complete >= 100).length;
   const ans = Q.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
   const ev = []; for (const [id, s] of Object.entries(st)) for (const h of (s.hist || [])) if (h && h.t) ev.push({ id, t: h.t, ok: !!h.ok, s: h.s || 0, cf: h.cf || null, md: h.md || null });
   const act = {}; ev.forEach(e => { const k = dshDay(e.t); act[k] = (act[k] || 0) + 1; });
@@ -11533,9 +11655,9 @@ async function dashboardView() {
     topics: `<div class="card"><h3 class="sec">Topics · readiness vs ${MPS}% target <span class="normal-case font-normal">${NAVP.same ? "" : "· sorted by points at stake"} · tap a topic for details</span></h3>
       <div class="dtopics">${topicRows.map(z => `<div class="dtw"><button type="button" class="dtr" data-ptopic="${z.sj.id}" aria-expanded="false" data-tip="${esc(`${z.sj.name} · weight ${z.range}\nCompleteness ${z.prog}% · readiness ${z.ok ? z.r + '%' : '— (not enough answers)'} · first-attempt ${z.fa.n ? pct(z.fa.c, z.fa.n) + '%' : '—'} (${z.fa.n} Q) · latest ${z.acc ?? '—'}%\n${z.qa}/${z.qn} answered · ${z.loaded}/${z.total} modules loaded`)}">
         <span class="dtr-n">${z.sj.icon} ${esc(z.sj.name)} ${z.ev < 5 && z.prog < 5 ? `<span class="dg dg-new">${DIAG.new.icon} ${DIAG.new.name}</span>` : diagChip(z.r, z.prog)}</span><span class="dtr-w">${z.range}</span>
-        <span class="dbullet"><span class="dbp" style="width:${z.prog}%"></span><span class="dbr ${z.ev < 5 ? 'nd' : dshCol(z.r)}" style="width:${z.ok ? z.r : 0}%"></span><i style="left:${MPS}%"></i></span>
-        <b class="dtr-v ${z.ev < 5 ? 'nd' : dshCol(z.r)}">${z.ev < 5 ? '—' : z.r + '%'}</b><span class="dtr-s">${!z.ok ? '—' : z.stake ? '+' + z.stake.toFixed(1) : '✓'}</span></button><div class="dtd" id="dtd-${z.sj.id}" hidden></div></div>`).join('')}</div>
-      <div class="text-xs text-slate-500 mt-2">Pale bar = completeness · thick bar = readiness · line = ${MPS}% · the label is the diagnosis of both · <b>+pts</b> = exam points gained by bringing the topic to ${MPS}% (gap × weight).</div></div>`,
+        <span class="dbars"><span class="dbx"><em>Completeness</em><span class="dbullet"><span class="dbp" style="width:${z.prog}%"></span><i style="left:${MPS}%"></i></span><b class="dtr-v">${z.prog}%</b></span><span class="dbx"><em>Readiness</em><span class="dbullet"><span class="dbr ${z.ev < 5 ? 'nd' : dshCol(z.r)}" style="width:${z.ok ? z.r : 0}%"></span><i style="left:${MPS}%"></i></span><b class="dtr-v ${z.ev < 5 ? 'nd' : dshCol(z.r)}">${z.ev < 5 ? '—' : z.r + '%'}</b></span></span>
+        <span class="dtr-s">${!z.ok ? '—' : z.stake ? '+' + z.stake.toFixed(1) : '✓'}</span></button><div class="dtd" id="dtd-${z.sj.id}" hidden></div></div>`).join('')}</div>
+      <div class="text-xs text-slate-500 mt-2">Top bar = completeness · bottom bar = readiness · line = ${MPS}% · the label is the diagnosis of both · <b>+pts</b> = exam points gained by bringing the topic to ${MPS}% (gap × weight).</div></div>`,
     actions: `<div class="card"><h3 class="sec">Do this week</h3>
       ${A.length ? `<ol class="dact">${A.map((a, i) => `<li><span class="dact-i">${i + 1}</span><div class="flex-1 min-w-0"><div class="font-semibold text-sm">${a.href ? `<a class="link" href="${a.href}">${esc(a.t)}</a>` : `<button type="button" class="link text-left" data-dact="${a.act}">${esc(a.t)}</button>`}</div><div class="text-xs text-slate-500">${esc(a.why)}</div></div></li>`).join('')}</ol>` : '<div class="text-sm text-emerald-600">✓ Nothing urgent — keep your rhythm.</div>'}
       <h3 class="sec mt-4">Confidence check</h3>
@@ -12359,7 +12481,7 @@ function studyRows(c, lastBy, lastGlobal) {
     const ms = mods.filter(m => m.subject === sj.id), lm = ms.filter(m => m.x), P = ms.map(m => ps.get(m.id));
     const avgR = ms.length ? rdAvg(ms, c).r : 0;
     let tgt = lastBy[sj.id] && lm.find(m => m.id === lastBy[sj.id]); if (!tgt) tgt = lm.find(m => m.id === lastGlobal); if (!tgt) tgt = lm.find(m => ps.get(m.id).overall < 100) || lm[0];
-    out[sj.id] = { sj, avg: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.floor(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, ready: mixMini(sj.id, avgR), ev: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), loaded: lm.length, total: ms.length, done: P.filter(p => p.complete >= 100).length, tgt };
+    out[sj.id] = { sj, avg: P.length ? (P.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.round(P.reduce((a, p) => a + p.complete, 0) / P.length))) : 0, ready: mixMini(sj.id, avgR), ev: ms.reduce((a, m) => a + modEstimate(m, c).W, 0), loaded: lm.length, total: ms.length, done: P.filter(p => p.complete >= 100).length, tgt };
   }
   return out;
 }
@@ -13291,7 +13413,7 @@ async function moduleView(num, tab = 'ai') {
   await kv.set('lastModule', x.id); await setLastBy(x.id);
   const reading = tab === 'schweser' || tab === 'curriculum' || tab === 'aipdf';
   const tabK = tab === 'mistakes' ? 'qbank' : tab;
-  const lpo = { x, tabs: TABS, tab: tabK, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id - 11, titleHTML: m.title, st: await lpDone(x.id), vids: await lpVids(x.id) };
+  const lpo = { x, tabs: TABS, tab: tabK, hrefOf: k => `#/study/econ/${m.id}/${k}`, back: ['#/study/econ', 'Economics'], num: m.id - 11, titleHTML: m.title, st: await lpDone(x.id), vids: await lpVids(x.id), base: await lpBase(x.id) };
   view.innerHTML = `<div class="lp-shell${reading ? ' lp-reading' : ''}${lpClosedNow() ? ' lp-closed' : ''}" data-mid="${x.id}" data-tab="${tabK}">${lpHTML(lpo)}
   <div class="lp-main ${reading ? 'mod-reading flex flex-col' : ''}">
     ${reading ? '' : crumbs([['Today', '#/'], ['Study', '#/study'], ['Economics', '#/study/econ'], ['Module ' + (m.id - 11)]])}
