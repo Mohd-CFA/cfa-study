@@ -1,0 +1,19 @@
+# Runs the safety checks automatically every time you upload a new index.html to GitHub.
+# A red ✗ next to the commit means something broke — do not rely on that version until it is fixed.
+name: smoke-test
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright
+      - run: playwright install --with-deps chromium
+      - run: python tests/smoke_test.py
