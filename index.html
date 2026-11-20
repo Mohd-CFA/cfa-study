@@ -2734,7 +2734,9 @@ body.rd-resizing * { cursor: col-resize !important; }
   W.__diag = {
     log: function (type, msg) { log.push({ t: Date.now(), type: type, msg: String(msg == null ? '' : msg).slice(0, 300) }); saveLog(); },
     get: function () { return log.slice(); },
-    clear: function () { log = []; saveLog(); }
+    clear: function () { log = []; saveLog(); },
+    sw: {},      // v44 · errors the site caught and ignored: message → count (shown on the Health page)
+    swallow: function (e) { try { var m = String(e && e.message || e || '?').slice(0, 140), o = W.__diag.sw[m]; if (o) o.n++; else W.__diag.sw[m] = { n: 1, t: Date.now() }; } catch (_) { } }
   };
   addEventListener('error', function (e) {
     var m = e && e.message || ''; if (!m || /ResizeObserver loop|^Script error/i.test(m)) return;
@@ -3476,6 +3478,12 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
 .vd-edit { display: grid; gap: .4rem; padding: .5rem; margin-top: .4rem; border-radius: .6rem; background: rgba(99,102,241,.08); }
 .vd-load { padding: 1.2rem; text-align: center; font-size: 13px; color: #64748b; }
 
+/* ---- v44 · touch targets: checkboxes 24 px (inside the 44 px row), breadcrumb links and the (i) buttons 44 px ---- */
+@media (pointer: coarse) {
+  input[type=checkbox], input[type=radio] { width: 24px; height: 24px; flex: none; }
+  nav[class*="text-xs"] a { display: inline-block; padding: 14px 4px; margin: -14px 0; }
+  .rd-i { min-width: 44px; min-height: 44px; margin: -13px; }
+}
 </style>
 </head>
 <body class="has-side bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -3514,8 +3522,8 @@ function open() {
       d.createObjectStore('notes', { keyPath: 'id' }).createIndex('moduleId', 'moduleId');
       d.createObjectStore('outbox', { autoIncrement: true });
     };
-    r.onblocked = () => { try { toast('Close the other tabs of this site, then reload.'); } catch { } };
-    r.onsuccess = () => { _db = r.result; _db.onversionchange = () => { try { _db.close(); } catch { } _db = null; try { toast('The site was updated in another tab — reload this page.'); } catch { } }; res(_db); };
+    r.onblocked = () => { try { toast('Close the other tabs of this site, then reload.'); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
+    r.onsuccess = () => { _db = r.result; _db.onversionchange = () => { try { _db.close(); } catch (_e) { window.__diag && __diag.swallow(_e);  } _db = null; try { toast('The site was updated in another tab — reload this page.'); } catch (_e) { window.__diag && __diag.swallow(_e);  } }; res(_db); };
     r.onerror = () => rej(r.error);
   });
 }
@@ -3531,9 +3539,9 @@ function tx(store, mode, fn) {
 
 // v39 · the browser refused to store more: say it once, with the way out
 let _fullToast = 0;
-function storageFull() { if (Date.now() - _fullToast < 60000) return; _fullToast = Date.now(); try { toast('This device is out of storage space. Free some space (or remove books you do not need on this device) — your cloud copy is not affected.'); } catch { } }
+function storageFull() { if (Date.now() - _fullToast < 60000) return; _fullToast = Date.now(); try { toast('This device is out of storage space. Free some space (or remove books you do not need on this device) — your cloud copy is not affected.'); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 // v39 · ask the browser not to clear the study data when the device runs low on space
-try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { }); } catch { }
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(e => { window.__diag && __diag.swallow(e);  }); } catch (_e) { window.__diag && __diag.swallow(_e);  }
 // raw local access (no sync)
 const local = {
   get: (s, k) => tx(s, 'readonly', st => req(st.get(k))),
@@ -3559,9 +3567,32 @@ const SYNCED = new Set(['notes', 'highlights', 'kv', 'files']);
 // v31 · keys merged entry by entry with the cloud copy (3-way: last synced · this device · cloud), like question statistics
 const MERGE_KV = new Set(['qedits', 'vpos', 'vsubs']);   // v42 · video positions and subtitles: entry by entry, the newest wins
 // v39 · progress keys are merged key by key as well (a tick made on the tablet no longer erases a tick made on the desktop)
-const DEEP_KV = new Set(['modTrack', 'fsaLos', 'lessonSteps']);
+// v44 · every list or dictionary that two devices can both change is merged entry by entry (a stale device no longer erases what the other saved)
+const DEEP_KV = new Set(['modTrack', 'fsaLos', 'lessonSteps', 'mockRes', 'miniRes', 'remx', 'qnotes', 'examChk', 'plan', 'extMocks', 'mocks', 'los', 'reread', 'trapRules', 'miniCfg', 'mockCal', 'qvoTrash']);
+const DEEP_RE = /^(cards:|decks:|deckst:)/, TS_WHOLE = /^(cards:|qnotes$)/;
+const isDeepKv = id => DEEP_KV.has(String(id)) || DEEP_RE.test(String(id));
 const mbKey = id => String(id).startsWith('qstats:') ? 'qsbase:' + String(id).slice(7) : 'mbase:' + id;
-const isMergeKv = id => String(id).startsWith('qstats:') || MERGE_KV.has(String(id)) || DEEP_KV.has(String(id));
+const isMergeKv = id => String(id).startsWith('qstats:') || MERGE_KV.has(String(id)) || isDeepKv(id);
+// v44 · data-shape version: a device whose site version is OLDER than the data in your account stops uploading (it could overwrite the new shape) and asks you to update
+const APP_SCHEMA = 3;
+let SCHEMA_BLOCK = false;
+async function hardUpdate() { try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) if (k !== 'cfa-l1-vendor') await caches.delete(k); } catch (e) { window.__diag && __diag.swallow(e);  } location.reload(); }
+function schemaBar(v) {
+  if (document.getElementById('schemaBar')) return;
+  const b = document.createElement('div'); b.id = 'schemaBar'; b.setAttribute('role', 'alert');
+  b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:90;display:flex;gap:10px;align-items:center;max-width:min(640px,calc(100vw - 16px));padding:8px 10px 8px 14px;border-radius:12px;background:#7f1d1d;color:#fff;border:1px solid #fca5a5;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.5)';
+  b.innerHTML = `<span><b>This device runs an older version of the site</b> than your saved data (data v${v}, site v${APP_SCHEMA}). Uploading is paused so nothing is overwritten.</span><button type="button" class="btn-primary text-xs" style="min-height:44px;white-space:nowrap">Update now</button>`;
+  b.querySelector('button').onclick = hardUpdate; (document.body || document.documentElement).appendChild(b);
+}
+async function schemaCheck() {
+  try {
+    const v = +(await kv.get('schemaVer', 0)) || 0;
+    if (v > APP_SCHEMA) { SCHEMA_BLOCK = true; schemaBar(v); return false; }
+    SCHEMA_BLOCK = false; const bar = document.getElementById('schemaBar'); if (bar) bar.remove();
+    if (v < APP_SCHEMA) await kv.set('schemaVer', APP_SCHEMA);
+  } catch (e) { window.__diag && __diag.log('schema', e && e.message || e); }
+  return true;
+}
 const LOCAL_KV = new Set(['zoom', 'sideOpen', '__owner', 'aiZoom', 'navMobile']); // device-specific preferences
 function setClient(client, uid) { cloud = client; userId = uid; }
 
@@ -3595,6 +3626,7 @@ const isNetMsg = e => /fetch|network|timeout|offline|load failed|aborted/i.test(
 
 function flush() {
   if (!cloud) return Promise.resolve();
+  if (SCHEMA_BLOCK) { setStatus('error', 'this site version is older than your data — press Update now'); return Promise.resolve(); }
   if (!navigator.onLine) { setStatus('offline'); return Promise.resolve(); }
   if (flushing) return flushing;
   flushing = (async () => {
@@ -3619,8 +3651,8 @@ function flush() {
           if (ce) throw ce;
           const cm = new Map((cr || []).map(r => [r.id, r.data]));
           for (const u of qsUps) {
-            const key = mbKey(u.id), b0 = await local.get('kv', key), base = b0 || (u.id.startsWith('qstats:') ? {} : cm.get(u.id) || {}), sent = JSON.stringify(u.data);   // no base yet (first sync after the update): this device wins, as before
-            u.data = (u.id.startsWith('qstats:') ? qsMerge3 : DEEP_KV.has(u.id) ? deepMerge3 : objMerge3)(base, u.data || {}, cm.get(u.id) || {});
+            const key = mbKey(u.id), b0 = await local.get('kv', key), base = b0 || (u.id.startsWith('qstats:') ? {} : isDeepKv(u.id) ? (Array.isArray(u.data) ? [] : {}) : cm.get(u.id) || {}), sent = JSON.stringify(u.data);   // v44 · no base yet on a mergeable key: both sides count as additions (union) — the other device's entries are never dropped   // no base yet (first sync after the update): this device wins, as before
+            u.data = (u.id.startsWith('qstats:') ? qsMerge3 : isDeepKv(u.id) ? ((b, m, t) => deepMerge3(b, m, t, TS_WHOLE.test(u.id))) : objMerge3)(base, u.data === undefined ? {} : u.data, cm.get(u.id) === undefined ? {} : cm.get(u.id));
             qsMerged.push({ id: u.id, key, merged: u.data, sent });
           }
         }
@@ -3654,7 +3686,7 @@ function flush() {
           if (mj !== m.sent && JSON.stringify(await local.get('kv', m.id)) === m.sent) {
             await local.put('kv', m.merged, m.id);
             if (m.id.startsWith('qstats:')) { _qsSnap.set(m.id, mj); kvCache.delete('qstats'); }
-            else { kvCache.delete(m.id); if (m.id === 'qedits') try { await loadQE(); } catch { } }
+            else { kvCache.delete(m.id); if (m.id === 'qedits') try { await loadQE(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
           }
         }
         for (const [s, ids] of Object.entries(dels)) {
@@ -3666,12 +3698,12 @@ function flush() {
           }
         }
         // a row rejected by the server 3 times in a row is parked (Settings → Diagnostics → Retry) instead of failing on every sync
-        let dead = []; try { dead = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { }
-        let fc = {}; try { fc = JSON.parse(localStorage.getItem('syncFailCnt') || '{}'); } catch { }
+        let dead = []; try { dead = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch (_e) { window.__diag && __diag.swallow(_e);  }
+        let fc = {}; try { fc = JSON.parse(localStorage.getItem('syncFailCnt') || '{}'); } catch (_e) { window.__diag && __diag.swallow(_e);  }
         const parkK = new Set();
         for (const [k, e] of failed) { fc[k] = (fc[k] || 0) + 1; if (fc[k] >= 3) { parkK.add(k); delete fc[k]; const [st, id] = k.split('\u0000'); dead = dead.filter(d => !(d.store === st && d.id === id)); dead.push({ store: st, id, msg: String(e.message || e).slice(0, 200), t: Date.now() }); } }
         for (const x of items) { const k = ik(x.v.store, x.v.id); if (!failed.has(k)) delete fc[k]; }
-        try { localStorage.setItem('syncFailCnt', JSON.stringify(fc)); localStorage.setItem('syncDead', JSON.stringify(dead.slice(-50))); } catch { }
+        try { localStorage.setItem('syncFailCnt', JSON.stringify(fc)); localStorage.setItem('syncDead', JSON.stringify(dead.slice(-50))); } catch (_e) { window.__diag && __diag.swallow(_e);  }
         for (const k of parkK) failed.delete(k);
         await local.delKeys('outbox', items.filter(x => !failed.has(ik(x.v.store, x.v.id))).map(x => x.k));
         await idxSave();
@@ -3679,7 +3711,7 @@ function flush() {
       }
       await idxSave();
       markSynced(); setStatus('synced');
-    } catch (e) { try { await idxSave(); } catch { } setStatus(navigator.onLine ? 'error' : 'offline', e.message || String(e)); }
+    } catch (e) { try { await idxSave(); } catch (_e) { window.__diag && __diag.swallow(_e);  } setStatus(navigator.onLine ? 'error' : 'offline', e.message || String(e)); }
     finally { flushing = null; }
   })();
   return flushing;
@@ -3816,7 +3848,7 @@ async function pullFull() {
   });
   _idx = {}; for (const r of rows) if (!(r.store === 'kv' && LOCAL_KV.has(r.id))) _idx[ik(r.store, r.id)] = tsNum(r.updated_at);
   _idxDirty = true; await idxSave();
-  try { localStorage.setItem('lastFullPull', String(Date.now())); } catch { }
+  try { localStorage.setItem('lastFullPull', String(Date.now())); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   kvCache.clear();
   markSynced(); setStatus('synced');
   window.__lastPullInfo = { mode: 'full', remote: rows.length, fetched: rows.length, removed: 0 };
@@ -3848,8 +3880,8 @@ function pull() {
 
 async function wipeDevice() {
   for (const s of ['files', 'blobs', 'kv', 'highlights', 'notes', 'outbox']) await local.clear(s);
-  _idx = null; _idxDirty = false; try { localStorage.removeItem('lastFullPull'); } catch { }
-  kvCache.clear(); await undoClear(); try { localStorage.removeItem('lastSyncAt'); } catch { }
+  _idx = null; _idxDirty = false; try { localStorage.removeItem('lastFullPull'); } catch (_e) { window.__diag && __diag.swallow(_e);  }
+  kvCache.clear(); await undoClear(); try { localStorage.removeItem('lastSyncAt'); } catch (_e) { window.__diag && __diag.swallow(_e);  }
 }
 
 // ---------------- synced API used by the app ----------------
@@ -3879,7 +3911,7 @@ const kv = {
   },
   async set(k, v) {
     if (k === 'qstats') return qsSet(v);
-    if (SKIP_SAME_KV.has(k)) { try { if (JSON.stringify(await local.get('kv', k)) === JSON.stringify(v)) { kvCache.set(k, v); return; } } catch { } }   // v39 · browsing must not fill the upload queue with unchanged values
+    if (SKIP_SAME_KV.has(k)) { try { if (JSON.stringify(await local.get('kv', k)) === JSON.stringify(v)) { kvCache.set(k, v); return; } } catch (_e) { window.__diag && __diag.swallow(_e);  } }   // v39 · browsing must not fill the upload queue with unchanged values
     dataBump(k); kvCache.set(k, v); await db.put('kv', v, k);
   },
 };
@@ -3895,13 +3927,13 @@ function dataBump(k) { if (k == null || !(VOLATILE_KV.has(k) || /^(qstats|curLos
 // (IndexedDB is shared, so the next read gets the newest value) and show a one-time notice to work in one tab at a time.
 var TAB_ID = Math.random().toString(36).slice(2), _bc = null;
 try { _bc = 'BroadcastChannel' in self ? new BroadcastChannel('cfa-l1-tabs') : null; } catch (e) { _bc = null; }
-function tabsSay(m) { try { _bc && _bc.postMessage(Object.assign({}, m, { from: TAB_ID })); } catch (e) { } }
+function tabsSay(m) { try { _bc && _bc.postMessage(Object.assign({}, m, { from: TAB_ID })); } catch (e) { window.__diag && __diag.swallow(e);  } }
 function tabsNotice() {
-  if (document.getElementById('tabsBar')) return; try { if (sessionStorage.getItem('tabsBarOff')) return; } catch (e) { }
+  if (document.getElementById('tabsBar')) return; try { if (sessionStorage.getItem('tabsBarOff')) return; } catch (e) { window.__diag && __diag.swallow(e);  }
   const b = document.createElement('div'); b.id = 'tabsBar'; b.setAttribute('role', 'status');
   b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:64px;z-index:80;display:flex;gap:10px;align-items:center;max-width:min(560px,calc(100vw - 24px));padding:6px 6px 6px 14px;border-radius:12px;background:#1e293b;color:#f8fafc;border:1px solid #f59e0b;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3)';
   b.innerHTML = '<span>The site is also open in another tab. Saves from both tabs are kept, but to be safe work in one tab at a time.</span><button type="button" class="ib" aria-label="Close" style="min-width:44px;min-height:44px;color:inherit">✕</button>';
-  b.querySelector('button').onclick = () => { b.remove(); try { sessionStorage.setItem('tabsBarOff', '1'); } catch (e) { } };
+  b.querySelector('button').onclick = () => { b.remove(); try { sessionStorage.setItem('tabsBarOff', '1'); } catch (e) { window.__diag && __diag.swallow(e);  } };
   (document.body || document.documentElement).appendChild(b);
 }
 if (_bc) {
@@ -3957,7 +3989,7 @@ async function qsSet(dict) {
   const groups = {};
   for (const [id, s] of Object.entries(dict || {})) { const k = 'qstats:' + qsShard(id); (groups[k] = groups[k] || {})[id] = s; }
   for (const [k, g] of Object.entries(groups)) { const js = JSON.stringify(g); if (_qsSnap.get(k) !== js) { _qsSnap.set(k, js); await db.put('kv', g, k); } }
-  for (const k of [..._qsSnap.keys()]) if (!groups[k]) { _qsSnap.delete(k); await db.del('kv', k); try { await local.del('kv', 'qsbase:' + k.slice(7)); } catch { } }
+  for (const k of [..._qsSnap.keys()]) if (!groups[k]) { _qsSnap.delete(k); await db.del('kv', k); try { await local.del('kv', 'qsbase:' + k.slice(7)); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 }
 // ---- question statistics: merge with the other device, question by question (3-way: last synced copy · this device · cloud) ----
 const qsSame = (x, y) => JSON.stringify(x) === JSON.stringify(y);
@@ -3989,7 +4021,7 @@ function objMerge3(base, mine, theirs) {
   }
   return out;
 }
-function deepMerge3(base, mine, theirs) {
+function deepMerge3(base, mine, theirs, wholeTs) {
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b), plain = v => v && typeof v === 'object' && !Array.isArray(v);
   const go = (b, l, r) => {
     if (same(l, r)) return l;
@@ -4004,6 +4036,7 @@ function deepMerge3(base, mine, theirs) {
       return out;
     }
     if (typeof l === 'boolean' && typeof r === 'boolean') return l || r;                    // a watched / done flag set on either device stays set
+    if (wholeTs && plain(l) && plain(r) && typeof l.ts === 'number' && typeof r.ts === 'number') return r.ts > l.ts ? r : l;   // a record with its own timestamp (flashcard, note): the newer one wins as a whole
     if (plain(l) && plain(r)) {
       const out = {}, bb = plain(b) ? b : {};
       for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) { const v = go(bb[k], l[k], r[k]); if (v !== undefined) out[k] = v; }
@@ -4014,8 +4047,9 @@ function deepMerge3(base, mine, theirs) {
     if (typeof l === 'number' && typeof r === 'number') return Math.max(l, r);
     return objTs(r) > objTs(l) ? r : l;
   };
-  const out = go(base || {}, mine || {}, theirs || {});
-  return plain(out) ? out : (mine || {});
+  const b0 = Array.isArray(mine) && !Array.isArray(base) ? undefined : (base || {});
+  const out = go(b0, mine === undefined || mine === null ? {} : mine, theirs === undefined || theirs === null ? {} : theirs);
+  return plain(out) || Array.isArray(out) ? out : (mine || {});
 }
 function qsMerge3(base, mine, theirs) {
   const out = {}, ids = new Set([...Object.keys(mine), ...Object.keys(theirs)]);
@@ -4102,7 +4136,7 @@ const waitOnline = () => navigator.onLine ? Promise.resolve() : new Promise(res 
 
 async function uploadBook(id, file, onProgress) {
   const parts = Math.max(1, Math.ceil(file.size / CHUNK)), rk = resumeKey(id, file.size);
-  let start = 0; try { start = Math.min(parts, +(localStorage.getItem(rk) || 0)); } catch { }   // pieces already uploaded by an earlier attempt of the same file
+  let start = 0; try { start = Math.min(parts, +(localStorage.getItem(rk) || 0)); } catch (_e) { window.__diag && __diag.swallow(_e);  }   // pieces already uploaded by an earlier attempt of the same file
   let useXhr = true;
   for (let i = start; i < parts; i++) {
     const piece = file.slice(i * CHUNK, (i + 1) * CHUNK);
@@ -4125,10 +4159,10 @@ async function uploadBook(id, file, onProgress) {
         await sleep(1500 * 2 ** attempt);
       }
     }
-    try { localStorage.setItem(rk, String(i + 1)); } catch { }
+    try { localStorage.setItem(rk, String(i + 1)); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   }
   onProgress && onProgress(1);
-  try { localStorage.removeItem(rk); } catch { }
+  try { localStorage.removeItem(rk); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   return parts;
 }
 
@@ -4136,7 +4170,7 @@ async function deleteBookFiles(meta) {
   const paths = Array.from({ length: meta.parts || 1 }, (_, i) => partPath(stoId(meta), i));
   const { error } = await cloud.storage.from('books').remove(paths);
   if (error) throw error;
-  try { const pre = `upl:${userId}:${meta.id}:`; Object.keys(localStorage).filter(k => k.startsWith(pre)).forEach(k => localStorage.removeItem(k)); } catch { }
+  try { const pre = `upl:${userId}:${meta.id}:`; Object.keys(localStorage).filter(k => k.startsWith(pre)).forEach(k => localStorage.removeItem(k)); } catch (_e) { window.__diag && __diag.swallow(_e);  }
 }
 
 async function cacheBlob(id, blob) { await local.put('blobs', { id, blob }); }
@@ -4615,14 +4649,14 @@ function renderNotes(el, opts) {
       editing = null;
       await updateNote(n);
     } else if (act === 'del') {
-      if (confirm('Delete this note?')) await deleteNote(n);
+      if ((await appConfirm('Delete this note?'))) await deleteNote(n);
     } else if (act === 'up' || act === 'down') {
       const i = notes.indexOf(n), j = act === 'up' ? i - 1 : i + 1;
       const o = notes[j]; [n.order, o.order] = [o.order, n.order];
       if (n.order === o.order) n.order += act === 'up' ? -0.5 : 0.5;
       await db.put('notes', o); await updateNote(n);
     } else if (act === 'card') {
-      const front = prompt('Flashcard front (question / cue):', ''); if (front !== null) await addCard(moduleId, { front: front || n.text.slice(0, 80) + '…', back: [n.text, n.comment].filter(Boolean).join('\n\n💡 '), los: n.los || null });
+      const front = (await appPrompt('Flashcard front (question / cue):', '')); if (front !== null) await addCard(moduleId, { front: front || n.text.slice(0, 80) + '…', back: [n.text, n.comment].filter(Boolean).join('\n\n💡 '), los: n.los || null });
     } else if (act === 'jump' && n.source && onJump) onJump(n.source);
   };
 
@@ -4642,7 +4676,7 @@ async function ensurePdf() {
   if (pdfjsLib) return pdfjsLib;
   // the PDF engine lives in vendor/pdf.js + vendor/pdf.worker.js next to this page (loaded on first use, cached by the service worker)
   // P0 · works whether pdf.js / pdf.worker.js sit in a "vendor" folder or right next to index.html
-  const fail = (what, e) => { const m = `The PDF engine file (${what}) could not be loaded. Put pdf.js and pdf.worker.js in a folder named "vendor" next to index.html (or next to index.html itself).`; try { toast(m); } catch { } const err = new Error(m); err.cause = e; throw err; };
+  const fail = (what, e) => { const m = `The PDF engine file (${what}) could not be loaded. Put pdf.js and pdf.worker.js in a folder named "vendor" next to index.html (or next to index.html itself).`; try { toast(m); } catch (_e) { window.__diag && __diag.swallow(_e);  } const err = new Error(m); err.cause = e; throw err; };
   let base = new URL('vendor/', document.baseURI).href;
   if (location.protocol === 'file:') fail('this page is opened from disk — use the single-file build or open the site by its web address', null);
   let lib; try { lib = await import(base + 'pdf.js'); } catch (e) { try { base = new URL('./', document.baseURI).href; lib = await import(base + 'pdf.js'); } catch (e2) { fail('pdf.js', e2); } }
@@ -4656,7 +4690,7 @@ async function ensurePdf() {
 let openDoc = { id: null, pdf: null };
 async function loadPdf(fileId, onProgress) {
   if (openDoc.id === fileId) return openDoc.pdf;
-  if (openDoc.pdf) { try { await openDoc.pdf.destroy(); } catch {} }
+  if (openDoc.pdf) { try { await openDoc.pdf.destroy(); } catch (_e) { window.__diag && __diag.swallow(_e); } }
   const f = await db.get('files', fileId);
   if (!f) throw new Error('Book not found. Upload it in Library.');
   const blob = await getBlob(f, onProgress);
@@ -4673,7 +4707,7 @@ async function inspectPdf(blob) {
   const data = new Uint8Array(await blob.arrayBuffer());
   const pdf = await pdfjsLib.getDocument({ data }).promise;
   const out = { id: pdf.fingerprints[0], pages: pdf.numPages };
-  try { const md = await pdf.getMetadata(); out.title = (md && md.info && md.info.Title) || ''; } catch { }
+  try { const md = await pdf.getMetadata(); out.title = (md && md.info && md.info.Title) || ''; } catch (_e) { window.__diag && __diag.swallow(_e);  }
   await pdf.destroy();
   return out;
 }
@@ -4796,8 +4830,8 @@ async function mountReader(root, opts) {
 
   function unrender(n) {
     const r = rendered.get(n); if (!r) return;
-    try { r.task && r.task.cancel(); } catch {}
-    try { r.tl && r.tl.cancel(); } catch {}
+    try { r.task && r.task.cancel(); } catch (_e) { window.__diag && __diag.swallow(_e); }
+    try { r.tl && r.tl.cancel(); } catch (_e) { window.__diag && __diag.swallow(_e); }
     const d = pageDivs[n];
     d.innerHTML = `<div class="pg-ph">${n}</div>`;
     rendered.delete(n);
@@ -4828,7 +4862,7 @@ async function mountReader(root, opts) {
       if (rendered.get(n) !== token) return;
       token.tl = new pdfjsLib.TextLayer({ textContentSource: page.streamTextContent(), container: tl, viewport: vp });
       await token.tl.render();
-    } catch (e) { /* cancelled */ }
+    } catch (e) { window.__diag && __diag.swallow(e);  /* cancelled */ }
   }
 
   let flashId = null;
@@ -4914,14 +4948,14 @@ async function mountReader(root, opts) {
       if (v === 'mod') { from = mr.from; to = mTo; }
       if (v === 'all') { from = 1; to = pdf.numPages; }
       from = Math.max(1, Math.min(pdf.numPages, from | 0)); to = Math.max(from, Math.min(pdf.numPages, to | 0));
-      if (to - from + 1 > 150 && !confirm(`Print ${to - from + 1} pages? This can take a while.`)) return;
+      if (to - from + 1 > 150 && !(await appConfirm(`Print ${to - from + 1} pages? This can take a while.`))) return;
       e.target.disabled = true;
       try { await printPdfPages(pdf, Array.from({ length: to - from + 1 }, (_, i) => from + i), pop.querySelector('#prHl').checked, highlights, bookLabel, t => { const m = pop.querySelector('[data-p=msg]'); if (m) m.textContent = t; }); pop.remove(); }
       catch (err) { pop.querySelector('[data-p=msg]').textContent = '❌ ' + err.message; e.target.disabled = false; }
     };
   }
   let ixStop = false; cleanups.push(() => { ixStop = true; });
-  setTimeout(() => { if (!ixStop) indexBook(file.id, pdf, () => ixStop).catch(() => {}); }, 4000);
+  setTimeout(() => { if (!ixStop) indexBook(file.id, pdf, () => ixStop).catch(e => { window.__diag && __diag.swallow(e); }); }, 4000);
   layout(); pgInput.value = current;
   const pf = (() => { try { return JSON.parse(sessionStorage.getItem('rdFocus') || 'null'); } catch { return null; } })();
   if (pf && pf.fileId === file.id) { sessionStorage.removeItem('rdFocus'); requestAnimationFrame(() => { focusSpot(pf.page, pf.y, pf.hl); if (pf.q) markSearch(pf.page, pf.q); }); }
@@ -4961,8 +4995,8 @@ async function mountReader(root, opts) {
   let fsSide = null;
   function toggleFs(on = !document.body.classList.contains('rd-fs')) {
     document.body.classList.toggle('rd-fs', on);
-    if (on) { fsSide = sideOpen; if (sideOpen) toggleSide(false); document.documentElement.requestFullscreen?.().catch(() => {}); }
-    else { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); if (fsSide) toggleSide(true); }
+    if (on) { fsSide = sideOpen; if (sideOpen) toggleSide(false); document.documentElement.requestFullscreen?.().catch(e => { window.__diag && __diag.swallow(e); }); }
+    else { if (document.fullscreenElement) document.exitFullscreen?.().catch(e => { window.__diag && __diag.swallow(e); }); if (fsSide) toggleSide(true); }
     setTimeout(relayout, 120);
   }
   const onFsChange = () => { if (!document.fullscreenElement && document.body.classList.contains('rd-fs')) toggleFs(false); };
@@ -5176,6 +5210,30 @@ async function copy(t) {
   catch { const ta = document.createElement('textarea'); ta.value = t; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
 }
 
+// v44 · in-page dialogs instead of the browser's confirm() / prompt() / alert(): they are not blocked inside installed apps and tablets, they match the site and they never freeze the page
+function appDialog(o) {
+  return new Promise(res => {
+    const prev = document.activeElement, bg = document.createElement('div'), id = 'dlg' + Math.random().toString(36).slice(2, 7);
+    bg.className = 'modal-bg'; bg.style.zIndex = '95'; bg.setAttribute('role', 'alertdialog'); bg.setAttribute('aria-modal', 'true'); bg.setAttribute('aria-labelledby', id + 'm');
+    bg.innerHTML = `<div class="card modal-box" style="width:28rem;max-width:100%;max-height:90vh;overflow:auto"><div id="${id}m" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5"></div>${o.input ? `<input id="${id}i" class="inp mt-3" style="width:100%" autocomplete="off">` : ''}<div class="flex gap-2 justify-end mt-4 flex-wrap">${o.noCancel ? '' : '<button type="button" class="btn-ghost" data-d="no" style="min-height:44px;min-width:92px"></button>'}<button type="button" class="btn-primary" data-d="ok" style="min-height:44px;min-width:92px${o.danger ? ';background:#dc2626;border-color:#dc2626' : ''}"></button></div></div>`;
+    bg.querySelector('#' + id + 'm').textContent = String(o.msg == null ? '' : o.msg);
+    const bo = bg.querySelector('[data-d=ok]'), bn = bg.querySelector('[data-d=no]'), inp = bg.querySelector('#' + id + 'i');
+    bo.textContent = o.ok || 'OK'; if (bn) bn.textContent = o.cancel || 'Cancel'; if (inp) inp.value = o.def == null ? '' : String(o.def);
+    const done = v => { document.removeEventListener('keydown', onKey, true); bg.remove(); try { prev && prev.isConnected && prev.focus && prev.focus({ preventScroll: true }); } catch (e) { window.__diag && __diag.swallow(e);  } res(v); };
+    const yes = () => done(o.input ? (inp.value) : true), no = () => done(o.input ? null : false);
+    function onKey(e) {
+      if (!bg.isConnected) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); o.noCancel ? yes() : no(); }
+      else if (e.key === 'Enter' && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.d === 'no')) { e.preventDefault(); e.stopPropagation(); yes(); }
+    }
+    bg.onclick = e => { const b = e.target.closest('[data-d]'); if (b) return b.dataset.d === 'ok' ? yes() : no(); if (e.target === bg && !o.noCancel) no(); };
+    document.addEventListener('keydown', onKey, true); document.body.appendChild(bg);
+    setTimeout(() => { try { (inp || (o.danger && bn) || bo).focus(); if (inp) inp.select(); } catch (e) { window.__diag && __diag.swallow(e);  } }, 30);
+  });
+}
+const appConfirm = msg => appDialog({ msg, danger: /^\W*(delete|remove|reset|clear|unlink|restore|replace|apply|discard)\b/i.test(String(msg)) });
+const appPrompt = (msg, def) => appDialog({ msg, input: true, def });
+const appAlert = msg => appDialog({ msg, noCancel: true });
 function toast(msg) {
   let t = document.getElementById('toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); document.body.append(t); }
@@ -5195,7 +5253,7 @@ const SB_STORE_KEY = 'sb-' + new URL(SB_URL).hostname.split('.')[0] + '-auth-tok
 function storedSession() {            // the session Supabase keeps in localStorage — readable without the library or network
   try { const v = JSON.parse(localStorage.getItem(SB_STORE_KEY) || 'null'), x = v?.currentSession || v; return x?.user?.id ? x : null; } catch { return null; }
 }
-function clearStoredSession() { try { localStorage.removeItem(SB_STORE_KEY); localStorage.removeItem(SB_STORE_KEY + '-user'); } catch { } }
+function clearStoredSession() { try { localStorage.removeItem(SB_STORE_KEY); localStorage.removeItem(SB_STORE_KEY + '-user'); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 function makeOfflineClient() {
   const err = { name: 'AuthRetryableFetchError', message: 'Cloud library is not loaded (offline)' };
   const chain = () => new Proxy(function () { }, { get: (_, k) => k === 'then' ? (res => res({ data: null, error: err })) : chain(), apply: () => chain() });
@@ -5253,11 +5311,11 @@ document.getElementById('themeBtn').onclick = async () => {
   const pop = document.createElement('div'); pop.className = 'fs-pop no-print hidden'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Text size');
   pop.innerHTML = '<button data-fs="-1" class="fs-small" aria-label="Smaller text">A−</button><span class="fs-val"></span><button data-fs="1" class="fs-large" aria-label="Larger text">A+</button><button data-fs="0" class="fs-reset">Reset</button><div class="fs-note">PDF pages keep the reader’s own zoom (− / +).</div>';
   document.body.append(pop);
-  let i = 1; try { const v = parseFloat(localStorage.getItem('fs')); if (v) i = STEPS.reduce((b, x, k) => Math.abs(x - v) < Math.abs(STEPS[b] - v) ? k : b, 1); } catch {}
+  let i = 1; try { const v = parseFloat(localStorage.getItem('fs')); if (v) i = STEPS.reduce((b, x, k) => Math.abs(x - v) < Math.abs(STEPS[b] - v) ? k : b, 1); } catch (_e) { window.__diag && __diag.swallow(_e); }
   const set = n => {
     i = Math.max(0, Math.min(STEPS.length - 1, n));
     document.documentElement.style.setProperty('--fs', STEPS[i]);
-    try { localStorage.setItem('fs', STEPS[i]); } catch {}
+    try { localStorage.setItem('fs', STEPS[i]); } catch (_e) { window.__diag && __diag.swallow(_e); }
     pop.querySelector('.fs-val').textContent = Math.round(STEPS[i] * 100) + '%';
     pop.querySelector('[data-fs="-1"]').disabled = i === 0; pop.querySelector('[data-fs="1"]').disabled = i === STEPS.length - 1;
   };
@@ -5397,7 +5455,7 @@ const lpShown = tabs => tabs.filter(([k]) => !LP_HIDE.has(k));
 const lpSteps = tabs => lpShown(tabs).filter(([k]) => k !== 'perf');     // Performance is a view, not a step you tick
 const LP_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 async function lpBase(modId) {   // v40 · the two parts of Complete that are not outline ticks, so the outline shows the same % as the lesson header
-  try { const m = modInfo(modId), p = modProgress(m, await progressCtx()); return { lecture: p.lecture, solved: p.solved }; } catch (e) { return { lecture: 0, solved: 0 }; }
+  try { const m = modInfo(modId), p = modProgress(m, await progressCtx()); return { lecture: p.lecture, solved: p.solved, av: { lec: p.av.lecture, flash: p.av.flashS, q: p.av.solved } }; } catch (e) { return { lecture: 0, solved: 0 }; }
 }
 async function lpDone(modId) { const all = (await kv.get('lessonSteps', {})) || {}; return { ...(all[modId] || {}) }; }
 const lpClosedNow = () => { try { return localStorage.getItem('lpClosed') === '1'; } catch (e) { return false; } };
@@ -5417,7 +5475,7 @@ function lpStrip(o) {       // the tab strip shown on narrow screens (the outlin
   return `<button type="button" class="lp-lecchip" data-vids="${esc(o.x.id)}" title="Lecture videos of this module">${lpChipTxt(vs)}</button>` + lpShown(o.tabs).map(([k, l]) => `<a href="${o.hrefOf(k)}" class="${k === o.tab ? 'on' : ''}${o.st[k] ? ' lp-tick' : ''}">${l}</a>`).join('');
 }
 function lpHTML(o) {
-  const { tabs, tab, hrefOf, st } = o, steps = lpSteps(tabs), n = steps.filter(([k]) => st[k]).length, pct = lpPartsK(steps.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved).cmp;
+  const { tabs, tab, hrefOf, st } = o, steps = lpSteps(tabs), n = steps.filter(([k]) => st[k]).length, pct = lpPartsK(steps.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved, (o.base || {}).av).cmp;
   let last = '';
   const rows = lpShown(tabs).map(([k, l]) => {
     const g = LP_GROUP[k] || '', head = g !== last ? (g === 'Consolidate' ? '<li class="lp-grp lp-grp-gap" role="presentation"></li>' : `<li class="lp-grp" role="presentation">${g}</li>`) : ''; last = g;
@@ -5436,7 +5494,7 @@ function lpBind(root, o) {
   if (!root) return;
   const tabs = lpSteps(o.tabs), idx = tabs.findIndex(([k]) => k === o.tab), st = { ...o.st };
   const paint = () => {
-    const n = tabs.filter(([k]) => st[k]).length, pct = lpPartsK(tabs.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved).cmp;
+    const n = tabs.filter(([k]) => st[k]).length, pct = lpPartsK(tabs.map(z => z[0]), st, (o.base || {}).lecture, (o.base || {}).solved, (o.base || {}).av).cmp;
     root.querySelectorAll('.lp-row[data-k]').forEach(r => { const dot = r.querySelector('.lp-dot'); if (!dot) return; const d = !!st[r.dataset.k]; r.classList.toggle('done', d); dot.setAttribute('aria-pressed', String(d)); });
     root.querySelectorAll('.tabs a').forEach((a, i) => { if (tabs[i]) a.classList.toggle('lp-tick', !!st[tabs[i][0]]); });
     const bar = root.querySelector('.lp-bar'); if (bar) { bar.firstElementChild.style.width = pct + '%'; bar.setAttribute('aria-valuenow', String(pct)); }
@@ -5453,7 +5511,7 @@ function lpBind(root, o) {
   root.addEventListener('click', async e => {
     const b = e.target.closest('[data-lpa]'); if (!b || !root.contains(b)) return;
     const a = b.dataset.lpa;
-    if (a === 'panel') { const closed = root.classList.toggle('lp-closed'); try { localStorage.setItem('lpClosed', closed ? '1' : '0'); } catch (x) { } return; }
+    if (a === 'panel') { const closed = root.classList.toggle('lp-closed'); try { localStorage.setItem('lpClosed', closed ? '1' : '0'); } catch (x) { window.__diag && __diag.swallow(x);  } return; }
     if (a === 'dot') { e.preventDefault(); const k = b.dataset.k; if (st[k]) delete st[k]; else st[k] = Date.now(); paint(); await save(); return; }
     if (a === 'done') {
       if (idx < 0) return;                                  // the Performance page has nothing to tick
@@ -5468,7 +5526,7 @@ function lpBind(root, o) {
   syncFresh(4000).then(ch => { if (ch) { dispatchEvent(new Event('lp:steps')); dispatchEvent(new Event('lp:vids')); } });
 }
 // the status block of the lesson header follows every tick of the outline and every change of the videos
-const lpRefreshHead = async () => { const root = document.querySelector('.lp-shell[data-mid]'), el = document.getElementById('mTrack'); if (!root || !el) return; try { el.innerHTML = await moduleTrackStrip(root.dataset.mid); } catch (e) { } try { if (root.__lp) { root.__lp.setSt(await lpDone(root.dataset.mid)); root.__lp.o.base = await lpBase(root.dataset.mid); root.__lp.paint(); } } catch (e) { } };
+const lpRefreshHead = async () => { const root = document.querySelector('.lp-shell[data-mid]'), el = document.getElementById('mTrack'); if (!root || !el) return; try { el.innerHTML = await moduleTrackStrip(root.dataset.mid); } catch (e) { window.__diag && __diag.swallow(e);  } try { if (root.__lp) { root.__lp.setSt(await lpDone(root.dataset.mid)); root.__lp.o.base = await lpBase(root.dataset.mid); root.__lp.paint(); } } catch (e) { window.__diag && __diag.swallow(e);  } };
 addEventListener('lp:steps', lpRefreshHead);
 addEventListener('lp:vids', () => setTimeout(lpRefreshHead, 60));
 // the Lectures list refreshes by itself when videos are added, removed or reordered in the dialog
@@ -5491,16 +5549,16 @@ async function practiceWindow(body, x, first, qPane) {
   body.innerHTML = `<div class="pw-seg" role="tablist" aria-label="Practice"><button type="button" role="tab" data-pw="qbank">🎯 Questions</button><button type="button" role="tab" data-pw="mistakes">📕 Mistakes <span class="pw-n">${nMis}</span></button></div><div class="pw-pane"></div>`;
   const seg = body.querySelector('.pw-seg'); let cleanup = null, cur = null;
   async function show(which) {
-    if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; }
+    if (cleanup) { try { cleanup(); } catch (e) { window.__diag && __diag.swallow(e);  } cleanup = null; }
     cur = which;
     seg.querySelectorAll('button').forEach(b => { const on = b.dataset.pw === which; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     const old = body.querySelector('.pw-pane'), pane = document.createElement('div'); pane.className = 'pw-pane'; old.replaceWith(pane);
-    try { history.replaceState(null, '', `${base}/${which}`); } catch (e) { }
+    try { history.replaceState(null, '', `${base}/${which}`); } catch (e) { window.__diag && __diag.swallow(e);  }
     const c = await (which === 'mistakes' ? mistakesTab(pane, x) : qPane(pane, x)); if (typeof c === 'function') cleanup = c;
   }
   seg.addEventListener('click', e => { const b = e.target.closest('[data-pw]'); if (b && b.dataset.pw !== cur) show(b.dataset.pw); });
   await show(first === 'mistakes' ? 'mistakes' : 'qbank');
-  return () => { if (cleanup) { try { cleanup(); } catch (e) { } cleanup = null; } };
+  return () => { if (cleanup) { try { cleanup(); } catch (e) { window.__diag && __diag.swallow(e);  } cleanup = null; } };
 }
 
 // ---------- v38 · Performance of ONE module: the dashboard measures, at module level ----------
@@ -5539,7 +5597,7 @@ async function modulePerfTab(body, x) {
   let grad = 0, inq = 0, rqDue = []; for (const q of QS) { const s = st[q.id]; if (s && s.rqGrad) grad++; const r = rqOf(s); if (r) { inq++; if (r.due <= now) rqDue.push(q); } }
   const dueRev = ans.filter(q => st[q.id].due <= now).length, flagged = QS.filter(q => st[q.id]?.flag).length, sw = QS.filter(q => isSureWrong(q, st));
   const peak = ((await kv.get('modPeak', {})) || {})[m.id], fade = rdK && peak != null && peak - rd >= 10 ? { peak, rd } : null;
-  let cardsDue = 0; try { cardsDue = await dueCardCount([m.id]); } catch (e) { }
+  let cardsDue = 0; try { cardsDue = await dueCardCount([m.id]); } catch (e) { window.__diag && __diag.swallow(e);  }
   // weeks and activity
   const wk0 = dshMonday(now).getTime(), act = {}; ev.forEach(e => { const k = dshDay(e.t); act[k] = (act[k] || 0) + 1; });
   const weeks = [...Array(12)].map((_, i) => { const a = wk0 - (11 - i) * WEEK, b = a + WEEK, es = ev.filter(e => e.t >= a && e.t < b), fs = fev.filter(e => e.t >= a && e.t < b);
@@ -5623,7 +5681,7 @@ async function modulePerfTab(body, x) {
     <div class="min-w-[220px] flex-1"><div class="mb-2">${diagChip(rd, p.complete)}</div>
       <div class="grid grid-cols-3 gap-2 text-center text-xs"><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${cov}%</div>Coverage</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${acc == null ? '—' : acc + '%'}</div>Accuracy</div><div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2"><div class="text-lg font-bold">${miniScore == null ? '—' : miniScore + '%'}</div>${mini ? 'Mini-exam' : 'No mini-exam'}</div></div>
       ${mini ? `<div class="text-[11px] text-slate-500 mt-1">${esc(mini.label)}${miniScore == null ? ' · not taken yet' : ''} — it also counts in this topic’s readiness.</div>` : ''}</div></div>
-    <div class="step-grid sg5 mt-4">${stepBar('Lectures', p.lecture)}${stepBar('Reading', p.readS)}${stepBar('Flashcards', p.flashS)}${stepBar('Summary', p.sumS)}${stepBar('Qbank', p.solved)}</div>
+    <div class="step-grid sg5 mt-4">${stepBar('Lectures', p.av && p.av.lecture === false ? null : p.lecture)}${stepBar('Reading', p.readS)}${stepBar('Flashcards', p.av && p.av.flashS === false ? null : p.flashS)}${stepBar('Summary', p.sumS)}${stepBar('Qbank', p.av && p.av.solved === false ? null : p.solved)}</div>
     <div class="text-xs mt-3 flex flex-wrap items-center gap-x-3 gap-y-1" data-tip="${esc(rateTip)}"><b>LOS rating</b><span>🔴 ${mustN} Must improve</span><span>🟡 ${R.list.filter(z => z.rate === 'good').length} Good</span><span>🟢 ${R.list.filter(z => z.rate === 'exc').length} Excellent</span><span class="text-slate-500">⚪ ${R.list.filter(z => z.rate === 'few').length} not rated yet</span></div>`;
 
   body.innerHTML = `<div class="space-y-4 pf-wrap">
@@ -5836,7 +5894,7 @@ async function fsaXtraTab(body, x) {
     else if (t.dataset.fdir || t.dataset.xdir) { const v = t.dataset.fdir || t.dataset.xdir; F.dir = F.dir === v ? '' : v; draw(); }
     else if (t.dataset.fclr) { F.pri = F.dir = ''; draw(); }
     else if (t.dataset.xadd) { if (await xtraSave(body, x, null)) draw(); }
-    else if (t.dataset.xdel && confirm('Delete this item?')) { await db.del('notes', t.dataset.xdel); draw(); }
+    else if (t.dataset.xdel && (await appConfirm('Delete this item?'))) { await db.del('notes', t.dataset.xdel); draw(); }
     else if (t.dataset.jump) { const n = await db.get('notes', t.dataset.jump); if (n?.source) openSource(n.source); }
   };
   await draw();
@@ -5904,7 +5962,7 @@ function fsaExtraPanel(x, kind) {
         el.querySelector('[data-f=text]').value = cleanText(sel);
       } else if (t.dataset.xadd) {
         if (await xtraSave(el, x, { fileId: api.file.id, page: api.current(), label: api.file.label || api.file.name })) render(el, api);
-      } else if (t.dataset.xdel && confirm('Delete this item?')) { await db.del('notes', t.dataset.xdel); render(el, api); }
+      } else if (t.dataset.xdel && (await appConfirm('Delete this item?'))) { await db.del('notes', t.dataset.xdel); render(el, api); }
       else if (t.dataset.jump) { const n = await db.get('notes', t.dataset.jump); if (n?.source?.fileId === api.file.id) api.goTo(n.source.page); else if (n?.source) openSource(n.source); }
     };
     return () => { if (el) el.onclick = el.onchange = el.onmousedown = null; };
@@ -6089,7 +6147,7 @@ async function qvReadPages(doc, onProgress) {
     if (page.rotate) { pages.push(pg); continue; }
     let fonts = {};
     const tc = await page.getTextContent();
-    let ol = null; try { ol = await page.getOperatorList(); } catch { }
+    let ol = null; try { ol = await page.getOperatorList(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
     for (const k of Object.keys(tc.styles || {})) { try { fonts[k] = (page.commonObjs.get(k) || {}).name || ''; } catch { fonts[k] = ''; } }
     // ---- text items
     const items = [];
@@ -6142,7 +6200,7 @@ async function qvReadPages(doc, onProgress) {
       }
     }
     pages.push(pg);
-    try { page.cleanup(); } catch { }
+    try { page.cleanup(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   }
   onProgress && onProgress(1);
   qvDecoration(pages);
@@ -6356,7 +6414,7 @@ function qvCrop(big, sx, sy, sw, sh, padT = 8, padB = 8, jpg = false) {
   let url = o.toDataURL('image/png');
   // v31 · lossless WebP: exactly the same pixels as the PNG (no quality loss), usually several times smaller.
   // Browsers that cannot write WebP (older Safari) return PNG here, so nothing changes for them.
-  try { const w = o.toDataURL('image/webp', 1); if (w.startsWith('data:image/webp') && w.length < url.length * 0.9) return w; } catch { }
+  try { const w = o.toDataURL('image/webp', 1); if (w.startsWith('data:image/webp') && w.length < url.length * 0.9) return w; } catch (_e) { window.__diag && __diag.swallow(_e);  }
   if (url.length > 160000) { const j = o.toDataURL('image/jpeg', 0.85); if (j.length < url.length * 0.7) url = j; }
   return url;
 }
@@ -6475,8 +6533,8 @@ async function qvDropFor(modId, src, srcName) {
 }
 async function qvDropPack(id, metas) {
   const m = metas[id]; if (!m) return;
-  try { if (cloud && !m.localOnly) await deleteBookFiles(m); } catch { }
-  try { await uncache(id); } catch { }
+  try { if (cloud && !m.localOnly) await deleteBookFiles(m); } catch (_e) { window.__diag && __diag.swallow(_e);  }
+  try { await uncache(id); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   delete metas[id]; QV_MEM.delete(id);
 }
 async function qvLoadPack(pk) {
@@ -6485,7 +6543,7 @@ async function qvLoadPack(pk) {
     const blob = await getBlob(meta);
     const pack = JSON.parse(await blob.text());
     if (meta.localOnly && cloud && navigator.onLine) {      // saved offline earlier: upload it now
-      uploadBook(pk, blob).then(async parts => { const m2 = { ...(await kv.get('qpacks', {})) }; if (m2[pk]) { m2[pk] = { ...m2[pk], parts, localOnly: false }; await kv.set('qpacks', m2); } }).catch(() => { });
+      uploadBook(pk, blob).then(async parts => { const m2 = { ...(await kv.get('qpacks', {})) }; if (m2[pk]) { m2[pk] = { ...m2[pk], parts, localOnly: false }; await kv.set('qpacks', m2); } }).catch(e => { window.__diag && __diag.swallow(e);  });
     }
     return pack;
   } catch (e) { QV_MEM.delete(pk); return null; }
@@ -6554,7 +6612,7 @@ async function qvRun(file, srcKey, nums, mode, onProgress) {
     await ensurePdf(); doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
     return await qvExtract(doc, srcKey, new Set(nums), mode, onProgress);
   } catch (e) { console.warn('visuals', e); return { imgs: {}, stats: {}, marks: {}, error: String((e && e.message) || e) }; }
-  finally { try { if (doc) await doc.destroy(); } catch { } }
+  finally { try { if (doc) await doc.destroy(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 }
 function qvAttach(items, vis) {
   if (!vis) return;
@@ -6957,7 +7015,7 @@ async function planView() {
       p.tasks.forEach(z => { const done = full.find(f => f.id === z.id)?.isDone; if (!done) { const d = new Date(z.date + 'T00:00:00'); if (z.date < today || true) { d.setDate(d.getDate() + shift); z.date = isoDay(d); } } });
       await kv.set('plan', p); toast('Remaining tasks moved forward'); return planView();
     }
-    if (t.id === 'pDel' && confirm('Delete your study plan?')) { const sid = await undoSnap('Deleted study plan', ['plan']); await kv.set('plan', null); await planView(); undoToast('Study plan deleted', sid); return; }
+    if (t.id === 'pDel' && (await appConfirm('Delete your study plan?'))) { const sid = await undoSnap('Deleted study plan', ['plan']); await kv.set('plan', null); await planView(); undoToast('Study plan deleted', sid); return; }
   };
   return () => { view.onclick = null; };
 }
@@ -7097,7 +7155,7 @@ async function startMixed() {
 async function startGauntlet() {
   const r = await mixedPick(30, { unseenFirst: true }); if (r.qs.length < 15) return toast('The Weekly Gauntlet needs answered questions in at least two topics (5+ per module)');
   const G = await kv.get('gauntlet', { runs: [] }) || { runs: [] }, best = G.runs.reduce((a, x) => Math.max(a, x.score), 0);
-  if (!confirm(`🏆 Weekly Gauntlet\n\n${r.qs.length} mixed questions · exam mode · ${Math.round(r.qs.length * 1.5)} minutes.\n${best ? 'Your best: ' + best + '%. Beat it!' : 'Set your first record.'}\n\nStart now?`)) return;
+  if (!(await appConfirm(`🏆 Weekly Gauntlet\n\n${r.qs.length} mixed questions · exam mode · ${Math.round(r.qs.length * 1.5)} minutes.\n${best ? 'Your best: ' + best + '%. Beat it!' : 'Set your first record.'}\n\nStart now?`))) return;
   await startQSession(r.qs, 'exam', 'all', location.hash || '#/', { title: 'Weekly Gauntlet', reasons: true, keepOrder: true, gauntlet: true });
 }
 async function saveGauntlet(S, rows) {
@@ -7238,7 +7296,7 @@ async function qbankRun() {
     else if (prevRq) { if (s.ts >= prevRq.due) { const nx = prevRq.step + 1; if (nx >= RQ_STEPS.length) { delete s.rq; s.rqGrad = (s.rqGrad || 0) + 1; s.rqGradAt = s.ts; } else s.rq = { step: nx, due: capDue(s.ts, RQ_STEPS[nx]) }; } else s.rq = { step: prevRq.step, due: prevRq.due }; }
     s.hist = [...(s.hist || []), { t: s.ts, ok, p: L[item.pick], o: oi, s: Math.round((item.t || 0) / 1000), cf: item.conf || null, md: S.mode === 'exam' ? 'exam' : undefined, tw: item.tw ? 1 : undefined }].slice(-20);
     s.box = ok ? Math.min(s.box + (s.n > 1 ? 1 : 2), 4) : 0;
-    if (ok && item.conf === 'guess') s.box = Math.min(s.box, 1);
+    if (ok && item.conf === 'guess') s.box = Math.min(s.box, 1); else if (ok && item.conf === 'unsure') s.box = Math.min(s.box, 2);   // v44 · a right answer you were unsure about is not "known" yet
     s.due = capDue(now(), BOX[s.box]);
     // P3 · a twin answered for a missed question moves (or resets) the retry step of the ORIGINAL question
     if (item.tw && item.tw !== q.id && st[item.tw]) { const o = st[item.tw], pr = rqOf(o);
@@ -7838,8 +7896,8 @@ async function aisumSection(box, x, subjPath) {
     if (fsClick(e)) return;
     if (e.target.id === 'aiView') { simple = !simple; draw(); }
     if (e.target.id === 'aiDl') { const bl = await local.get('blobs', 'aidocx:' + x.id), dc = await kv.get(key, null); if (bl?.blob) downloadBlob(dc?.name || 'AI-summary.docx', bl.blob); }
-    if (e.target.id === 'aiWdel' && confirm('Remove the Word summary?')) { await kv.set(key, null); try { await local.del('blobs', 'aidocx:' + x.id); } catch (e2) { } draw(); }
-    if (e.target.id === 'aiPdel' && confirm('Remove the PDF summary link? (The file stays in Library.)')) { const map = await kv.get('moduleMap', {}); delete map[x.id].aipdf; await kv.set('moduleMap', map); draw(); }
+    if (e.target.id === 'aiWdel' && (await appConfirm('Remove the Word summary?'))) { await kv.set(key, null); try { await local.del('blobs', 'aidocx:' + x.id); } catch (e2) { window.__diag && __diag.swallow(e2);  } draw(); }
+    if (e.target.id === 'aiPdel' && (await appConfirm('Remove the PDF summary link? (The file stays in Library.)'))) { const map = await kv.get('moduleMap', {}); delete map[x.id].aipdf; await kv.set('moduleMap', map); draw(); }
   };
   // selection → Mohd Summary / Flashcard
   const bar = document.createElement('div'); bar.className = 'sel-bar hidden'; bar.style.position = 'fixed';
@@ -7859,7 +7917,7 @@ async function aisumSection(box, x, subjPath) {
   bar.onclick = async e => {
     const a = e.target.dataset.ai; if (!a || !pend) return;
     if (a === 'sum') { await addNote({ moduleId: x.id, kind: 'mohd', type: 'clip', text: pend.text, los: pend.los || (await kv.get('curLos:' + x.id, '')) || null, ul: true, source: null }); toast('Added to Mohd Summary'); }
-    if (a === 'card') { const front = prompt('Flashcard front (question / cue):', ''); if (front !== null) await addCard(x.id, { front: front || pend.text.slice(0, 80) + '…', back: pend.text, los: pend.los || null }); }
+    if (a === 'card') { const front = (await appPrompt('Flashcard front (question / cue):', '')); if (front !== null) await addCard(x.id, { front: front || pend.text.slice(0, 80) + '…', back: pend.text, los: pend.los || null }); }
     if (a === 'copy') { await copy(pend.text); toast('Copied'); }
     getSelection().removeAllRanges(); bar.classList.add('hidden'); pend = null;
   };
@@ -7876,7 +7934,7 @@ async function aisumSection(box, x, subjPath) {
   }
   function setFs(on) {
     fs = on; document.body.classList.toggle('ai-fs', on);
-    if (on) { try { document.documentElement.requestFullscreen?.().catch(() => { }); } catch { } } else { if (document.fullscreenElement) { try { document.exitFullscreen?.().catch(() => { }); } catch { } } notesOn = false; }
+    if (on) { try { document.documentElement.requestFullscreen?.().catch(e => { window.__diag && __diag.swallow(e);  }); } catch (_e) { window.__diag && __diag.swallow(_e);  } } else { if (document.fullscreenElement) { try { document.exitFullscreen?.().catch(e => { window.__diag && __diag.swallow(e);  }); } catch (_e) { window.__diag && __diag.swallow(_e);  } } notesOn = false; }
     drawNotes(); applyZoom(); const d = box.querySelector('#aiDoc'); if (d && on) d.scrollTop = 0;
   }
   const onFsChange = () => { if (!document.fullscreenElement && fs) setFs(false); };
@@ -7893,7 +7951,7 @@ async function aisumSection(box, x, subjPath) {
   const fsClick = e => { const b = e.target.closest('[data-aifs]'); if (!b) return false; const a = b.dataset.aifs; if (a === 'toggle') setFs(!fs); else if (a === 'notes') { notesOn = !notesOn; drawNotes(); } else if (a === 'zin' || a === 'zout') { aiZoom = a === 'zin' ? Math.min(2, +(aiZoom + 0.1).toFixed(1)) : Math.max(0.7, +(aiZoom - 0.1).toFixed(1)); kv.set('aiZoom', aiZoom); applyZoom(); } return true; };
   showKeys('ai');
   await draw();
-  return () => { document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp); bar.remove(); box.onchange = null; box.onclick = null; document.removeEventListener('fullscreenchange', onFsChange); document.removeEventListener('keydown', onFsKey); if (document.fullscreenElement && fs) { try { document.exitFullscreen(); } catch { } } document.body.classList.remove('ai-fs', 'ai-notes-on'); notesEl?.remove(); notesStop && notesStop(); };
+  return () => { document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp); bar.remove(); box.onchange = null; box.onclick = null; document.removeEventListener('fullscreenchange', onFsChange); document.removeEventListener('keydown', onFsKey); if (document.fullscreenElement && fs) { try { document.exitFullscreen(); } catch (_e) { window.__diag && __diag.swallow(_e);  } } document.body.classList.remove('ai-fs', 'ai-notes-on'); notesEl?.remove(); notesStop && notesStop(); };
 }
 // v24 · stored Word/HTML summaries are cleaned before they are shown: scripts, frames, embedded objects, event handlers
 // (onclick…) and javascript: links are removed; text, tables, pictures and formatting stay exactly as they are.
@@ -8072,8 +8130,8 @@ async function cardsTab(body, x) {
         draw(); return refreshStrip();
       }
       if (t.dataset.ce) { editId = t.dataset.ce; return draw(); }
-      if (t.dataset.cd && confirm('Delete this card?')) { const sid = await undoSnap('Deleted a flashcard', [cardsKey(x.id)]); await kv.set(cardsKey(x.id), (await getCards(x.id)).filter(z => z.id !== t.dataset.cd)); draw(); undoToast('Card deleted', sid, { refresh: false }); return refreshStrip(); }
-      if (t.dataset.cdel && confirm('Remove this deck from the module? (The PDF stays in Library.)')) { const sid = await undoSnap('Removed a flashcard deck', ['decks:' + x.id]); await kv.set('decks:' + x.id, (await getDecks(x.id)).filter(d => d.fileId !== t.dataset.cdel)); draw(); undoToast('Deck removed', sid, { refresh: false }); return refreshStrip(); }
+      if (t.dataset.cd && (await appConfirm('Delete this card?'))) { const sid = await undoSnap('Deleted a flashcard', [cardsKey(x.id)]); await kv.set(cardsKey(x.id), (await getCards(x.id)).filter(z => z.id !== t.dataset.cd)); draw(); undoToast('Card deleted', sid, { refresh: false }); return refreshStrip(); }
+      if (t.dataset.cdel && (await appConfirm('Remove this deck from the module? (The PDF stays in Library.)'))) { const sid = await undoSnap('Removed a flashcard deck', ['decks:' + x.id]); await kv.set('decks:' + x.id, (await getDecks(x.id)).filter(d => d.fileId !== t.dataset.cdel)); draw(); undoToast('Deck removed', sid, { refresh: false }); return refreshStrip(); }
     };
   }
   bind(); await draw();
@@ -8102,6 +8160,7 @@ const mCol = s => s == null ? 'mx-grey' : s < 60 ? 'mx-red' : s < 80 ? 'mx-amber
 // The result is pulled towards a cautious starting point (40 % — a little above chance on 3 options) until there is enough evidence,
 // so 3/3 correct never shows 100 %. Answering "Sure" and being wrong counts against you. A guess that was right counts half.
 const RM = { HL: 60, PN: 6, PRIOR: 0.40, FLOOR: 0.25, DAY: 864e5, MIN: 5 };
+let RD_FULL = true;   // v44 · Readiness is estimated on the WHOLE question bank: questions you have not answered yet count at the starting 40 % (Settings can switch this off)
 // v28 · readiness is shown only after enough evidence (MIN ≈ 5 fully-weighted answers); before that the screen shows "—"
 const rdOk = e => !!e && e.W >= RM.MIN;
 const rdNeed = e => Math.max(1, Math.ceil(RM.MIN - ((e && e.W) || 0)));
@@ -8137,7 +8196,10 @@ function modEstimate(m, c) {
   let M = _rmW.get(c); if (!M) _rmW.set(c, M = new Map());
   if (M.has(m.id)) return M.get(m.id);
   const qs = !m.x ? [] : [...modQs(m, c).filter(inStat), ...(qIndex(c.MQ).byMod.get(m.id) || [])];
-  const r = rmEstimate(qs, c.st || {}); M.set(m.id, r); return r;
+  const st0 = c.st || {}, r = rmEstimate(qs, st0), n = qs.length, a = qs.filter(q => st0[q.id] && st0[q.id].n).length;
+  r.n = n; r.a = a; r.cov = n ? a / n : 0; r.p0 = r.p;
+  if (RD_FULL && n) r.p = Math.min(1, Math.max(RM.FLOOR, r.p0 * r.cov + RM.PRIOR * (1 - r.cov)));
+  M.set(m.id, r); return r;
 }
 function modReadiness(m, p, c) { return Math.round(100 * modEstimate(m, c).p); }
 // v35 · readiness of a group of modules (topic / all). Modules with no or too few answers no longer pull the average to 40 %.
@@ -8155,8 +8217,8 @@ async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex flex-wrap items-center gap-5">${statusRings({ size: 72, cmp: p.complete, cmpTip: STATUS_TIPS.cmp, rd, rdK, rdTip: rdK ? `Readiness ${rd}% ± ${rdSe(rdE.p, rdE.W)}` : `Readiness appears after about ${rdNeed(rdE)} more answers`, rdSub: rdSub(rd, rdE.W, rdK), ft: { n: ft.n, v: ftv, sub: ft.n ? `${ft.c}/${ft.n}` : 'no answers' }, ftTip: ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet' })}
-      <div class="flex-1 min-w-[260px]">${statusTiles(partTiles(k => p[k], false))}<div class="lp-narrow-only mt-2" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div></div></div>
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex flex-wrap items-center gap-5">${statusRings({ size: 72, cmp: p.complete, cmpTip: STATUS_TIPS.cmp, rd, rdK, rdTip: rdK ? `Readiness ${rd}% ± ${rdSe(rdE.p, rdE.W)} · ${Math.round(100 * (rdE.cov || 0))}% of this lesson's questions answered${RD_FULL ? ' (unanswered ones count at 40 %)' : ''}` : `Readiness appears after about ${rdNeed(rdE)} more answers`, rdSub: rdSub(rd, rdE.W, rdK), ft: { n: ft.n, v: ftv, sub: ft.n ? `${ft.c}/${ft.n}` : 'no answers' }, ftTip: ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet' })}
+      <div class="flex-1 min-w-[260px]">${statusTiles(partTiles(k => (p.av && p.av[k] === false) ? null : p[k], false))}<div class="lp-narrow-only mt-2" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="One score per LOS — the same number as the LOS rating. Green ≥ 80 (Excellent) · amber 60–79 (Good to improve) · red < 60 (Must improve) · grey = not enough answers yet.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${prereqHTML(m, c)}${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
 
@@ -8429,7 +8491,7 @@ function studyStats(c, lastBy, lastGlobal) {
   const days = [...Array(14)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return dayKeyL(d); }), out = {};
   for (const sj of SUBJECTS) {
     const ms = mods.filter(m => m.subject === sj.id), lm = ms.filter(m => m.x), P = ms.map(m => ps.get(m.id));
-    const part = k => P.length ? Math.round(P.reduce((a, p) => a + p[k], 0) / P.length) : 0;
+    const part = k => { const L = P.filter(p => !p.av || p.av[k] !== false); return L.length ? Math.round(L.reduce((a, p) => a + p[k], 0) / L.length) : null; };
     const qs = lm.flatMap(m => modQs(m, c)).filter(inStat), ans = qs.filter(q => st[q.id]?.n), cor = ans.filter(q => st[q.id].last);
     const times = ans.map(q => lastH(st[q.id])?.s).filter(v => v > 0), act = {};
     ans.forEach(q => (st[q.id].hist || []).forEach(h => { const k = dayKeyL(h.t); act[k] = (act[k] || 0) + 1; }));
@@ -8446,7 +8508,7 @@ function studyStats(c, lastBy, lastGlobal) {
   }
   return out;
 }
-const stepBar = (label, v) => `<div class="min-w-0"><div class="flex justify-between text-[11px] text-slate-500"><span class="truncate">${label}</span><b>${v}%</b></div><div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mt-0.5" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${v}"><div class="h-full" style="width:${v}%;background:${pcol(v)}"></div></div></div>`;
+const stepBar = (label, v0) => { const nv = v0 == null, v = nv ? 0 : v0; return `<div class="min-w-0"><div class="flex justify-between text-[11px] text-slate-500"><span class="truncate">${label}</span><b>${nv ? '—' : v + '%'}</b></div><div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mt-0.5" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${v}"><div class="h-full" style="width:${v}%;background:${pcol(v)}"></div></div></div>`; };
 function studyCardHTML(z) {
   const sj = z.sj, id = 'sc-' + sj.id, rc = z.readiness >= 70 ? '#10b981' : z.readiness >= 50 ? '#f59e0b' : '#f43f5e', cb = z.counts, tgt = z.tgt, spTot = z.spark.reduce((a, b) => a + b, 0), spMax = Math.max(1, ...z.spark), w = z.weakest;
   const item = (l, v, tip) => `<div class="min-w-0" ${tip ? `data-tip="${esc(tip)}"` : ''}><div class="text-[11px] text-slate-500 truncate">${l}</div><div class="text-sm font-semibold truncate">${v}</div></div>`;
@@ -8488,7 +8550,7 @@ async function subjectHome(subj) {
   const c = await progressCtx(), ms = moduleList().filter(m => m.subject === subj);
   const ps = ms.map(m => modProgress(m, c)), avg = ps.length ? Math.round(ps.reduce((a, p) => a + p.overall, 0) / ps.length) : 0;
   const cmpS = ps.length ? (ps.every(p => p.complete >= 100) ? 100 : Math.min(99, Math.round(ps.reduce((a, p) => a + p.complete, 0) / ps.length))) : 0, rdA = rdAvg(ms, c), rdyS = mixMini(subj, ms.length ? rdA.r : 0), evS = ms.reduce((a, m) => a + modEstimate(m, c).W, 0);
-  const part = k => ps.length ? Math.round(ps.reduce((a, p) => a + p[k], 0) / ps.length) : 0;
+  const part = k => { const L = ps.filter(p => !p.av || p.av[k] !== false); return L.length ? Math.round(L.reduce((a, p) => a + p[k], 0) / L.length) : null; };   // v44 · average over the lessons where the part exists
   const loaded = ms.filter(m => m.x).length;
   const gs = miniGroups(subj), Qs = await allQs(), taken = gs.filter(g => MINIRES[g.key]), mAvg = taken.length ? Math.round(taken.reduce((a, g) => a + MINIRES[g.key].score, 0) / taken.length) : null;
   const ftA = ms.filter(m => m.x).map(m => modFirstTry(m, c)).filter(f => f.n), ftS = { n: ftA.length, v: ftA.length ? Math.round(ftA.reduce((a, f) => a + 100 * f.c / f.n, 0) / ftA.length) : 0, sub: ftA.length ? `${ftA.length}/${loaded} lessons` : 'no answers yet' };
@@ -8763,10 +8825,10 @@ async function qbankSetup() {
     <div data-qt="p">${sideSetup(s)}</div>
   </div></details>
   </div>`;
-  const qbTab = t => { const g = document.getElementById('qbgrid'); if (!g) return; g.classList.toggle('qb-ex', t === 'ex'); g.classList.toggle('qb-p', t !== 'ex'); view.querySelectorAll('[data-qbt]').forEach(b => { b.classList.toggle('on', b.dataset.qbt === t); b.setAttribute('aria-selected', String(b.dataset.qbt === t)); }); try { sessionStorage.setItem('qbTab', t); } catch { } };
+  const qbTab = t => { const g = document.getElementById('qbgrid'); if (!g) return; g.classList.toggle('qb-ex', t === 'ex'); g.classList.toggle('qb-p', t !== 'ex'); view.querySelectorAll('[data-qbt]').forEach(b => { b.classList.toggle('on', b.dataset.qbt === t); b.setAttribute('aria-selected', String(b.dataset.qbt === t)); }); try { sessionStorage.setItem('qbTab', t); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
   qbTab(sessionStorage.getItem('qbTab') || 'p');
   fillSmartCard();
-  document.querySelector('#custBox > summary')?.addEventListener('click', () => setTimeout(() => { try { localStorage.setItem('custOpen', document.getElementById('custBox').open ? '1' : '0'); } catch { } }, 0));
+  document.querySelector('#custBox > summary')?.addEventListener('click', () => setTimeout(() => { try { localStorage.setItem('custOpen', document.getElementById('custBox').open ? '1' : '0'); } catch (_e) { window.__diag && __diag.swallow(_e);  } }, 0));
   const refresh = () => {
     const p = pick(); refreshCounts(p.qs, st, (n, tot) => `${n} questions match (of ${tot} in the selected modules)`);
     SUBJECTS.forEach(sj => { const el = view.querySelector(`[data-sg="${sj.id}"]`); if (!el) return; const g = view.querySelector(`[data-grp="${sj.id}"]`), tot = g.querySelectorAll('[data-qm]').length, on = g.querySelectorAll('[data-qm]:checked').length; el.textContent = `${on}/${tot} selected`; });
@@ -8780,7 +8842,7 @@ async function qbankSetup() {
   };
   const mockPrev = () => { const a = mockAlloc(+document.getElementById('mockN').value); document.getElementById('mockInfo').textContent = a.length ? 'This mock: ' + a.map(z => `${z.sj.name} ${z.n}`).join(' · ') + ` = ${a.reduce((t, z) => t + z.n, 0)} questions` : ''; };
   refresh(); mockPrev();
-  view.querySelectorAll('details.qsubj').forEach(d => d.addEventListener('toggle', () => { d.open ? qbOpen.add(d.dataset.grp) : qbOpen.delete(d.dataset.grp); try { localStorage.setItem('qbOpen', JSON.stringify([...qbOpen])); } catch { } }));
+  view.querySelectorAll('details.qsubj').forEach(d => d.addEventListener('toggle', () => { d.open ? qbOpen.add(d.dataset.grp) : qbOpen.delete(d.dataset.grp); try { localStorage.setItem('qbOpen', JSON.stringify([...qbOpen])); } catch (_e) { window.__diag && __diag.swallow(_e);  } }));
   view.onchange = e => { if (e.target.id === 'mockN') mockPrev(); refresh(); };
   view.onclick = async e => {
     const a = e.target.dataset.all, sa = e.target.dataset.sall;
@@ -8798,7 +8860,7 @@ async function qbankSetup() {
       const A1 = part(S1), A2 = part(S2), short = [...A1, ...A2].filter(z => z.n < z.want);
       const p1 = shuffle(A1.flatMap(z => shuffle(z.qs).slice(0, z.n))), p2 = shuffle(A2.flatMap(z => shuffle(z.qs).slice(0, z.n)));
       if (p1.length + p2.length < 20) return toast('Not enough questions yet for an exam day');
-      if (short.length && !confirm(`Not enough questions for the real topic weights:\n\n${short.map(z => `• ${z.name}: ${z.n} of ${z.want}`).join('\n')}\n\nThe missing questions are NOT replaced by other topics, so your score keeps the true weights but the day has ${p1.length + p2.length} of 180 questions. Continue?`)) return;
+      if (short.length && !(await appConfirm(`Not enough questions for the real topic weights:\n\n${short.map(z => `• ${z.name}: ${z.n} of ${z.want}`).join('\n')}\n\nThe missing questions are NOT replaced by other topics, so your score keeps the true weights but the day has ${p1.length + p2.length} of 180 questions. Continue?`))) return;
       const first = p1.length ? p1 : p2, second = p1.length ? p2 : [];
       return startQSession(first, 'exam', 'all', '#/qbank', { title: `Practice exam day · Session 1 of 2`, keepOrder: true, strict: true, reasons: document.getElementById('askWhy').checked, next: second.length ? second.map(q => q.id) : null });
     }
@@ -8886,7 +8948,7 @@ async function qbankStats(subj) {
     if (adv) return toQbank(JSON.parse(adv));
     if (e.target.id === 'pracSubj') return toQbank(null);
     if (r) return resetDialog(r, () => qbankStats(subj));
-    if (e.target.id === 'reset' && confirm('Reset ALL Qbank answers, flags and mistake reasons for every topic? (Notes on questions are kept.)')) { const sid = await undoSnap('Reset ALL Qbank history', ['qstats']); await kv.set('qstats', {}); qbankStats(subj); undoToast('All Qbank history reset', sid); }
+    if (e.target.id === 'reset' && (await appConfirm('Reset ALL Qbank answers, flags and mistake reasons for every topic? (Notes on questions are kept.)'))) { const sid = await undoSnap('Reset ALL Qbank history', ['qstats']); await kv.set('qstats', {}); qbankStats(subj); undoToast('All Qbank history reset', sid); }
   };
   return () => { view.onclick = null; };
 }
@@ -8924,7 +8986,7 @@ async function installPack(D) {
   // first Economics module on the new template: carry over the notes written in the old module
   if (subj === 'econ' && n <= 8) {
     const old = await db.byIndex('notes', 'moduleId', 'econ-' + (n + 11));
-    if (old.length && confirm(`Move your ${old.length} notes from the old Economics module ${n} to the new one?`)) for (const o of old) await db.put('notes', { ...o, moduleId: id, los: null });
+    if (old.length && (await appConfirm(`Move your ${old.length} notes from the old Economics module ${n} to the new one?`))) for (const o of old) await db.put('notes', { ...o, moduleId: id, los: null });
   }
   await flush(); await loadPacks();
   return { id, title: md.title, los: D.los.length };
@@ -8998,6 +9060,8 @@ async function settings() {
       <label class="btn-ghost cursor-pointer">⬆️ Restore from backup<input type="file" id="imp" accept=".json" class="hidden"></label></div>
       <div class="text-xs text-slate-500 mt-2">${lastB ? 'Last backup: ' + new Date(lastB).toLocaleString('en-GB') : 'No backup downloaded yet.'} Tip: keep a copy on OneDrive once a week.</div>
       <div id="impMsg" class="text-sm mt-2"></div></div>
+    <div class="card"><h3 class="sec">Readiness</h3>
+      <label class="flex items-start gap-2 text-sm" style="min-height:44px"><input type="checkbox" id="rdFull" ${RD_FULL ? 'checked' : ''} class="mt-1"> <span>Count the questions I have not answered yet <span class="text-xs text-slate-500">(recommended). Readiness then estimates your result on the <b>whole</b> question bank, so practising only easy questions cannot push it up. Turn off to see the old “only what I answered” figure.</span></span></label></div>
     <div class="card"><h3 class="sec">Exam date</h3>
       <input type="date" id="exam" value="${exam || ''}" class="inp"><p class="text-xs text-slate-500 mt-1">Use the exact date from your CFA Institute scheduling confirmation.</p></div>
     <div class="card"><h3 class="sec">Account</h3>
@@ -9006,12 +9070,13 @@ async function settings() {
       <form id="pwf" class="flex gap-2 mt-3"><input id="pw" type="password" minlength="8" placeholder="New password" autocomplete="new-password" class="inp"><button class="btn-ghost whitespace-nowrap">Change</button></form>
       <div id="pwm" class="text-xs mt-1"></div>
       <button id="logout" class="btn-ghost text-red-600 mt-3">Sign out of this device</button>
-      <p class="text-[11px] text-slate-400 mt-2">Build ux-1 · 2026-11-06</p>
+      <p class="text-[11px] text-slate-400 mt-2">Build 44 · 2026-11-20</p>
       <p class="text-[11px] text-slate-500 mt-1">Signing out removes the downloaded books and data from this browser (they stay in your account).</p></div>
     <div class="card md:col-span-2" id="undoLib"></div>
     <div class="card md:col-span-2" id="qMgmt"></div>
   </div>`;
   document.getElementById('exam').onchange = e => kv.set('examDate', e.target.value);
+  document.getElementById('rdFull').onchange = async e => { RD_FULL = e.target.checked; await kv.set('rdFull', RD_FULL); toast('Readiness recalculated'); };
   document.getElementById('pwf').onsubmit = async e => {
     e.preventDefault(); const m = document.getElementById('pwm');
     const { error } = await sb.auth.updateUser({ password: document.getElementById('pw').value });
@@ -9019,7 +9084,7 @@ async function settings() {
   };
   document.getElementById('logout').onclick = async () => {
     if (!(await signOutGuard())) return;
-    try { await sb.auth.signOut(); } catch { } clearStoredSession(); await wipeDevice(); user = null; location.hash = '#/'; loginScreen('Signed out.');
+    try { await sb.auth.signOut(); } catch (_e) { window.__diag && __diag.swallow(_e);  } clearStoredSession(); await wipeDevice(); user = null; location.hash = '#/'; loginScreen('Signed out.');
   };
   await mountLayout(document.getElementById('layoutBox'));
   await mountClean(document.getElementById('cleanBox'));
@@ -9033,23 +9098,23 @@ async function settings() {
   view.onclick = async e => {
     const dl = e.target.dataset.pdl, del = e.target.dataset.pdel;
     if (dl) download(`${PACKS[dl].module?.module_id || dl}.json`, JSON.stringify(PACKS[dl], null, 1), 'application/json');
-    if (del && confirm(`Remove the module file for ${packX(del).short}? Your notes and answers stay; the module shows as "Not loaded" until you upload it again.`)) {
+    if (del && (await appConfirm(`Remove the module file for ${packX(del).short}? Your notes and answers stay; the module shows as "Not loaded" until you upload it again.`))) {
       const sid = await undoSnap('Removed module file · ' + packX(del).short, ['pack:' + del, 'packIds']);
       await kv.set('pack:' + del, null); await kv.set('packIds', (await kv.get('packIds', [])).filter(z => z !== del)); await loadPacks(); OPEN_SUBJ.add(del.split('-')[0]); await settings(); undoToast('Module file removed · ' + tShortOf(del), sid);
     }
   };
-  document.getElementById('exp').onclick = async () => { try { await downloadBackupNow(); } catch { } };
-  document.getElementById('expFull').onclick = async () => { try { await downloadBackupNow({ full: true }); } catch { } };
+  document.getElementById('exp').onclick = async () => { try { await downloadBackupNow(); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
+  document.getElementById('expFull').onclick = async () => { try { await downloadBackupNow({ full: true }); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
   document.getElementById('imp').onchange = async e => {
     const f = e.target.files[0]; if (!f) return; const msg = document.getElementById('impMsg');
     try {
       const d = JSON.parse(await f.text()); if (d.app !== 'cfa-l1') throw new Error('Not a CFA backup file');
-      if (!confirm(`Restore the backup from ${d.at ? new Date(d.at).toLocaleString('en-GB') : 'file'}?\n\n${(d.notes || []).length} notes · ${(d.highlights || []).length} highlights · ${Object.keys(d.kv || {}).length} settings/progress items.${Object.keys(d.books || {}).length ? ` · ${Object.keys(d.books).length} device-only book(s)` : ''}\n\nQuestion answers are MERGED: your attempts from the backup and from this device are both kept.\nSettings, plan and other items in the backup replace the same items here; items not in the backup are kept.\nA restore point of the current data is saved first.`)) return;
+      if (!(await appConfirm(`Restore the backup from ${d.at ? new Date(d.at).toLocaleString('en-GB') : 'file'}?\n\n${(d.notes || []).length} notes · ${(d.highlights || []).length} highlights · ${Object.keys(d.kv || {}).length} settings/progress items.${Object.keys(d.books || {}).length ? ` · ${Object.keys(d.books).length} device-only book(s)` : ''}\n\nQuestion answers are MERGED: your attempts from the backup and from this device are both kept.\nSettings, plan and other items in the backup replace the same items here; items not in the backup are kept.\nA restore point of the current data is saved first.`))) return;
       msg.textContent = 'Saving a restore point of the current data…';
       { // v35 · restore point first (Settings → Restore points), like every other replace/delete on the site
         const oldNotes = []; for (const n of d.notes || []) { const o = n && n.id != null ? await db.get('notes', n.id) : null; if (o) oldNotes.push(o); }
         const sid = await undoSnap('Before restoring backup' + (d.at ? ' from ' + new Date(d.at).toLocaleDateString('en-GB') : ''), Object.keys(d.kv || {}), { notes: oldNotes });
-        if (!sid && !confirm('A restore point of your current data could not be saved on this device.\n\nRestore the backup anyway?')) { msg.textContent = 'Restore cancelled — nothing was changed.'; return; }
+        if (!sid && !(await appConfirm('A restore point of your current data could not be saved on this device.\n\nRestore the backup anyway?'))) { msg.textContent = 'Restore cancelled — nothing was changed.'; return; }
       }
       msg.textContent = 'Restoring…';
       for (const n of d.notes || []) await db.put('notes', n);
@@ -9212,25 +9277,29 @@ const lessonKeysFor = m => lpSteps(m.kind === 'pack' ? FSA_TABS : TABS).map(z =>
 const lessonLabel = (m, k) => ((m.kind === 'pack' ? FSA_TABS : TABS).find(z => z[0] === k) || [k, k])[1];
 // v40 · Complete = the average of FIVE equal parts, the same on the lesson page, the lesson card, the topic page and the Dashboard:
 //   Lectures (videos watched) · Reading (outline steps ticked) · Flashcards (outline step ticked) · Summary (AI + Mohd Summary steps ticked) · Qbank (questions solved correctly at least once)
-function lpPartsK(keys, st, lecture, solved) {
+function lpPartsK(keys, st, lecture, solved, av) {
+  // a part that does not exist for this lesson (no video linked, no flashcards, no questions) is left out of the average instead of counting as 0 %
+  av = av || {};
   const sh = ks => ks.length ? Math.round(100 * ks.filter(k => st[k]).length / ks.length) : 0;
   const readS = sh(keys.filter(k => (LP_GROUP[k] || '') === 'Reading')), flashS = sh(keys.filter(k => k === 'cards')), sumS = sh(keys.filter(k => k === 'ai' || k === 'mohd'));
-  const lec = lecture || 0, sol = solved || 0, v = (lec + readS + flashS + sumS + sol) / 5;
-  return { lecture: lec, readS, flashS, sumS, solved: sol, cmp: lec >= 100 && readS >= 100 && flashS >= 100 && sumS >= 100 && sol >= 100 ? 100 : Math.min(99, Math.round(v)) };
+  const lec = lecture || 0, sol = solved || 0, aLec = av.lec !== false, aFl = av.flash !== false || !!st.cards, aQ = av.q !== false;
+  const parts = [[aLec, lec], [true, readS], [aFl, flashS], [true, sumS], [aQ, sol]].filter(z => z[0]).map(z => z[1]);
+  const v = parts.reduce((a, x) => a + x, 0) / parts.length;
+  return { lecture: lec, readS, flashS, sumS, solved: sol, av: { lecture: aLec, flashS: aFl, solved: aQ }, cmp: parts.every(x => x >= 100) ? 100 : Math.min(99, Math.round(v)) };
 }
 function modProgress(m, c) {
   const p = modProgress0(m, c);
-  if (p.none) return Object.assign(p, { lsDone: 0, lsTot: 0, lsNext: null, grp: {}, readS: 0, flashS: 0, sumS: 0 });
+  if (p.none) return Object.assign(p, { lsDone: 0, lsTot: 0, lsNext: null, grp: {}, readS: 0, flashS: 0, sumS: 0, av: { lecture: false, flashS: false, solved: false } });
   const keys = lessonKeysFor(m), st = ((c && c.ls) || {})[m.id] || {}, grp = {};
   let done = 0;
   for (const k of keys) { const g = LP_GROUP[k] || 'Reading', o = grp[g] || (grp[g] = { d: 0, t: 0 }); o.t++; if (st[k]) { o.d++; done++; } }
-  const P5 = lpPartsK(keys, st, p.lecture, p.solved), pc = P5.cmp;
-  return Object.assign(p, { overall0: p.overall, complete0: p.complete, overall: pc, complete: pc, readS: P5.readS, flashS: P5.flashS, sumS: P5.sumS, lsDone: done, lsTot: keys.length, lsNext: keys.find(k => !st[k]) || null, grp });
+  const P5 = lpPartsK(keys, st, p.lecture, p.solved, { lec: p.nVid > 0 || p.lecDone, flash: p.cTot > 0, q: !p.noQ }), pc = P5.cmp;
+  return Object.assign(p, { overall0: p.overall, complete0: p.complete, overall: pc, complete: pc, av: P5.av, readS: P5.readS, flashS: P5.flashS, sumS: P5.sumS, lsDone: done, lsTot: keys.length, lsNext: keys.find(k => !st[k]) || null, grp });
 }
 const grpAvg = (P, g) => { let d = 0, t = 0; for (const p of P) if (p.grp && p.grp[g]) { d += p.grp[g].d; t += p.grp[g].t; } return t ? Math.round(100 * d / t) : 0; };
 const grpPct = (p, g) => p.grp && p.grp[g] && p.grp[g].t ? Math.round(100 * p.grp[g].d / p.grp[g].t) : 0;
 // v40 · the same blocks draw the status of a lesson and of a topic, so both always look and read alike
-const STATUS_TIPS = { cmp: 'Complete = the average of Lectures, Reading, Flashcards, Summary and Qbank (equal weights). A topic is the average of its lessons.',
+const STATUS_TIPS = { cmp: 'Complete = the average of Lectures, Reading, Flashcards, Summary and Qbank (equal weights). A part that does not exist yet for a lesson (no video linked, no flashcards, no questions) is left out instead of counting as 0 %. A topic is the average of its lessons; lessons not loaded yet count as 0 %.',
   lec: 'Share of lecture videos watched', read: 'Reading steps ticked in the lesson outline (Study Map, Schweser Notes, Curriculum, Extras, Conflicts)',
   flash: 'Flashcards step ticked in the lesson outline', sum: 'AI Summary and Mohd Summary steps ticked in the lesson outline', prac: 'Questions solved correctly at least once' };
 function statusRings(o) {
@@ -9240,8 +9309,9 @@ function statusRings(o) {
     <div data-tip="${esc(o.ftTip)}">${ring(ft.n ? ft.v : 0, S, 7, ftCol(ft.v, ft.n), ft.n ? ft.v + '%' : '—')}<div class="text-[12px] font-semibold text-slate-500 mt-1">First try ${ftI()}</div><div class="text-[12px] text-slate-500">${ft.sub}</div></div></div>`;
 }
 const statusTiles = tiles => `<div class="g6 text-center text-xs" style="grid-template-columns:repeat(auto-fit,minmax(104px,1fr))">${tiles.map(([l, v, sub, tip]) => `<div class="rounded-xl bg-slate-100 dark:bg-slate-700 p-2" data-tip="${esc(tip)}"><div class="text-lg font-bold">${v}</div>${l}${sub ? `<div class="text-[11px] opacity-70">${sub}</div>` : ''}</div>`).join('')}</div>`;
-const partTiles = (g, avg) => [['\uD83C\uDFAC Lectures', g('lecture') + '%', '', STATUS_TIPS.lec + (avg ? ' · average of the lessons' : '')], ['\uD83D\uDCD6 Reading', g('readS') + '%', '', STATUS_TIPS.read + (avg ? ' · average of the lessons' : '')],
-  ['\uD83C\uDCCF Flashcards', g('flashS') + '%', '', STATUS_TIPS.flash + (avg ? ' · average of the lessons' : '')], ['✍ Summary', g('sumS') + '%', '', STATUS_TIPS.sum + (avg ? ' · average of the lessons' : '')], ['\uD83C\uDFAF Qbank', g('solved') + '%', '', STATUS_TIPS.prac + (avg ? ' · average of the lessons' : '')]];
+const pv = v => v == null ? '—' : v + '%', NA = ' · not available yet (nothing to measure)';
+const partTiles = (g, avg) => [['\uD83C\uDFAC Lectures', pv(g('lecture')), '', STATUS_TIPS.lec + (avg ? ' · average of the lessons' : '')], ['\uD83D\uDCD6 Reading', pv(g('readS')), '', STATUS_TIPS.read + (avg ? ' · average of the lessons' : '')],
+  ['\uD83C\uDCCF Flashcards', pv(g('flashS')), '', STATUS_TIPS.flash + (avg ? ' · average of the lessons' : '')], ['✍ Summary', pv(g('sumS')), '', STATUS_TIPS.sum + (avg ? ' · average of the lessons' : '')], ['\uD83C\uDFAF Qbank', pv(g('solved')), '', STATUS_TIPS.prac + (avg ? ' · average of the lessons' : '')]];
 function lessonSummaryHTML(p, m) {
   const nx = p.lsNext ? lessonLabel(m, p.lsNext) : null, col = p.complete >= 100 ? '#10b981' : '#6366f1';
   return `<div class="text-xs flex justify-between gap-2"><b>${p.lsDone}/${p.lsTot} lesson steps</b><span class="text-slate-500">${p.complete}%</span></div>
@@ -9280,7 +9350,7 @@ function trackRows(p, modId, compact) {
   const MI = modInfo(modId), base = MI?.href || '', leg = MI?.kind === 'legacy';
   const GO = { Lectures: { vids: modId }, Reading: { href: `${base}/${leg ? 'schweser' : 'map'}` }, Flashcards: { href: `${base}/cards` }, Summary: { href: `${base}/mohd` }, Qbank: { href: leg ? `#/qbank/m/${modId}` : `${base}/qbank` } };
   const row = (icon, name, v, tip, extra = '') => {
-    const g = GO[name], main = `<span class="w-24 shrink-0 truncate">${icon} ${name}</span><div class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full" style="width:${v}%;background:${pcol(v)}"></div></div><span class="w-9 text-right tabular-nums">${v}%</span>`;
+    const nv = v == null, g = GO[name], main = `<span class="w-24 shrink-0 truncate">${icon} ${name}</span><div class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full" style="width:${nv ? 0 : v}%;background:${pcol(nv ? 0 : v)}"></div></div><span class="w-9 text-right tabular-nums">${nv ? '—' : v + '%'}</span>`;
     const lead = !g ? `<div class="flex flex-1 min-w-0 items-center gap-2">${main}</div>`
       : g.vids ? `<button type="button" class="trk-go flex flex-1 min-w-0 items-center gap-2 text-left" data-vids="${esc(g.vids)}">${main}</button>`
       : `<a class="trk-go flex flex-1 min-w-0 items-center gap-2" href="${esc(g.href)}">${main}</a>`;
@@ -9288,11 +9358,11 @@ function trackRows(p, modId, compact) {
   };
   const tg = (key, done, what) => `<button type="button" class="link text-[11px]" data-trk="${modId}|${key}" data-tip="${done ? 'Mark ' + what + ' as not done' : 'Mark ' + what + ' as done'}">${done ? '✓ Done' : 'Mark done'}</button>`;
   return `<div class="space-y-1.5">
-    ${row('\uD83C\uDFAC', 'Lectures', p.lecture, p.lecDone ? 'Lecture videos watched' : 'Watch the lecture videos, then mark done', `<button type="button" class="link text-[11px] mr-1" data-vids="${modId}" data-tip="Your lecture videos">▶ ${p.nVid}</button>${tg('lec', p.lecDone, 'lecture')}`)}
+    ${row('\uD83C\uDFAC', 'Lectures', p.av && p.av.lecture === false ? null : p.lecture, p.lecDone ? 'Lecture videos watched' : 'Watch the lecture videos, then mark done', `<button type="button" class="link text-[11px] mr-1" data-vids="${modId}" data-tip="Your lecture videos">▶ ${p.nVid}</button>${tg('lec', p.lecDone, 'lecture')}`)}
     ${row('\uD83D\uDCD6', 'Reading', p.readS, STATUS_TIPS.read)}
-    ${row('\uD83C\uDCCF', 'Flashcards', p.flashS, p.cTot ? `Step ticked in the lesson outline · ${p.cMas}/${p.cTot} cards mastered${p.cFlag ? ` · ${p.cFlag} flagged` : ''}` : 'Flashcards step in the lesson outline · no flashcards yet', p.cTot ? `<a class="link text-[11px]" href="${base}/cards">${p.cMas}/${p.cTot}${p.cFlag ? ' · ⚑' + p.cFlag : ''}</a>` : '<span class="text-[11px] text-slate-400">none</span>')}
+    ${row('\uD83C\uDCCF', 'Flashcards', p.av && p.av.flashS === false ? null : p.flashS, p.cTot ? `Step ticked in the lesson outline · ${p.cMas}/${p.cTot} cards mastered${p.cFlag ? ` · ${p.cFlag} flagged` : ''}` : 'Flashcards step in the lesson outline · no flashcards yet', p.cTot ? `<a class="link text-[11px]" href="${base}/cards">${p.cMas}/${p.cTot}${p.cFlag ? ' · ⚑' + p.cFlag : ''}</a>` : '<span class="text-[11px] text-slate-400">none</span>')}
     ${row('✍', 'Summary', p.sumS, STATUS_TIPS.sum, p.nNotes ? `<span class="text-[11px] text-slate-500">${p.nNotes} notes</span>` : '')}
-    ${row('\uD83C\uDFAF', 'Qbank', p.solved, p.noQ ? 'No questions loaded for this module yet' : `Solved correctly at least once: ${p.solved}% · answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`, p.noQ ? '' : `<span class="text-[11px] text-slate-500">${p.qAns}/${p.qTot} answered</span>`)}
+    ${row('\uD83C\uDFAF', 'Qbank', p.av && p.av.solved === false ? null : p.solved, p.noQ ? 'No questions loaded for this module yet' : `Solved correctly at least once: ${p.solved}% · answered ${p.qAns}/${p.qTot}${p.acc !== null ? ` · accuracy ${p.acc}%` : ''}`, p.noQ ? '' : `<span class="text-[11px] text-slate-500">${p.qAns}/${p.qTot} answered</span>`)}
   </div>`;
 }
 document.addEventListener('click', async e => {
@@ -9471,7 +9541,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-mini]'); if (!b || b.disabled) return; e.preventDefault();
-  if (+b.dataset.pending > 0 && !confirm(`${b.dataset.pending} module(s) in this group are not complete yet. Take the mini-exam anyway?`)) return;
+  if (+b.dataset.pending > 0 && !(await appConfirm(`${b.dataset.pending} module(s) in this group are not complete yet. Take the mini-exam anyway?`))) return;
   const [subj] = b.dataset.mini.split(':'), g = miniGroups(subj).find(z => z.key === b.dataset.mini), st = await kv.get('qstats', {});
   const pool = shuffle((await allQs()).filter(q => g.mods.some(m => m.id === modKey(q)) && inStat(q)));
   const qs = [...pool.filter(q => !st[q.id]?.n), ...pool.filter(q => st[q.id]?.n)].slice(0, 30);
@@ -9541,7 +9611,7 @@ async function mocksView() {
   view.onsubmit = async e => { if (e.target.id !== 'extF') return; e.preventDefault(); await extMockAdd(e.target); };
   view.onclick = async e => {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.extdel) { const L = (await kv.get('extMocks', [])) || [], x = L.find(z => z.id === t.dataset.extdel); if (!x || !confirm(`Delete the score of “${x.name}”?`)) return; await kv.set('extMocks', L.filter(z => z.id !== x.id)); toast('Score deleted'); return route(); }
+    if (t.dataset.extdel) { const L = (await kv.get('extMocks', [])) || [], x = L.find(z => z.id === t.dataset.extdel); if (!x || !(await appConfirm(`Delete the score of “${x.name}”?`))) return; await kv.set('extMocks', L.filter(z => z.id !== x.id)); toast('Score deleted'); return route(); }
     if (t.dataset.mk) {
       const x = ms.find(z => z.id === t.dataset.mk), part = +t.dataset.part, qs = await mockqLive(x.id), np = mockParts(x);
       let sel, next = null;
@@ -9635,10 +9705,10 @@ function bindMockLib(box) {
     if (t.dataset.mlt) { toggleSubj('__mocks'); return redraw(); }
     if (t.dataset.mdel) {
       const ms = await kv.get('mocks', []), id = t.dataset.mdel, x = ms.find(z => z.id === id);
-      if (!confirm(`Remove ${x ? x.name : 'this mock'} and its questions? Your answers stay in your history.`)) return;
+      if (!(await appConfirm(`Remove ${x ? x.name : 'this mock'} and its questions? Your answers stay in your history.`))) return;
       const sid = await undoSnap('Removed mock exam', ['mocks', 'mockq:' + id, 'mocklink:' + id, 'mockRes']);
       await kv.set('mocks', ms.filter(z => z.id !== id)); await kv.set('mockq:' + id, null); await kv.set('mocklink:' + id, null);
-      const rs = await kv.get('mockRes', {}); if (rs[id] && confirm('Also delete your saved score for this mock?\n\nOK = delete the score · Cancel = keep it (it returns if you add the same mock again).')) { delete rs[id]; await kv.set('mockRes', rs); }
+      const rs = await kv.get('mockRes', {}); if (rs[id] && (await appConfirm('Also delete your saved score for this mock?\n\nOK = delete the score · Cancel = keep it (it returns if you add the same mock again).'))) { delete rs[id]; await kv.set('mockRes', rs); }
       await redraw(); undoToast('Mock removed', sid);
     }
   });
@@ -9711,11 +9781,11 @@ async function mockPdfImport(id, s, f, say = () => { }) {
     if (!items.length) throw new Error('None of the questions of this session were found in the PDF. Check that it is the right file.');
     const mode = await kv.get('qvmode', 'auto');
     if (mode !== 'off') { try { vis = await qvExtract(doc, layout, new Set(items.map(i => i.vk)), mode, p => say(`Capturing tables, graphs and formulas… ${Math.round(p * 100)}%`)); } catch (e) { console.warn('visuals', e); vis = { imgs: {}, stats: {}, error: String(e?.message || e) }; } }
-  } finally { try { await doc.destroy(); } catch { } }
+  } finally { try { await doc.destroy(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   qvAttach(items, vis);
   const pmod = 'MOCK-' + id, psrc = 'S' + s; let pk = null;
   if (vis && Object.keys(vis.imgs).length) { try { const meta = await qvSavePack(pmod, 'mock', psrc, vis.imgs); pk = meta && meta.id; } catch (err) { console.warn('visuals save', err); } }
-  else { try { await qvDropFor(pmod, 'mock', psrc); } catch { } }
+  else { try { await qvDropFor(pmod, 'mock', psrc); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   items.forEach(it => { if (it.pk === '__PENDING__') { if (pk) it.pk = pk; else { delete it.pk; delete it.vi; } } });
   const keep = (await mockqAll(id)).filter(q => q.part !== s);
   await kv.set('mockq:' + id, [...keep, ...items].sort((a, b) => (a.part - b.part) || (a.qno - b.qno))); await flush(); say('');
@@ -9853,7 +9923,7 @@ const vbase = n => String(n || '').split(/[\\/]/).pop().toLowerCase();
 const vstem = n => vbase(n).replace(/\.[^.]+$/, '');
 const canDir = () => 'showDirectoryPicker' in window;
 async function vdirRec() { return (await local.get('blobs', 'vdir')) || null; }
-async function vdirPerm(h, ask) { try { const o = { mode: 'read' }; if ((await h.queryPermission(o)) === 'granted') return true; if (ask) return (await h.requestPermission(o)) === 'granted'; } catch {} return false; }
+async function vdirPerm(h, ask) { try { const o = { mode: 'read' }; if ((await h.queryPermission(o)) === 'granted') return true; if (ask) return (await h.requestPermission(o)) === 'granted'; } catch (_e) { window.__diag && __diag.swallow(_e); } return false; }
 let VIDX = null, VIDX_T = 0, VSESS = null;   // VIDX: name → file handle of the LINKED folder (this session) · VSESS: folder picked for this session only (browsers that cannot keep a folder linked)
 // v41 · a folder handle lives in the browser of ONE device (browsers never share it, so it cannot sync). What does sync: the video list (file names) and the name of the folder (kv "vdirHint").
 const vlook = (idx, fn) => (idx && fn && idx.get(fn)) || null;   // the whole file name must match (capital letters do not matter)
@@ -9880,7 +9950,7 @@ function vSimilar(idx, fn) {     // names in the folder that look like the wante
 // v43 · ONE place that links a folder and says exactly what happened (every screen shows the same words)
 let VLAST = null;
 async function vLinkFolder(onStep) {
-  const say = t => { try { onStep && onStep(t); } catch (e) { } };
+  const say = t => { try { onStep && onStep(t); } catch (e) { window.__diag && __diag.swallow(e);  } };
   if (!canDir()) return { bad: true, msg: 'This browser cannot keep a folder linked. Use “Choose lectures folder (this session)” or “Choose video files (this session)”.' };
   let h;
   try { h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); }
@@ -9901,7 +9971,7 @@ async function vLinkFolder(onStep) {
   let idx; try { idx = await vdirIndex(h); } catch (e) { idx = null; }
   if (!idx) return VLAST = { bad: true, msg: 'The browser would not let the site read that folder. Try a different folder, or use “Choose video files (this session)”.' };
   if (persisted) { VIDX = idx; VIDX_T = Date.now(); } else { idx.folder = h.name; VSESS = idx; }
-  try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (e) { }
+  try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (e) { window.__diag && __diag.swallow(e);  }
   const n = vNames(idx).length;
   return VLAST = { ok: true, n, name: h.name, idx, persisted, msg: (n ? `✓ Linked “${h.name}” — ${n} video file${n > 1 ? 's' : ''} found.` : `Linked “${h.name}”, but no video file (mp4, mov, mkv, webm…) was found in it${idx.errs ? ` (${idx.errs} sub-folder(s) could not be read)` : ''}. Pick the folder that holds the videos.`) + (persisted ? '' : ' This browser cannot remember the folder, so it works until you close the tab.'), bad: !n };
 }
@@ -9997,7 +10067,7 @@ function bindVidLib(el, redraw) {
       }
       if (a === 'rescan') { const m = el.querySelector('#vlMsg'); m.textContent = 'Reading the folder…'; const idx = await vdirRescan(true); redraw(); setTimeout(() => { const m2 = document.querySelector('#vlib #vlMsg'); if (m2) m2.innerHTML = idx ? `<span class="text-emerald-600">${vNames(idx).length} video files found in the folder.</span>` : '<span class="text-rose-600">The browser did not give access to the folder. Link it again.</span>'; }, 150); }
       if (a === 'check') await vidCheck(el.querySelector('#vlMsg'));
-      if (a === 'unlink' && confirm('Unlink the lectures folder on this device? Your videos and notes are not touched.')) { await local.del('blobs', 'vdir'); VIDX = null; redraw(); }
+      if (a === 'unlink' && (await appConfirm('Unlink the lectures folder on this device? Your videos and notes are not touched.'))) { await local.del('blobs', 'vdir'); VIDX = null; redraw(); }
       if (d) { await local.del('blobs', d); redraw(); }
     } catch (err) { if (err.name !== 'AbortError') el.querySelector('#vlMsg').innerHTML = `<span class="text-rose-600">${esc(err.message)}${/unsafe|system|sensitive/i.test(err.message || '') ? ' — choose a normal sub-folder (Chrome refuses Desktop, Documents, Downloads and system folders themselves).' : ''}</span>`; }
   };
@@ -10123,7 +10193,7 @@ async function videosDialog(mid) {
         if (url && !/^https?:\/\//i.test(url)) return say('A link must start with https://', true);
         S.edit = -1; await mutate(vs => { if (vs[i]) Object.assign(vs[i], { name: name || file.replace(/\.[^.]+$/, '') || vs[i].name, file, url, src }); }); say('✅ Saved.'); return;
       }
-      if (el.dataset.del !== undefined) { const i = +el.dataset.del; if (!confirm('Remove this video from the module? (Your file is not deleted.)')) return; S.edit = -1; await mutate(vs => { vs.splice(i, 1); }); say('Removed.'); return; }
+      if (el.dataset.del !== undefined) { const i = +el.dataset.del; if (!(await appConfirm('Remove this video from the module? (Your file is not deleted.)'))) return; S.edit = -1; await mutate(vs => { vs.splice(i, 1); }); say('Removed.'); return; }
       if (el.dataset.up !== undefined) { const i = +el.dataset.up; if (i > 0) await mutate(vs => { [vs[i - 1], vs[i]] = [vs[i], vs[i - 1]]; }); return; }
       if (el.dataset.dn !== undefined) { const i = +el.dataset.dn; await mutate(vs => { if (i < vs.length - 1) [vs[i + 1], vs[i]] = [vs[i], vs[i + 1]]; }); return; }
     } catch (err) { if (err && err.name === 'AbortError') return; say('Something went wrong: ' + (err && err.message || err), true); }
@@ -10157,7 +10227,7 @@ function directUrl(u) {
     if (/onedrive\.live\.com/i.test(x.host)) { if (/\/embed/.test(x.pathname)) { x.pathname = x.pathname.replace('/embed', '/download'); return x.href; } const b64 = btoa(u).replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-'); return `https://api.onedrive.com/v1.0/shares/u!${b64}/root/content`; }
     if (/sharepoint\.com/i.test(x.host)) { x.searchParams.set('download', '1'); return x.href; }
     if (/drive\.google\.com/i.test(x.host)) { const id = (x.pathname.match(/\/d\/([^/]+)/) || [])[1] || x.searchParams.get('id'); if (id) return `https://drive.google.com/uc?export=download&id=${id}`; }
-  } catch {}
+  } catch (_e) { window.__diag && __diag.swallow(_e); }
   return u;
 }
 const VKEYS = [['Space / K', 'Play / pause'], ['← / →', 'Back / forward 10 seconds'], ['Shift + ← / →', 'Previous / next subtitle line'], ['[ / ]', 'Slower / faster'], ['C', 'Subtitles on / off'], ['N', 'Notes panel on / off (also in full screen)'], ['W', 'Video + notes view'], ['F', 'Full screen'], ['Ctrl + Enter', 'Save the note you are typing'], ['?', 'Show these shortcuts']];
@@ -10261,7 +10331,7 @@ async function videoPlayer(mid, idx, tq) {
     const P = await kv.get('vpos', {}); P[v.id] = { t: Math.floor(vid.currentTime), d: Math.floor(vid.duration || 0), ts: Date.now(), dev: devLabel() }; await kv.set('vpos', P);
     if (vid.duration && vid.currentTime / vid.duration >= 0.9 && !v.done) { const T2 = await kv.get('modTrack', {}), w = (T2[mid]?.videos || []).find(z => z.id === v.id); if (w) { w.done = v.done = true; if (T2[mid].videos.every(z => z.done)) { T2[mid].lec = true; toast('All lecture videos watched — Lecture marked done ✓'); } else toast('Video marked as watched ✓'); await kv.set('modTrack', T2); } } }
   vid.ontimeupdate = tick; vid.onseeked = tick; vid.onpause = () => savePos(); vid.onended = () => savePos();
-  const onHide = () => { if (document.visibilityState === 'hidden') savePos().then(() => flush()).catch(() => { }); }; document.addEventListener('visibilitychange', onHide);
+  const onHide = () => { if (document.visibilityState === 'hidden') savePos().then(() => flush()).catch(e => { window.__diag && __diag.swallow(e);  }); }; document.addEventListener('visibilitychange', onHide);
   function drawTr() { const q = ($('trQ').value || '').toLowerCase();
     $('trList').innerHTML = cues.length ? cues.map((c, i) => q && !c.text.toLowerCase().includes(q) ? '' : `<div class="tr-line" data-ti="${i}" data-tt="${c.s}"><span class="text-slate-400 tabular-nums mr-1">${fmtT(c.s)}</span>${esc(c.text)}</div>`).join('') : '<div class="text-slate-500">No subtitles for this video.</div>'; lastTr = -1; tick(); }
   // ---- notes ----
@@ -10300,7 +10370,7 @@ async function videoPlayer(mid, idx, tq) {
     if (e.target.id === 'nAuto') { UI.autoPause = e.target.checked; kv.set('vUI', UI); }
     if (e.target.id === 'vSessPick') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs)) return load(false, { bad: true, msg: 'No video files were found in that folder.' }); return load(false); }
     if (e.target.id === 'vSessFiles') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs, true)) return load(false, { bad: true, msg: 'No video files were selected.' }); return load(false); }
-    if (e.target.id === 'vPick' && e.target.files[0]) { const f = e.target.files[0]; if (confirm(`Keep a copy of ${f.name} on this device so it opens directly next time?`)) { await vcopyPut(f); if (!v.file) { const T2 = await kv.get('modTrack', {}); const w = T2[mid].videos.find(z => z.id === v.id); w.file = v.file = f.name; await kv.set('modTrack', T2); } return load(false); } if (objUrl) URL.revokeObjectURL(objUrl); objUrl = vid.src = URL.createObjectURL(f); gate.hidden = true; err.textContent = 'Playing ' + f.name + ' (this session only).'; }
+    if (e.target.id === 'vPick' && e.target.files[0]) { const f = e.target.files[0]; if ((await appConfirm(`Keep a copy of ${f.name} on this device so it opens directly next time?`))) { await vcopyPut(f); if (!v.file) { const T2 = await kv.get('modTrack', {}); const w = T2[mid].videos.find(z => z.id === v.id); w.file = v.file = f.name; await kv.set('modTrack', T2); } return load(false); } if (objUrl) URL.revokeObjectURL(objUrl); objUrl = vid.src = URL.createObjectURL(f); gate.hidden = true; err.textContent = 'Playing ' + f.name + ' (this session only).'; }
     if (e.target.id === 'srtUp' && e.target.files[0]) { const f = e.target.files[0], txt = await f.text(), c = parseSRT(txt); if (!c.length) return toast('No subtitle lines found in this file');
       const all = await kv.get('vsubs', {}); all[key] = { name: f.name, srt: txt }; await kv.set('vsubs', all); toast(`Subtitles added · ${c.length} lines`); videoPlayer(mid, idx); }
   };
@@ -10308,11 +10378,11 @@ async function videoPlayer(mid, idx, tq) {
     const a = e.target.closest('[data-a]')?.dataset.a, sk = e.target.closest('[data-seek]'), tl = e.target.closest('[data-tt]'), tb = e.target.closest('[data-tab]');
     if (a === 'nframe') { const im = grabFrame(); if (!im) return; noteImg = im; if (noteT == null) noteT = Math.floor(vid.currentTime); const bx = $('nImgBox'); bx.classList.remove('hidden'); bx.innerHTML = `<div class="relative"><img src="${im}" alt="Captured frame" class="vn-img"><button class="ib vn-x" data-a="nframex" aria-label="Remove frame">✕</button></div>`; $('nTxt').focus(); return; }
     if (a === 'nframex') { noteImg = null; $('nImgBox').classList.add('hidden'); $('nImgBox').innerHTML = ''; if (!$('nTxt').value.trim()) noteT = null; return; }
-    const nc = e.target.closest('[data-ncard]'); if (nc) { const n = (await getNotes(mid)).find(z => z.id === nc.dataset.ncard); if (!n) return; const front = prompt('Flashcard question (front)', n.text.split('\n')[0].slice(0, 140)); if (front == null) return; await addCard(mid, { front, back: n.text + `\n\n(lecture ${fmtT(n.vsrc.t)})`, los: n.los || null }); return; }
+    const nc = e.target.closest('[data-ncard]'); if (nc) { const n = (await getNotes(mid)).find(z => z.id === nc.dataset.ncard); if (!n) return; const front = (await appPrompt('Flashcard question (front)', n.text.split('\n')[0].slice(0, 140))); if (front == null) return; await addCard(mid, { front, back: n.text + `\n\n(lecture ${fmtT(n.vsrc.t)})`, los: n.los || null }); return; }
     if (tb) return tab(tb.dataset.tab);
     if (sk) { vid.currentTime = +sk.dataset.seek; vid.play(); return; }
     if (tl) { vid.currentTime = +tl.dataset.tt + S.offset + 0.01; vid.play(); return; }
-    if (e.target.dataset.ndel && confirm('Delete this note from Mohd Summary?')) { await db.del('notes', e.target.dataset.ndel); notify(mid); return drawNotes(); }
+    if (e.target.dataset.ndel && (await appConfirm('Delete this note from Mohd Summary?'))) { await db.del('notes', e.target.dataset.ndel); notify(mid); return drawNotes(); }
     if (a === 'allow') return load(true);
     if (a === 'rescan') { await vdirRescan(true); return load(false); }
     if (a === 'linkdir') { gate.hidden = false; gate.innerHTML = '<div>Choose your lectures folder…</div>'; const r = await vLinkFolder(t => { gate.innerHTML = `<div>${esc(t)}</div>`; }); return load(false, r); }
@@ -10321,7 +10391,7 @@ async function videoPlayer(mid, idx, tq) {
     if (a === 'lay-normal') setLayout('normal'); if (a === 'lay-wide') setLayout('wide');
     if (a === 'notes') setNotes(document.fullscreenElement ? !wrap.classList.contains('fsnotes') : !UI.notes); if (a === 'fs') toggleFs();
     if (a === 'nsave') saveNote();
-    if (e.target.id === 'srtDel' && confirm('Remove the uploaded subtitle file?')) { const all = await kv.get('vsubs', {}); delete all[key]; await kv.set('vsubs', all); videoPlayer(mid, idx); }
+    if (e.target.id === 'srtDel' && (await appConfirm('Remove the uploaded subtitle file?'))) { const all = await kv.get('vsubs', {}); delete all[key]; await kv.set('vsubs', all); videoPlayer(mid, idx); }
     if (e.target.id === 'sReset') { S = { ...SUB_DEF }; await kv.set('subStyle', S); fill(); lastTxt = null; tick(); apply(); }
   };
   const onKey = e => {
@@ -10338,7 +10408,7 @@ async function videoPlayer(mid, idx, tq) {
   document.addEventListener('keydown', onKey);
   showKeys('video', VKEYS);
   await load(false); drawNotes();
-  return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onHide); view.oninput = view.onchange = view.onclick = null; savePos().then(() => flush()).catch(() => { }); vid.pause(); document.body.classList.remove('vwide-on'); if (document.fullscreenElement) document.exitFullscreen(); if (objUrl) URL.revokeObjectURL(objUrl); };
+  return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onHide); view.oninput = view.onchange = view.onclick = null; savePos().then(() => flush()).catch(e => { window.__diag && __diag.swallow(e);  }); vid.pause(); document.body.classList.remove('vwide-on'); if (document.fullscreenElement) document.exitFullscreen(); if (objUrl) URL.revokeObjectURL(objUrl); };
 }
 
 // ---------- keyboard shortcut help (⌨️ / ?) ----------
@@ -10409,9 +10479,9 @@ async function uploadPackInto(target, file) {
   const [ts, tn] = target.split('-'), fs = SUBJ_CODE[String(md.subject || '').toUpperCase().trim()], fn = +md.lm_no;
   const tShort = `${SUBJ_SHORT[ts]} LM${tn}`;
   if (fs && fn && (fs !== ts || fn !== +tn)) {
-    if (!confirm(`⚠ This file is ${SUBJ_SHORT[fs]} LM${fn}${md.title ? ' — ' + md.title : ''}, but you chose ${tShort}.\n\nOK = save it as ${tShort} anyway\nCancel = do not upload`)) throw new Error(`Not uploaded — the file belongs to ${SUBJ_SHORT[fs]} LM${fn}`);
+    if (!(await appConfirm(`⚠ This file is ${SUBJ_SHORT[fs]} LM${fn}${md.title ? ' — ' + md.title : ''}, but you chose ${tShort}.\n\nOK = save it as ${tShort} anyway\nCancel = do not upload`))) throw new Error(`Not uploaded — the file belongs to ${SUBJ_SHORT[fs]} LM${fn}`);
   }
-  if (PACKS[target] && PACKS[target] !== PACK_FSA1 && !confirm(`Replace the current file of ${tShort} (v${PACKS[target].module?.version || '—'}) with v${md.version || '—'}?\nYour notes, answers and flashcards stay.`)) throw new Error('Cancelled');
+  if (PACKS[target] && PACKS[target] !== PACK_FSA1 && !(await appConfirm(`Replace the current file of ${tShort} (v${PACKS[target].module?.version || '—'}) with v${md.version || '—'}?\nYour notes, answers and flashcards stay.`))) throw new Error('Cancelled');
   md.subject = SUBJ_SHORT[ts]; md.lm_no = +tn;
   const sid = await undoSnap('Replaced module file · ' + tShort, ['pack:' + target, 'packIds']);
   const res = await installPack(D); if (sid) undoToast(tShort + ' replaced', sid); return res;
@@ -10520,12 +10590,12 @@ async function library(libFocus) {
     if (await qlibClick(e)) return;
     const t = e.target, s = t.closest('[data-lsubj]');
     if (s) { toggleSubj(s.dataset.lsubj); return library(); }
-    if (t.dataset.lwdel && confirm('Remove the Word summary?')) { await kv.set('aisum:' + t.dataset.lwdel, null); return library(); }
+    if (t.dataset.lwdel && (await appConfirm('Remove the Word summary?'))) { await kv.set('aisum:' + t.dataset.lwdel, null); return library(); }
     if (t.dataset.lun) { const [mid, k] = t.dataset.lun.split('|'), M = await kv.get('moduleMap', {}), oldU = M[mid]?.[k]?.fileId; delete M[mid][k]; await kv.set('moduleMap', M); await askDropOldBook(oldU, null); return library(); }
     const id = t.dataset.del, un = t.dataset.uncache;
-    if (id && confirm('Delete this book from your account on ALL devices? Your highlights and notes stay, and module links to it are removed.')) {
+    if (id && (await appConfirm('Delete this book from your account on ALL devices? Your highlights and notes stay, and module links to it are removed.'))) {
       const f = await db.get('files', id);
-      if (!f.localOnly) try { await deleteBookFiles(f); } catch (err) { alert('Could not delete from cloud: ' + err.message); return; }
+      if (!f.localOnly) try { await deleteBookFiles(f); } catch (err) { appAlert('Could not delete from cloud: ' + err.message); return; }
       const M = await kv.get('moduleMap', {}); for (const v of Object.values(M)) for (const k of Object.keys(v || {})) if (v[k]?.fileId === id) delete v[k]; await kv.set('moduleMap', M);
       await uncache(id); await db.del('files', id); return library();
     }
@@ -10598,7 +10668,7 @@ async function qsrcParse(x, src, f, o) {
 }
 function tqAutoParse(raw, want) {
   const ok3 = p => p.options && p.options.A && p.options.B && p.options.C, cands = [];
-  const tryP = (kind, fn) => { try { const l = fn(raw); cands.push({ kind, list: l, score: l.filter(p => want.has(p.qno) && ok3(p)).length }); } catch { } };
+  const tryP = (kind, fn) => { try { const l = fn(raw); cands.push({ kind, list: l, score: l.filter(p => want.has(p.qno) && ok3(p)).length }); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
   tryP('schq', parseSchweserQB); tryP('uw', parseUWorld); tryP('ap', parseAnalystPrep); tryP('smq', parseSchweserQuiz); tryP('curr', parseCurriculumPP);
   tryP('oth', t => parseGeneric(t).filter(p => p.ok).map(p => ({ qno: p.n, stem: p.q, options: { A: p.o[0], B: p.o[1], C: p.o[2], D: p.o[3] }, answer: p.a >= 0 ? 'ABCD'[p.a] : null, explanation: p.x })));
   cands.sort((a, b) => b.score - a.score); return cands[0];
@@ -10667,7 +10737,7 @@ async function qsrcCommit(P, drop) {
   }
   let pk = null;
   if (Object.keys(imgs).length) { try { const meta = await qvSavePack(T.mod, P.src, P.srcName || '', imgs); pk = meta && meta.id; } catch (err) { console.warn('visuals save', err); toast('Questions saved, but the pictures could not be stored'); } }
-  else { try { await qvDropFor(T.mod, P.src, P.srcName || ''); } catch { } }
+  else { try { await qvDropFor(T.mod, P.src, P.srcName || ''); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   P.items.forEach(it => { if (it.pk === '__PENDING__') { if (pk) it.pk = pk; else { delete it.pk; delete it.vi; } } });
   kept.forEach(q => { if (q.pk) { if (pk) q.pk = pk; else { delete q.pk; delete q.vi; } } });
   const all = [...keep, ...kept, ...P.items];
@@ -10676,10 +10746,10 @@ async function qsrcCommit(P, drop) {
   await flush(); return { added: P.items.length - old.filter(q => nid.has(q.id)).length, updated: old.filter(q => nid.has(q.id)).length, kept: kept.length, dropped: drop ? old.filter(q => !nid.has(q.id)).length : 0 };
 }
 async function qsrcRemove(T, src, srcName, label) {
-  if (!confirm(`Remove the imported questions of ${label}?\nYour answers, notes and edits stay in your account.`)) return false;
+  if (!(await appConfirm(`Remove the imported questions of ${label}?\nYour answers, notes and edits stay in your account.`))) return false;
   const sid = await undoSnap('Removed imported questions · ' + label, [T.key]);
   await kv.set(T.key, []); if (T.delEmpty) await db.del('kv', T.key);
-  try { await qvDropFor(T.mod, src, srcName || ''); } catch { }
+  try { await qvDropFor(T.mod, src, srcName || ''); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   if (T.after) await T.after([]);
   await flush(); undoToast('Questions removed', sid, { refresh: false }); return true;
 }
@@ -10827,11 +10897,11 @@ async function qlibClick(e) {
     download(`${SUBJ_SHORT[sj]}-LOS-index.json`, JSON.stringify({ subject: SUBJ_SHORT[sj], note: 'Use los_id exactly as written in the Topic Qbank linking file.', modules: mods }, null, 1), 'application/json'); return true;
   }
   if (t.dataset.tpdl) { download(`${SUBJ_SHORT[t.dataset.tpdl]}-topic-qbank.json`, JSON.stringify(TPACKS[t.dataset.tpdl].D, null, 1), 'application/json'); return true; }
-  if (t.dataset.tprm) { const sj = t.dataset.tprm; if (confirm('Remove the Topic Qbank linking file?\nQuestions you already imported stay, with the answers and LOS they had.')) { const sid = await undoSnap('Removed Topic Qbank linking file', ['tpack:' + sj]); await kv.set('tpack:' + sj, null); await db.del('kv', 'tpack:' + sj); await loadPacks(); undoToast('Linking file removed', sid, { refresh: false }); await library(); } return true; }
+  if (t.dataset.tprm) { const sj = t.dataset.tprm; if ((await appConfirm('Remove the Topic Qbank linking file?\nQuestions you already imported stay, with the answers and LOS they had.'))) { const sid = await undoSnap('Removed Topic Qbank linking file', ['tpack:' + sj]); await kv.set('tpack:' + sj, null); await db.del('kv', 'tpack:' + sj); await loadPacks(); undoToast('Linking file removed', sid, { refresh: false }); await library(); } return true; }
   if (t.dataset.pdl) { download(`${PACKS[t.dataset.pdl].module?.module_id || t.dataset.pdl}.json`, JSON.stringify(PACKS[t.dataset.pdl], null, 1), 'application/json'); return true; }
   if (t.dataset.pdel) {
     const del = t.dataset.pdel;
-    if (confirm(`Remove the module file for ${packX(del).short}? Your notes and answers stay; the module shows as "Not loaded" until you upload it again.`)) {
+    if ((await appConfirm(`Remove the module file for ${packX(del).short}? Your notes and answers stay; the module shows as "Not loaded" until you upload it again.`))) {
       const sid = await undoSnap('Removed module file · ' + packX(del).short, ['pack:' + del, 'packIds']);
       await kv.set('pack:' + del, null); await kv.set('packIds', (await kv.get('packIds', [])).filter(z => z !== del)); await loadPacks(); OPEN_SUBJ.add(del.split('-')[0]); undoToast('Module file removed · ' + tShortOf(del), sid, { refresh: false }); await library();
     }
@@ -10917,7 +10987,7 @@ const _bkTimeout = (p, ms) => { let t; return Promise.race([p, new Promise((_, r
 const _bkJ = v => { try { const t = JSON.stringify(v); return t === undefined ? 'null' : t; } catch (e) { console.warn('backup: item skipped', e); return 'null'; } };
 let _bkBusy = false;
 async function backupBlob(onStep, opt = {}) {
-  const full = !!opt.full, step = t => { try { onStep && onStep(t); } catch { } };
+  const full = !!opt.full, step = t => { try { onStep && onStep(t); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
   const parts = [];
   parts.push('{"app":"cfa-l1","v":3,"kind":' + JSON.stringify(full ? 'full' : 'light') + ',"at":' + JSON.stringify(new Date().toISOString()));
   step('Reading progress & settings…');
@@ -11020,7 +11090,7 @@ async function askDropOldBook(oldId, newId) {
   if (!oldId || oldId === newId) return;
   const M = await kv.get('moduleMap', {}); let used = false; for (const v of Object.values(M)) for (const k of Object.keys(v || {})) if (v[k]?.fileId === oldId) used = true;
   const f = await db.get('files', oldId); if (used || !f) return;
-  if (confirm(`The old book "${f.label || f.name}" is no longer linked to any module.\n\nDelete it from your cloud storage too?\n(Your highlights and notes stay.)`)) { try { await bookDeleteAll(oldId); toast('Old book deleted'); } catch (err) { alert('Could not delete from the cloud: ' + err.message); } }
+  if ((await appConfirm(`The old book "${f.label || f.name}" is no longer linked to any module.\n\nDelete it from your cloud storage too?\n(Your highlights and notes stay.)`))) { try { await bookDeleteAll(oldId); toast('Old book deleted'); } catch (err) { appAlert('Could not delete from the cloud: ' + err.message); } }
 }
 
 // ---------- clean start ----------
@@ -11059,7 +11129,7 @@ async function cleanOps(sc, G) {
     let nc = 0, keys = [], na = 0;
     for (const mid of mids) { for (const k of [cardsKey(mid), 'decks:' + mid, 'deckst:' + mid]) { const v = await kv.get(k, null); if (v && (Array.isArray(v) ? v.length : Object.keys(v).length)) { keys.push(k); if (k.startsWith('cards:')) nc += v.length; } } if (await kv.get('aisum:' + mid, null)) { keys.push('aisum:' + mid); na++; } }
     add('B', 'Flashcards and decks', nc || keys.filter(k => !k.startsWith('aisum:')).length, async () => { for (const k of keys.filter(k => !k.startsWith('aisum:'))) await delKey(k); });
-    add('B', 'AI summaries (Word / PDF)', na, async () => { for (const k of keys.filter(k => k.startsWith('aisum:'))) { await delKey(k); try { await uncache('aidocx:' + k.slice(6)); } catch { } } });
+    add('B', 'AI summaries (Word / PDF)', na, async () => { for (const k of keys.filter(k => k.startsWith('aisum:'))) { await delKey(k); try { await uncache('aidocx:' + k.slice(6)); } catch (_e) { window.__diag && __diag.swallow(_e);  } } });
     await dictOp('B', 'Things to remember (mine)', 'remx', k => csMod(sc, k));
   }
   if (G.C1) {
@@ -11266,7 +11336,7 @@ function readerSnipFactory(ctx) {
     const off = () => { ov.remove(); document.removeEventListener('keydown', onk, true); }, onk = e => { if (e.key === 'Escape') { e.stopPropagation(); off(); } };
     document.addEventListener('keydown', onk, true);
     const upd = e => { const x0 = Math.min(sx, e.clientX), y0 = Math.min(sy, e.clientY), x1 = Math.max(sx, e.clientX), y1 = Math.max(sy, e.clientY); R = { x0, y0, x1, y1 }; box.style.cssText = `position:absolute;left:${x0 - r.left}px;top:${y0 - r.top}px;width:${x1 - x0}px;height:${y1 - y0}px`; };
-    ov.onpointerdown = e => { e.preventDefault(); try { ov.setPointerCapture(e.pointerId); } catch { } sx = e.clientX; sy = e.clientY; box.hidden = false; upd(e); };
+    ov.onpointerdown = e => { e.preventDefault(); try { ov.setPointerCapture(e.pointerId); } catch (_e) { window.__diag && __diag.swallow(_e);  } sx = e.clientX; sy = e.clientY; box.hidden = false; upd(e); };
     ov.onpointermove = e => { if (sx !== null) upd(e); };
     ov.onpointerup = async e => {
       if (sx === null) return; upd(e); const rect = R; sx = null; off();
@@ -11294,7 +11364,8 @@ const CLOUD_HELP = 'The site cannot reach your cloud account. If you have not us
 async function noticeBannersHTML() {
   const parts = [], st = document.getElementById('sync')?.dataset.state;
   if (st === 'error') parts.push(`<div class="notice notice-warn" role="alert"><b>Cloud sync is not working.</b> Your work is safe on this device. <details class="inline-block align-top"><summary class="link text-xs cursor-pointer">What to do</summary><div class="mt-1">${esc(CLOUD_HELP)} <a class="link ml-1" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase</a></div></details></div>`);
-  const last = await kv.get('lastBackup', null); let snooze = 0; try { snooze = +(localStorage.getItem('backupSnoozeUntil') || 0); } catch { }
+  try { const e = await navigator.storage.estimate(); if (e && e.quota && e.usage / e.quota > 0.8) parts.push(`<div class="notice notice-warn" role="alert">\uD83D\uDCBD <b>This browser's storage on this device is ${Math.round(100 * e.usage / e.quota)}% full</b> (${Math.round(e.usage / 1048576)} of ${Math.round(e.quota / 1048576)} MB). Free space before it refuses to save: Library → Lecture videos on this device → Copies (remove finished videos), or books you no longer read.</div>`); } catch (e) { window.__diag && __diag.swallow(e);  }
+  const last = await kv.get('lastBackup', null); let snooze = 0; try { snooze = +(localStorage.getItem('backupSnoozeUntil') || 0); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   if (Date.now() > snooze && (!last || Date.now() - last > 7 * DAYMS)) {
     const has = (await db.keys('notes')).length || Object.keys(await kv.get('qstats', {})).length || (await kv.get('packIds', [])).length;
     if (has) parts.push(`<div class="notice" role="status">💾 <b>${last ? 'Last backup ' + Math.floor((Date.now() - last) / DAYMS) + ' days ago.' : 'No backup downloaded yet.'}</b> It is your only safety copy. <button type="button" class="btn-primary text-xs ml-2" data-bk="now">Download backup</button> <button type="button" class="link text-xs ml-1" data-bk="later">Remind me tomorrow</button></div>`);
@@ -11303,7 +11374,7 @@ async function noticeBannersHTML() {
   { const pb = await kv.get('lastBackupPartial', null);
     if (pb && pb.at) parts.push(`<div class="notice notice-warn" role="alert">⚠️ <b>Your last ${pb.kind === 'full' ? 'full ' : ''}backup (${esc(new Date(pb.at).toLocaleDateString('en-GB'))}) is PARTIAL</b> — ${pb.missing} of ${pb.expected} item(s) (picture packs / device-only books) could not be read and are not inside it. <button type="button" class="btn-primary text-xs ml-2" data-bk="${pb.kind === 'full' ? 'full' : 'now'}">Try again</button></div>`); }
   // v31 · the full backup (with question pictures) is the only copy of the pictures outside Supabase: remind every 30 days
-  { const lf = await kv.get('lastFullBackup', null); let sz = 0; try { sz = +(localStorage.getItem('fullBkSnooze') || 0); } catch { }
+  { const lf = await kv.get('lastFullBackup', null); let sz = 0; try { sz = +(localStorage.getItem('fullBkSnooze') || 0); } catch (_e) { window.__diag && __diag.swallow(_e);  }
     if (Date.now() > sz && Object.keys((await kv.get('qpacks', {})) || {}).length && (!lf || Date.now() - lf > 30 * DAYMS))
       parts.push(`<div class="notice" role="status">\uD83D\uDDC2 <b>${lf ? 'Last full backup ' + Math.floor((Date.now() - lf) / DAYMS) + ' days ago.' : 'No full backup yet.'}</b> The full backup also keeps your question pictures and device-only books. <button type="button" class="btn-primary text-xs ml-2" data-bk="full">Download full backup</button><button type="button" class="btn-ghost text-xs ml-1" data-bk="fullLater">Remind me in a week</button></div>`); }
   return parts.join('');
@@ -11312,7 +11383,7 @@ async function showNotices() {
   document.getElementById('notices')?.remove();
   if (!/^#?\/?$|^#\/(library|settings|study)$/.test(location.hash || '')) return;
   const tok = window.__noticeTok = (window.__noticeTok || 0) + 1;
-  let html = ''; try { html = await noticeBannersHTML(); } catch { }
+  let html = ''; try { html = await noticeBannersHTML(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   if (tok !== window.__noticeTok) return;                       // a newer call is running — only the latest one draws
   document.getElementById('notices')?.remove();
   if (!html || !view) return;
@@ -11320,12 +11391,12 @@ async function showNotices() {
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest && e.target.closest('[data-bk]'); if (!b) return;
-  if (b.dataset.bk === 'now') { try { await downloadBackupNow(); } catch { } }
-  else if (b.dataset.bk === 'full') { try { await downloadBackupNow({ full: true }); } catch { } }
-  else if (b.dataset.bk === 'fullLater') { try { localStorage.setItem('fullBkSnooze', String(Date.now() + 7 * DAYMS)); } catch { } }
-  else { try { localStorage.setItem('backupSnoozeUntil', String(Date.now() + DAYMS)); } catch { } }
+  if (b.dataset.bk === 'now') { try { await downloadBackupNow(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
+  else if (b.dataset.bk === 'full') { try { await downloadBackupNow({ full: true }); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
+  else if (b.dataset.bk === 'fullLater') { try { localStorage.setItem('fullBkSnooze', String(Date.now() + 7 * DAYMS)); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
+  else { try { localStorage.setItem('backupSnoozeUntil', String(Date.now() + DAYMS)); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   document.getElementById('notices')?.remove();
-  if (b.dataset.bk === 'now' || b.dataset.bk === 'full') setTimeout(() => { try { showNotices(); } catch { } }, 300);   // v35 · a partial backup shows its warning again at once
+  if (b.dataset.bk === 'now' || b.dataset.bk === 'full') setTimeout(() => { try { showNotices(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }, 300);   // v35 · a partial backup shows its warning again at once
 });
 // optional: a GitHub Action that touches the database every 3 days so the free project is not paused for inactivity
 function keepAliveYml() {
@@ -11385,7 +11456,7 @@ async function libFixNames() {
     const cur = f.label || f.name; if (!SHORTNAME.test(cur)) continue;
     let hit = null; for (const [mid, v] of Object.entries(M)) for (const [k, l] of Object.entries(v || {})) if (l && l.fileId === f.id && !hit) hit = { mid, k: k === 'aipdf' ? 'aisum' : k };
     const kind = hit ? hit.k : f.kind; let title = '';
-    if (!packFileName(kind, hit && hit.mid)) { try { const b = (await local.get('blobs', f.id))?.blob; if (b) { if (msg) msg.textContent = `Reading the title of ${cur}…`; title = (await (await reader()).inspectPdf(b)).title || ''; } } catch { } }
+    if (!packFileName(kind, hit && hit.mid)) { try { const b = (await local.get('blobs', f.id))?.blob; if (b) { if (msg) msg.textContent = `Reading the title of ${cur}…`; title = (await (await reader()).inspectPdf(b)).title || ''; } } catch (_e) { window.__diag && __diag.swallow(_e);  } }
     const next = bookLabelFor(f.name, kind, hit && hit.mid, title); if (next && next !== cur) props.push({ f, cur, next });
   }
   if (msg) msg.textContent = '';
@@ -11508,7 +11579,7 @@ async function perfExtra(D) {
 // every KPI: what it is for, how it is measured, how to read it, minimum data, limits
 const KPI_INFO = {
   ready: { t: 'Exam-ready', goal: 'One clear answer to “am I ready to sit the exam?” — instead of reading twenty numbers.', how: 'Five checks must all pass: (1) the whole curriculum is complete · (2) your last 2 full mocks are both 70 % or more (mocks you took outside the site count — add them on the Mocks page) · (3) every topic has a readiness of 60 % or more · (4) first-attempt accuracy is 70 % or more on 100+ questions · (5) retention is 75 % or more.', f: 'Exam-ready = all 5 checks passed', read: [['5/5', 'g', 'ready — keep it warm with mocks and the review pack'], ['3–4/5', 'a', 'close — fix the failed checks first'], ['0–2/5', 'r', 'keep building']], min: 'None — the card always shows which checks are still open.', lim: 'A rule of thumb used by review courses, not a guarantee. The 70 % line is a working target, not the official pass mark.' },
-  rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'An estimated study-readiness index for this module or topic, based on your recorded practice — roughly how likely you are to answer a new question on it correctly today. It is a study guide built on fixed assumptions, NOT a validated exam score or a chance of passing. It measures how well you know what you studied — not how much you finished (that is Completeness).',
+  rdy: { t: 'Readiness — and why it starts at 40 %', goal: 'An estimated study-readiness index for this module or topic, based on your recorded practice — roughly how likely you are to answer a new question on it correctly today. Questions you have not answered yet count at the starting 40 %, so the figure rises only as you cover the bank AND answer it well (Settings → Readiness). It is a study guide built on fixed assumptions, NOT a validated exam score or a chance of passing. It measures how well you know what you studied — not how much you finished (that is Completeness).',
     plain: 'Think of a restaurant you have never tried. Asked “out of 10?”, you would not say 10 or 0 — you would guess about 4. After one good meal you might say 5 (once can be luck). After ten good meals you can say 8 with confidence. Readiness works the same way: before you answer anything the site assumes 40 % — a little above blind guessing on three options (33 %). Each real answer pulls the number towards your true level, and the starting guess matters less and less.',
     how: 'The site behaves as if you had already answered 6 imaginary questions at 40 %, then adds your real answers. First attempts and retries after 5+ days count fully, a next-day retry counts half, a same-day retry hardly counts (you remember the answer, not the idea). Old answers fade (half weight after 60 days). A right guess counts half; a wrong answer marked Sure counts against you.',
     f: 'Readiness = (weighted correct answers + 6 × 0.40) ÷ (weighted answers + 6)',
@@ -11569,7 +11640,7 @@ document.addEventListener('click', async e => {
   else if (b.dataset.khide) { const k = b.dataset.khide; P.hidden = [...h, k].filter((x, i, a) => a.indexOf(x) === i); P.fav = P.fav.filter(x => x !== k); toast(`${KPI_INFO[k]?.t || 'Metric'} hidden — it is still calculated. Show it again from the bar at the bottom.`); }
   else if (b.dataset.kshow) { P.hidden = b.dataset.kshow === '*' ? [] : P.hidden.filter(x => x !== b.dataset.kshow); }
   else if (b.dataset.kcompact !== undefined) { P.compact = b.dataset.kcompact === '1'; }
-  else if (b.dataset.kreset) { if (!confirm('Show all metrics in their default groups and clear your favourites?')) return; P.fav = []; P.hidden = []; }
+  else if (b.dataset.kreset) { if (!(await appConfirm('Show all metrics in their default groups and clear your favourites?'))) return; P.fav = []; P.hidden = []; }
   await kv.set('kpiPrefs', P); window.__keepScroll = true; route();
 }, true);
 document.addEventListener('click', e => {      // v29 · Performance ⋯ menu (phones)
@@ -11709,7 +11780,7 @@ async function dshData() {
   const tEx = ev.filter(e => e.s > 0 && e.md === 'exam'), tAll = ev.filter(e => e.s > 0 && e.s < 1200), tUse = tEx.length >= 20 ? tEx : tAll.length >= 20 ? tAll : null;
   const pace2 = tUse ? (() => { const a = tUse.slice(-400).map(e => e.s).sort((x, y) => x - y); return { med: a[a.length >> 1], slow: Math.round(a.filter(x => x > 90).length / a.length * 100), src: tUse === tEx ? 'exam mode' : 'all modes' }; })() : null;
   const D0 = { lvA, covN, covW, complete, modsDone, nMods: ps.length, pace2, exam, days, examR, overall, subj, ans, cor, Q, weeks, tw, lw, act, streak: dshStreak(act), rdWeekAgo, conf, sureWrong, traps, mocks, doneFull, doneCp, mockAvg, must, recAcc, pred, band, cardsDue, goal, pace, faAll, faAcc, c, rq: await rqData(), cal, calOn, rawOf, adjOf, examTime, mockPred: (await kv.get('mockPred', {})) || {} };
-  D0.K = await perfExtra(D0); try { window.__examReady = examReady(D0, D0.K); } catch { } return D0;
+  D0.K = await perfExtra(D0); try { window.__examReady = examReady(D0, D0.K); } catch (_e) { window.__diag && __diag.swallow(_e);  } return D0;
 }
 // actions that move the score most this week (prescriptive, not just descriptive)
 function dshActions(D) {
@@ -11824,7 +11895,7 @@ async function dashboardView() {
   ${edit ? layEditBar() : ''}${layHTML('progress', defs, secs, await layGet('progress', defs), edit)}`;
   view.onclick = async e => {
     if (e.target.closest('#dshXlsx')) { const b = e.target.closest('#dshXlsx'); b.disabled = true; b.textContent = 'Building…'; try { await dshExcel(D); } catch (err) { toast('Export failed: ' + err.message); console.error(err); } b.disabled = false; b.textContent = '⬇️ Export to Excel'; return; }
-    if (e.target.closest('#dshGoal')) { const v = prompt('Weekly question goal', D.goal); if (v && +v > 0) { await kv.set('weekGoal', Math.round(+v)); dashboardView(); } return; }
+    if (e.target.closest('#dshGoal')) { const v = (await appPrompt('Weekly question goal', D.goal)); if (v && +v > 0) { await kv.set('weekGoal', Math.round(+v)); dashboardView(); } return; }
     const lp = e.target.closest('[data-lpath]'); if (lp) { LEARN_PATH = lp.dataset.lpath === 'qfirst' ? 'qfirst' : 'standard'; await kv.set('learnPath', LEARN_PATH); return dashboardView(); }
     const ap = e.target.closest('[data-cal-apply]'); if (ap) { const [pv, gp] = ap.dataset.calApply.split('|'), c = { ...(D.cal || {}) }; c[pv] = Math.max(-30, Math.min(30, Math.round(+gp))); await kv.set('mockCal', c); return dashboardView(); }
     const pt = e.target.closest('[data-ptopic]');
@@ -12045,7 +12116,7 @@ async function teachView(mid) {
   view.oninput = e => { const k = e.target.dataset.feyn; if (!k) return; mine[k] = e.target.value; clearTimeout(tmr); tmr = setTimeout(async () => { const all = await kv.get('feyn', {}); all[mid] = { ...(all[mid] || {}), [k]: mine[k] }; await kv.set('feyn', all); }, 600); };
   const key = e => { if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || e.ctrlKey || e.metaKey || e.altKey) return; if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1); if (e.key.toLowerCase() === 'f') view.querySelector('[data-tk="fs"]')?.click(); };
   document.addEventListener('keydown', key);
-  return () => { document.removeEventListener('keydown', key); view.onclick = null; view.oninput = null; if (document.fullscreenElement) document.exitFullscreen().catch(() => { }); };
+  return () => { document.removeEventListener('keydown', key); view.onclick = null; view.oninput = null; if (document.fullscreenElement) document.exitFullscreen().catch(e => { window.__diag && __diag.swallow(e);  }); };
 }
 
 // v23 · Things to remember — everything in one printable page (Print → Save as PDF works offline)
@@ -12064,7 +12135,7 @@ async function rememberView() {
   return () => { view.onclick = null; };
 }
 
-(() => { let last = 0; addEventListener('unhandledrejection', e => { const r = e.reason, nm = r && (r.name || ''); if (nm === 'AbortError' || Date.now() - last < 15000) return; last = Date.now(); try { toast('Something did not work. Your data is safe — try again, or reload the page.'); } catch { } }); })();
+(() => { let last = 0; addEventListener('unhandledrejection', e => { const r = e.reason, nm = r && (r.name || ''); if (nm === 'AbortError' || Date.now() - last < 15000) return; last = Date.now(); try { toast('Something did not work. Your data is safe — try again, or reload the page.'); } catch (_e) { window.__diag && __diag.swallow(_e);  } }); })();
 
 // ================= v24 · retry queue · smart session · 10-minute session · error log · weekly report · plan catch-up =================
 const RQ_STEPS = [1, 3, 7, 21];                                   // days after a miss; each correct retry on time moves one step on; the 4th correct retry graduates the question
@@ -12147,7 +12218,7 @@ async function fillSmartCard(id = 'smartCard') {
     const sub = el.querySelector('[data-smart-sub]'), go = el.querySelector('[data-b2="smart"]'), rn = el.querySelector('[data-rq-n]');
     sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — new questions come from modules whose lecture or reading is finished. Mark a module’s reading done, or use Custom practice to choose any module.';
     go.disabled = !r.n; if (!go.hasAttribute('data-keep')) go.textContent = `▶ Start (${r.n})`;
-    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) { if (go.hasAttribute('data-keep')) { go.disabled = false; go.removeAttribute('data-b2'); go.textContent = '▶ Continue ' + nx.short; go.onclick = () => { location.hash = nx.href; }; sub.textContent = 'No questions yet — they unlock as you finish the reading or lecture of a module.'; } else sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } } catch { } }
+    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) { if (go.hasAttribute('data-keep')) { go.disabled = false; go.removeAttribute('data-b2'); go.textContent = '▶ Continue ' + nx.short; go.onclick = () => { location.hash = nx.href; }; sub.textContent = 'No questions yet — they unlock as you finish the reading or lecture of a module.'; } else sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } } catch (_e) { window.__diag && __diag.swallow(_e);  } }
     rn.textContent = r.rq.due.length ? `${r.rq.due.length} due${r.rq.backlog ? ' (' + r.rq.backlog + ' backlog)' : ''}` : '0 due ✓';
   } catch (e) { const sub = el.querySelector('[data-smart-sub]'); if (sub) sub.textContent = 'Could not prepare the session'; console.warn(e); }
 }
@@ -12257,7 +12328,7 @@ async function catchUpFlow() {
   const V = await planVerdict(); if (V.state === 'none') { location.hash = '#/plan'; return toast('Create a study plan first'); }
   if (V.state === 'ok') return toast('You are on track — nothing to catch up');
   const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), sch = catchUpSchedule(V.plan, V.c, isoDay(new Date()));
-  if (!confirm(`Catch-up plan\n\n• ${V.late.length} overdue task${V.late.length === 1 ? '' : 's'} (${Math.round(V.lateMin / 6) / 10} h) are re-planned from today onward, using your study days and ${V.plan.cfg.minPerDay} min a day.\n• Completed tasks are not touched.\n• Plan finish: ${fmt(V.end)} → ${fmt(sch.end)}${V.exam ? `\n• Exam: ${fmt(V.exam)} — ${sch.end <= V.exam ? 'you still finish before it ✓' : 'the new finish is AFTER the exam; consider more minutes per day'}` : ''}\n\nContinue?`)) return;
+  if (!(await appConfirm(`Catch-up plan\n\n• ${V.late.length} overdue task${V.late.length === 1 ? '' : 's'} (${Math.round(V.lateMin / 6) / 10} h) are re-planned from today onward, using your study days and ${V.plan.cfg.minPerDay} min a day.\n• Completed tasks are not touched.\n• Plan finish: ${fmt(V.end)} → ${fmt(sch.end)}${V.exam ? `\n• Exam: ${fmt(V.exam)} — ${sch.end <= V.exam ? 'you still finish before it ✓' : 'the new finish is AFTER the exam; consider more minutes per day'}` : ''}\n\nContinue?`))) return;
   const sid = await undoSnap('Catch-up plan', ['plan']), p = await kv.get('plan');
   p.tasks.forEach(z => { if (sch.map.has(z.id)) z.date = sch.map.get(z.id); }); p.lastCatchUp = { at: Date.now(), moved: sch.moved };
   await kv.set('plan', p); undoToast(`Plan updated · ${sch.moved} task${sch.moved === 1 ? '' : 's'} moved`, sid);
@@ -12346,7 +12417,7 @@ const navKeyOf = h => {
   return '';
 };
 function setNavActive(h) {
-  try { window.__sideSync && window.__sideSync(h); } catch (e) { }
+  try { window.__sideSync && window.__sideSync(h); } catch (e) { window.__diag && __diag.swallow(e);  }
   const k = navKeyOf(h);
   document.querySelectorAll('[data-nav]').forEach(a => { const id = a.dataset.nav, on = id === k || (id === 'manage' && (NAV_MANAGE.includes(k) || NAVP.hidden.includes(k))); a.classList.toggle('on', on); if (a.tagName === 'A') { if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); } });
 }
@@ -12470,7 +12541,7 @@ function layBind(page, defs, redraw) {
     } else if (b.dataset.lay === 'hide') hidden = [...new Set([...hidden, id])]; else if (b.dataset.lay === 'show') hidden = hidden.filter(x => x !== id); else return;
     await save([...pinned, ...order], hidden);
   };
-  const onDS = e => { const h = e.target.closest?.('[data-lay-drag]'); if (!h) return; dragEl = h.closest('.lay-sec'); dragEl.classList.add('lay-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', h.dataset.layDrag); } catch { } };
+  const onDS = e => { const h = e.target.closest?.('[data-lay-drag]'); if (!h) return; dragEl = h.closest('.lay-sec'); dragEl.classList.add('lay-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', h.dataset.layDrag); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
   const onDO = e => { if (dragEl && e.target.closest?.('.lay-sec')) e.preventDefault(); };
   const onDrop = async e => {
     const t = e.target.closest?.('.lay-sec'); if (!dragEl || !t || t === dragEl) return; e.preventDefault();
@@ -12487,7 +12558,7 @@ function layBind(page, defs, redraw) {
 // generic drag-to-reorder for simple lists (Settings → Layout)
 function sortableList(box, itemSel, onDone) {
   let dragEl = null;
-  box.addEventListener('dragstart', e => { const it = e.target.closest?.(itemSel); if (!it) return; dragEl = it; it.classList.add('lay-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', it.dataset.id || ''); } catch { } });
+  box.addEventListener('dragstart', e => { const it = e.target.closest?.(itemSel); if (!it) return; dragEl = it; it.classList.add('lay-drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', it.dataset.id || ''); } catch (_e) { window.__diag && __diag.swallow(_e);  } });
   box.addEventListener('dragover', e => { if (dragEl && e.target.closest?.(itemSel)) e.preventDefault(); });
   box.addEventListener('drop', e => {
     const t = e.target.closest?.(itemSel); if (!dragEl || !t || t === dragEl) return; e.preventDefault();
@@ -12699,7 +12770,7 @@ async function mountLayout(el) {
     if (mv) { const o = NAVP.order.slice(), i = o.indexOf(mv.dataset.id), j = i + +mv.dataset.lymv; if (j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; await navSave({ ...NAVP, order: o }); return draw(); }
     if (e.target.closest('#lyToday')) sessionStorage.setItem('layEdit', 'today');
     if (e.target.closest('#lyProg')) sessionStorage.setItem('layEdit', 'progress');
-    if (e.target.closest('#lyReset') && confirm('Reset the menu, start page, bottom bar and the card layouts of Today and Performance?')) { for (const k of ['nav', 'navMobile', 'layout:today', 'layout:progress']) await kv.set(k, null); await navLoad(); toast('Layout reset'); return draw(); }
+    if (e.target.closest('#lyReset') && (await appConfirm('Reset the menu, start page, bottom bar and the card layouts of Today and Performance?'))) { for (const k of ['nav', 'navMobile', 'layout:today', 'layout:progress']) await kv.set(k, null); await navLoad(); toast('Layout reset'); return draw(); }
   };
   el.onchange = async e => {
     const t = e.target;
@@ -12868,7 +12939,7 @@ async function examdayView() {
   };
   draw();
   view.onchange = async e => { const id = e.target.dataset.exd; if (!id) return; chk[id] = e.target.checked; await kv.set('examChk', chk); draw(); const el = view.querySelector(`[data-exd="${id}"]`); el && el.focus(); };
-  view.onclick = async e => { if (e.target.closest('#exdPrint')) window.print(); if (e.target.closest('#exdReset') && confirm('Clear all ticks?')) { chk = {}; await kv.set('examChk', chk); draw(); } };
+  view.onclick = async e => { if (e.target.closest('#exdPrint')) window.print(); if (e.target.closest('#exdReset') && (await appConfirm('Clear all ticks?'))) { chk = {}; await kv.set('examChk', chk); draw(); } };
   return () => { view.onchange = null; view.onclick = null; };
 }
 
@@ -13478,7 +13549,7 @@ async function route0() {
   cleanup && cleanup(); cleanup = null; hideKeys(); document.getElementById('keysDlg')?.remove();
   if (_prepEp !== DATA_EP) {             // only when something was saved / synced since the last page
     const t0 = performance.now();
-    await loadPacks(); await applySubjOrder(); await fixStaleMods(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
+    RD_FULL = (await kv.get('rdFull', true)) !== false; await loadPacks(); await applySubjOrder(); await fixStaleMods(); MINICFG = await kv.get('miniCfg', {}) || {}; MINIRES = await migrateMiniKeys(); await syncAllCards(); TRACK = await kv.get('modTrack', {}); await loadQE();
     _prepEp = DATA_EP; window.__diag && __diag.log('route-prep', Math.round(performance.now() - t0) + ' ms');
   } else { TRACK = await kv.get('modTrack', {}); }
   await navLoad();
@@ -13678,7 +13749,7 @@ async function mohdTab(body, x) {
   document.getElementById('mdImp').onchange = async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     try { const n = await importWordInto(x.id, f); toast(`Added ${n} items from ${f.name}`); }
-    catch (err) { alert(err.message || String(err)); }
+    catch (err) { appAlert(err.message || String(err)); }
   };
   return renderNotes(document.getElementById('mohdList'), { moduleId: x.id, kind: 'mohd', onJump: openSource });
 }
@@ -13927,12 +13998,12 @@ async function undoTx(mode, fn) {
 }
 const undoAll = () => undoTx('readonly', s => req(s.getAll()));
 const undoDel = id => undoTx('readwrite', s => req(s.delete(id)));
-async function undoClear() { try { await undoTx('readwrite', s => req(s.clear())); } catch { } }
+async function undoClear() { try { await undoTx('readwrite', s => req(s.clear())); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 async function undoPrune() {
   try {
     const all = await undoAll(), cut = Date.now() - UNDO_DAYS * 864e5, keep = all.filter(r => r.ts >= cut).sort((a, b) => b.ts - a.ts);
     for (const id of [...all.filter(r => r.ts < cut).map(r => r.id), ...keep.slice(UNDO_MAX).map(r => r.id)]) await undoDel(id);
-  } catch { }
+  } catch (_e) { window.__diag && __diag.swallow(_e);  }
 }
 // Copy the current value of the given keys (and optional notes) BEFORE the destructive action. Returns the restore-point id (or null).
 async function undoSnap(label, keys, extra = {}) {
@@ -13977,7 +14048,7 @@ async function mountUndoLib(el) {
     if (d) { await undoDel(d.dataset.ud); return draw(); }
     if (!r) return;
     const rec = await undoTx('readonly', s => req(s.get(r.dataset.ur))); if (!rec) return draw();
-    if (!confirm(`Restore “${rec.label}”?\n\nThis replaces the current data of the same items. A new restore point of the current state is saved first.`)) return;
+    if (!(await appConfirm(`Restore “${rec.label}”?\n\nThis replaces the current data of the same items. A new restore point of the current state is saved first.`))) return;
     await undoSnap('Before restoring: ' + rec.label, Object.keys(rec.kv || {}));
     await undoRestore(rec.id); toast('Restored'); draw();
   };
@@ -13985,7 +14056,7 @@ async function mountUndoLib(el) {
 }
 
 // ---------- 7 · Sync status (pending count, last sync) and a guarded Sign out ----------
-function markSynced() { try { localStorage.setItem('lastSyncAt', String(Date.now())); } catch { } }
+function markSynced() { try { localStorage.setItem('lastSyncAt', String(Date.now())); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
 function fmtSyncT(t) {
   if (!t) return 'not yet on this device';
   const d = new Date(t), hm = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -13993,7 +14064,7 @@ function fmtSyncT(t) {
 }
 async function refreshSyncLabel() {
   const el = document.getElementById('sync'); if (!el) return;
-  let n = 0; try { n = await pendingCount(); } catch { }
+  let n = 0; try { n = await pendingCount(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   const st = el.dataset.state || 'synced', last = +(localStorage.getItem('lastSyncAt') || 0);
   let parked = 0; try { parked = JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch (e) { parked = 0; }   // v24 · rows the server kept rejecting are shown, not hidden in Diagnostics
   const icon = parked && st !== 'saving' ? '⚠️' : ({ synced: '☁️', saving: '⏳', offline: '\uD83D\uDCF4', error: '⚠️' }[st] || '☁️');
@@ -14021,26 +14092,26 @@ async function syncPanel() {
   pop.onclick = async e => {
     const a = e.target.closest('[data-sp]')?.dataset.sp;
     if (a === 'x') { pop.remove(); document.removeEventListener('click', off, true); }
-    if (a === 'now') { e.target.disabled = true; e.target.textContent = 'Syncing…'; try { await flush(); } catch { } await refreshSyncLabel(); await draw(); }
+    if (a === 'now') { e.target.disabled = true; e.target.textContent = 'Syncing…'; try { await flush(); } catch (_e) { window.__diag && __diag.swallow(_e);  } await refreshSyncLabel(); await draw(); }
     if (a === 'full') { e.target.disabled = true; e.target.textContent = 'Downloading…'; try { localStorage.removeItem('lastFullPull'); await pull(); window.__keepScroll = true; route(); } catch (err) { toast(err.message || 'Failed'); } await draw(); }
     if (a === 'copy') { try { await navigator.clipboard.writeText(await diagReport()); toast('Report copied'); } catch { toast('Could not copy'); } }
     if (a === 'clrlog') { __diag.clear(); await draw(); }
   };
 }
 async function retryDead(btn) {
-  let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { }
+  let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   localStorage.setItem('syncDead', '[]');
   for (const x of d) { const v = await local.get(x.store, x.id); await queue(v === undefined || v === null ? { op: 'del', store: x.store, id: x.id } : { op: 'up', store: x.store, id: x.id, data: v }); }
   await flush(); if (btn) btn.textContent = 'Sent again ✓'; toast('Sent again — check Diagnostics');
 }
 window.retryDead = retryDead;
 async function diagReport() {
-  let est = null; try { est = await navigator.storage.estimate(); } catch { }
-  return JSON.stringify({ build: 'ux-1 · 2026-11-06', at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), parked: (() => { try { return JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch { return 0; } })(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40) }, null, 1);
+  let est = null; try { est = await navigator.storage.estimate(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
+  return JSON.stringify({ build: 'ux-1 · 2026-11-06', at: new Date().toISOString(), ua: navigator.userAgent, online: navigator.onLine, pending: await pendingCount(), parked: (() => { try { return JSON.parse(localStorage.getItem('syncDead') || '[]').length; } catch { return 0; } })(), lastSync: localStorage.getItem('lastSyncAt'), lastFullPull: localStorage.getItem('lastFullPull'), lastPull: window.__lastPullInfo || null, storage: est && { usedMB: Math.round(est.usage / 1048576), quotaMB: Math.round(est.quota / 1048576) }, vitals: window.__perf, boots: __boot.get().slice(-8), log: __diag.get().slice(-40), swallowed: __diag.sw }, null, 1);
 }
 async function diagHTML() {
-  let est = '', pers = '?'; try { const e = await navigator.storage.estimate(); est = `${Math.round(e.usage / 1048576)} MB used of ${Math.round(e.quota / 1048576)} MB`; } catch { }
-  try { pers = (await navigator.storage.persisted()) ? 'protected' : 'not protected'; } catch { }
+  let est = '', pers = '?'; try { const e = await navigator.storage.estimate(); est = `${Math.round(e.usage / 1048576)} MB used of ${Math.round(e.quota / 1048576)} MB`; } catch (_e) { window.__diag && __diag.swallow(_e);  }
+  try { pers = (await navigator.storage.persisted()) ? 'protected' : 'not protected'; } catch (_e) { window.__diag && __diag.swallow(_e);  }
   const P = window.__perf || {}, boots = __boot.get().slice(-5).reverse(), log = __diag.get().slice(-8).reverse(), I = window.__lastPullInfo;
   const f = v => v == null ? '–' : v;
   return `<details class="mt-3 text-xs"><summary class="cursor-pointer font-semibold">🩺 Diagnostics</summary>
@@ -14050,7 +14121,8 @@ async function diagHTML() {
       <div>This tab: first content <b>${f(P.lcp)}</b> ms · slowest tap <b>${f(P.inp)}</b> ms · layout shift <b>${f(P.cls)}</b> · long tasks <b>${P.longTasks || 0}</b> (${P.longMs || 0} ms)</div>
       <div class="font-semibold mt-2">Last starts (ms)</div>
       ${boots.map(b => `<div class="tabular-nums">${esc(new Date(b.t).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }))} · page ${f(b.dom_ready_ms)} · session ${f(b.session_ms)} · first screen ${f(b.first_route_ms)} · synced ${f(b.synced_ms)}${b.pull_full_ms ? ' · full ' + b.pull_full_ms : ''}${b.pull_diff_ms ? ' · diff ' + b.pull_diff_ms : ''}</div>`).join('') || '<div>–</div>'}
-      ${(() => { let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch { } return d.length ? `<div class="font-semibold mt-2 text-rose-600">Not uploaded · ${d.length} item${d.length === 1 ? '' : 's'} the server rejected</div>${d.slice(-5).map(x => `<div>${esc(x.store)}/${esc(x.id)} · ${esc(x.msg)}</div>`).join('')}<button type="button" class="btn-ghost text-xs mt-1" onclick="retryDead(this)">Retry these</button>` : ''; })()}
+      ${(() => { let d = []; try { d = JSON.parse(localStorage.getItem('syncDead') || '[]'); } catch (_e) { window.__diag && __diag.swallow(_e);  } return d.length ? `<div class="font-semibold mt-2 text-rose-600">Not uploaded · ${d.length} item${d.length === 1 ? '' : 's'} the server rejected</div>${d.slice(-5).map(x => `<div>${esc(x.store)}/${esc(x.id)} · ${esc(x.msg)}</div>`).join('')}<button type="button" class="btn-ghost text-xs mt-1" onclick="retryDead(this)">Retry these</button>` : ''; })()}
+      ${(() => { const h = Object.entries(window.__diag.sw || {}).sort((a, b) => b[1].n - a[1].n).slice(0, 8); return `<div class="font-semibold mt-2">Errors handled silently · ${h.length ? h.reduce((a, z) => a + z[1].n, 0) + ' since this page opened' : 'none'}</div>${h.map(([m, o]) => `<div class="text-amber-700 dark:text-amber-300">${o.n}× ${esc(m)}</div>`).join('')}`; })()}
       <div class="font-semibold mt-2">Recent events</div>
       ${log.map(l => `<div class="${/error|fail|reject/.test(l.type) ? 'text-rose-600' : ''}">${esc(new Date(l.t).toLocaleTimeString('en-GB'))} · ${esc(l.type)} · ${esc(l.msg)}</div>`).join('') || '<div>Nothing recorded.</div>'}
       <div class="flex flex-wrap gap-2 mt-2"><button type="button" class="btn-ghost text-xs" data-sp="copy">Copy report</button><button type="button" class="btn-ghost text-xs" data-sp="full" ${navigator.onLine ? '' : 'disabled'} title="Download everything again and rebuild the local copy">Full resync</button><button type="button" class="btn-ghost text-xs" data-sp="clrlog">Clear log</button></div>
@@ -14060,8 +14132,8 @@ async function diagHTML() {
 // v28 · a DIFFERENT account signs in on this browser: show what would be lost before wiping the previous account's local data
 async function switchAccountGuard() {
   let pend = 0, localOnly = [];
-  try { pend = await pendingCount(); } catch { }
-  try { localOnly = (await local.all('files')).filter(f => f.localOnly); } catch { }
+  try { pend = await pendingCount(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
+  try { localOnly = (await local.all('files')).filter(f => f.localOnly); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   if (!pend && !localOnly.length) return true;
   return await new Promise(res => {
     const bg = document.createElement('div'); bg.className = 'modal-bg'; bg.setAttribute('role', 'alertdialog'); bg.setAttribute('aria-label', 'Another account used this browser');
@@ -14073,8 +14145,8 @@ async function switchAccountGuard() {
     document.body.append(bg);
     bg.onclick = async e => {
       const a = e.target.closest('[data-g]')?.dataset.g; if (!a) return;
-      if (a === 'bak') { try { await downloadBackupNow({ full: true }); } catch { } return; }
-      if (a === 'go' && !confirm('Delete the previous account\'s unsynced data from this device?')) return;
+      if (a === 'bak') { try { await downloadBackupNow({ full: true }); } catch (_e) { window.__diag && __diag.swallow(_e);  } return; }
+      if (a === 'go' && !(await appConfirm('Delete the previous account\'s unsynced data from this device?'))) return;
       bg.remove(); res(a === 'go');
     };
     setTimeout(() => bg.querySelector('[data-g="cancel"]')?.focus(), 30);
@@ -14082,7 +14154,7 @@ async function switchAccountGuard() {
 }
 async function signOutGuard() {
   for (;;) {
-    try { await flush(); } catch { }
+    try { await flush(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
     const pend = await pendingCount(), files = await db.all('files'), localOnly = files.filter(f => f.localOnly);
     const vids = (await local.keys('blobs')).filter(k => typeof k === 'string' && k.startsWith('vid:')).length;
     if (!pend && !localOnly.length) return true;
@@ -14100,7 +14172,7 @@ async function signOutGuard() {
       document.body.append(bg);
       bg.onclick = async e => {
         const a = e.target.closest('[data-g]')?.dataset.g; if (!a) return;
-        if (a === 'bak') { try { await downloadBackupNow(); } catch { } return; }
+        if (a === 'bak') { try { await downloadBackupNow(); } catch (_e) { window.__diag && __diag.swallow(_e);  } return; }
         bg.remove(); res(a);
       };
     });
@@ -14148,8 +14220,8 @@ function cmdItems() {
   add('Text size (Aa)', 'Action', () => document.getElementById('fsBtn')?.click(), 'font');
   add('Sync now', 'Action', async () => { await flush(); await refreshSyncLabel(); toast('Sync checked'); });
   add('Sync status', 'Action', () => syncPanel());
-  add('Download backup', 'Action', async () => { try { await downloadBackupNow(); } catch { } });
-  add('Full backup (with all pictures)', 'Action', async () => { try { await downloadBackupNow({ full: true }); } catch { } });
+  add('Download backup', 'Action', async () => { try { await downloadBackupNow(); } catch (_e) { window.__diag && __diag.swallow(_e);  } });
+  add('Full backup (with all pictures)', 'Action', async () => { try { await downloadBackupNow({ full: true }); } catch (_e) { window.__diag && __diag.swallow(_e);  } });
   add('Mixed set (interleaving)', 'Action', () => startMixed());
   add('Weekly Gauntlet', 'Action', () => startGauntlet());
   add('Focused session · 30 questions', 'Action', () => startSmart(30));
@@ -14292,7 +14364,7 @@ async function crAct(a, qid, hooks = {}) {
   }
   if (a === 'apply') {
     if (E.edit?.o) return toast('This question has edited options — change the correct answer from ✏️ Edit instead');
-    if (!confirm(`Apply Claude’s answer?\n\nNew correct answer:\n${q.o[c.ci] ?? ''}\n\nYour earlier attempts at this question will be re-marked against it.`)) return;
+    if (!(await appConfirm(`Apply Claude’s answer?\n\nNew correct answer:\n${q.o[c.ci] ?? ''}\n\nYour earlier attempts at this question will be re-marked against it.`))) return;
     const snap = await undoSnap('Applied Claude’s answer', ['qedits', 'qstats']);
     QE[q.id] = { ...E, edit: { ...(E.edit || {}), a: c.ci, ts: Date.now(), v: 2 }, cr: { d: 'applied', ts: Date.now() } };
     await kv.set('qedits', QE); await loadQE(); const r = await qRecalc(q.id, c.ci); await refresh('edit');
@@ -14363,13 +14435,13 @@ async function dupImport(file) {
   const flags = (d.flags || []).filter(f => byId.has(f.id) && QE[f.id]?.dup?.k !== 'no'), miss = (d.flags || []).length - flags.length;
   const fixes = (d.fixAnswer || []).map(f => { const q = byId.get(f.id); const i = q ? q.o.findIndex(o => dupNorm(o) === dupNorm(f.answerText)) : -1; return { ...f, q, i }; }).filter(f => f.q && f.i >= 0 && f.i !== f.q.a);
   const nE = flags.filter(f => f.k === 'exact').length;
-  if (!confirm(`Import question decisions?\n\n• Flag ${nE} exact duplicate${nE === 1 ? '' : 's'} and ${flags.length - nE} reworded duplicate${flags.length - nE === 1 ? '' : 's'} — they stay active, only a marker is added\n• Correct ${fixes.length} answer key${fixes.length === 1 ? '' : 's'}: ${fixes.map(f => f.id).join(', ') || '—'}${miss ? `\n\n${miss} question${miss === 1 ? ' is' : 's are'} not on this site (or you marked them “not a duplicate”) and will be skipped.` : ''}`)) return;
+  if (!(await appConfirm(`Import question decisions?\n\n• Flag ${nE} exact duplicate${nE === 1 ? '' : 's'} and ${flags.length - nE} reworded duplicate${flags.length - nE === 1 ? '' : 's'} — they stay active, only a marker is added\n• Correct ${fixes.length} answer key${fixes.length === 1 ? '' : 's'}: ${fixes.map(f => f.id).join(', ') || '—'}${miss ? `\n\n${miss} question${miss === 1 ? ' is' : 's are'} not on this site (or you marked them “not a duplicate”) and will be skipped.` : ''}`))) return;
   await kv.set('qeditsBak', JSON.parse(JSON.stringify(QE)));
   const ts = Date.now();
   for (const f of flags) { const of = byId.get(f.of); QE[f.id] = { ...(QE[f.id] || {}), dup: { of: f.of, ofL: of ? qLabel(of) : f.of, k: f.k === 'same' ? 'same' : 'exact', ts } }; }
   for (const f of fixes) { const E = { ...(QE[f.id] || {}) }; E.edit = { ...(E.edit || {}), a: f.i, ts, v: 2 }; QE[f.id] = E; }
   await kv.set('qedits', QE); await loadQE();
-  let re = 0; for (const f of fixes) { try { re += (await qRecalc(f.id, f.i))?.changed || 0; } catch { } }
+  let re = 0; for (const f of fixes) { try { re += (await qRecalc(f.id, f.i))?.changed || 0; } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   toast(`Done · ${flags.length} duplicates flagged · ${fixes.length} answer keys corrected${re ? ` · ${re} earlier attempt${re === 1 ? '' : 's'} re-marked` : ''}`);
   await qRefreshPage();
 }
@@ -14380,7 +14452,7 @@ async function dupImport(file) {
 // page changes, pauses quickly, and — if you close the site — resumes by itself the next time you open it on this device.
 const QVJ = { run: false, stop: false, measuring: false };
 const qvjLoad = () => { try { return JSON.parse(localStorage.getItem('qvoJob') || 'null'); } catch { return null; } };
-const qvjSave = j => { try { localStorage.setItem('qvoJob', JSON.stringify(j)); } catch { } };
+const qvjSave = j => { try { localStorage.setItem('qvoJob', JSON.stringify(j)); } catch (_e) { window.__diag && __diag.swallow(_e);  } };
 
 // ---- pixel work (main-thread fallback) ----
 const qvoDecode = async url => { const im = new Image(); im.decoding = 'async'; im.src = url; await im.decode(); const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return { c, x, w: c.width, h: c.height }; };
@@ -14427,7 +14499,7 @@ function qvoWorker() {
     if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || !OffscreenCanvas.prototype.convertToBlob) throw new Error('no worker canvas');
     QVW = new Worker(URL.createObjectURL(new Blob(['(' + qvoWorkerMain.toString() + ')()'], { type: 'text/javascript' })));
     QVW.onmessage = e => { const f = QVWcb.get(e.data.id); if (f) { QVWcb.delete(e.data.id); f(e.data.url); } };
-    QVW.onerror = () => { for (const f of QVWcb.values()) f(null); QVWcb.clear(); try { QVW.terminate(); } catch { } QVW = false; };
+    QVW.onerror = () => { for (const f of QVWcb.values()) f(null); QVWcb.clear(); try { QVW.terminate(); } catch (_e) { window.__diag && __diag.swallow(_e);  } QVW = false; };
   } catch { QVW = false; }
   return QVW || null;
 }
@@ -14521,7 +14593,7 @@ async function qvPurge() {
 // ---- the job ----
 async function qvjCleanup(j) {            // leftovers from an interrupted run: a half-uploaded new copy, or an old copy that could not be deleted
   const metas = await kv.get('qpacks', {});
-  if (j.pend && metas[j.pend.id]?.sid !== j.pend.sid) { try { await deleteBookFiles({ id: j.pend.sid, parts: j.pend.parts }); } catch { } }
+  if (j.pend && metas[j.pend.id]?.sid !== j.pend.sid) { try { await deleteBookFiles({ id: j.pend.sid, parts: j.pend.parts }); } catch (_e) { window.__diag && __diag.swallow(_e);  } }
   j.pend = null;
   const keep = [];
   for (const o of j.orph || []) { try { await deleteBookFiles(o); } catch { keep.push(o); } }
@@ -14552,11 +14624,11 @@ async function qvjRun() {
           j.pend = { id: m.id, sid, parts: Math.max(1, Math.ceil(nb.size / CHUNK)) }; qvjSave(j);
           const parts = await uploadBook(sid, nb);                                                                  // 1 · upload the new copy
           metas = { ...(await kv.get('qpacks', {})) }; const cur = metas[m.id];
-          if (!cur) { try { await deleteBookFiles({ id: sid, parts }); } catch { } j.pend = null; qvjSave(j); continue; }
+          if (!cur) { try { await deleteBookFiles({ id: sid, parts }); } catch (_e) { window.__diag && __diag.swallow(_e);  } j.pend = null; qvjSave(j); continue; }
           metas[m.id] = { ...cur, sid, parts, bytes: nb.size, size: nb.size, opt: 'webp', optAt: Date.now() };
           await kv.set('qpacks', metas); await cacheBlob(m.id, nb); QV_MEM.delete(m.id);                         // 2 · switch to it
           j.pend = null; j.done++; j.saved += oldBlob.size - nb.size; qvjSave(j);
-          await qvRetain(m.id, cur); try { await flush(); } catch { }                                              // 3 · v35 · keep the old copy 30 days (no delete now) and sync the switch
+          await qvRetain(m.id, cur); try { await flush(); } catch (_e) { window.__diag && __diag.swallow(_e);  }                                              // 3 · v35 · keep the old copy 30 days (no delete now) and sync the switch
           j.streak = 0;
         } catch (e) { j.fail++; j.streak = (j.streak || 0) + 1; j.err = String(e && (e.message || e) || 'unknown error').slice(0, 160); qvjSave(j); console.warn('optimise', id, e); if (!navigator.onLine) break; if (j.streak >= 3) { j.stopErr = true; break; } }
       }
@@ -14608,7 +14680,7 @@ document.addEventListener('click', async e => {
     if (QVJ.run) return toast('Already running in the background');
     if (!cloud || !navigator.onLine) return set('Connect to the internet first.');
     const j = qvjLoad();
-    if (!j || (!j.done && !j.skip)) { if (!confirm('Optimise all question pictures in the background?\n\n• Every picture is checked pixel by pixel — nothing changes on screen\n• You can keep studying on any page while it runs\n• Pause at any time; closing the site pauses it and it continues by itself next time\n\nDownload a full backup first if you have not done so.')) return; }
+    if (!j || (!j.done && !j.skip)) { if (!(await appConfirm('Optimise all question pictures in the background?\n\n• Every picture is checked pixel by pixel — nothing changes on screen\n• You can keep studying on any page while it runs\n• Pause at any time; closing the site pauses it and it continues by itself next time\n\nDownload a full backup first if you have not done so.'))) return; }
     qvjRun(); setTimeout(qvjButtons, 50);
   }
 });
@@ -14623,7 +14695,7 @@ document.addEventListener('click', async e => {
   const x = e.target.closest && e.target.closest('[data-undup]');
   if (x) { e.preventDefault(); e.stopPropagation(); const id = x.dataset.undup; QE[id] = { ...(QE[id] || {}), dup: { ...(QE[id]?.dup || {}), k: 'no', ts: Date.now() } }; await kv.set('qedits', QE); await loadQE(); toast('Flag removed — this question will not be flagged again'); x.closest('.chip-dup')?.remove(); return; }
   if (e.target.closest && e.target.closest('[data-dupscan]')) { await dupScan(false); return qRefreshPage(); }
-  if (e.target.closest && e.target.closest('[data-dupclear]')) { if (!confirm('Remove every duplicate flag? Questions you marked “not a duplicate” keep that choice.')) return; for (const [id, v] of Object.entries(QE)) if (v.dup && v.dup.k !== 'no') { delete v.dup; qPrune(id); } await kv.set('qedits', QE); await loadQE(); toast('All duplicate flags removed'); return qRefreshPage(); }
+  if (e.target.closest && e.target.closest('[data-dupclear]')) { if (!(await appConfirm('Remove every duplicate flag? Questions you marked “not a duplicate” keep that choice.'))) return; for (const [id, v] of Object.entries(QE)) if (v.dup && v.dup.k !== 'no') { delete v.dup; qPrune(id); } await kv.set('qedits', QE); await loadQE(); toast('All duplicate flags removed'); return qRefreshPage(); }
 });
 document.addEventListener('change', async e => { if (e.target && e.target.id === 'dupFile' && e.target.files?.[0]) { const f = e.target.files[0]; e.target.value = ''; await dupImport(f); } });
 // v29 · cognitive level: Recall (remember a fact/definition) vs Apply (calculate, use a concept in a case).
@@ -14692,7 +14764,7 @@ function qEditDialog(q, hooks = {}) {
     if (t.id === 'qeAdd') { sync(); opts.push(''); redraw(); bg.querySelector(`[data-opt="${opts.length - 1}"]`)?.focus(); return; }
     if (t.dataset.del !== undefined) { sync(); const i = +t.dataset.del; opts.splice(i, 1); corr = corr === i ? 0 : corr > i ? corr - 1 : corr; redraw(); return; }
     const a = t.dataset.r; if (a === 'x') return bg.remove();
-    if (a === 'restore') { if (!confirm('Restore the original question text, options, answer and explanation?')) return; bg.remove(); const snap = await qRestoreOriginal(q); await (hooks.onChanged || qRefreshPage)('edit', q); undoToast('Original restored', snap); return; }
+    if (a === 'restore') { if (!(await appConfirm('Restore the original question text, options, answer and explanation?'))) return; bg.remove(); const snap = await qRestoreOriginal(q); await (hooks.onChanged || qRefreshPage)('edit', q); undoToast('Original restored', snap); return; }
     if (a !== 'go') return;
     sync(); const text = $('#qeQ').value.trim(), clean = opts.map(o => o.trim()), expl = $('#qeX').value.trim(), err = $('#qeErr');
     if (!text) return err.textContent = 'The question text is empty.';
@@ -14885,7 +14957,7 @@ async function startSession(session) {
   const newUser = session.user.id;
   const prev = await local.get('kv', '__owner');
   if (prev && prev !== newUser) {      // another account used this browser before
-    if (!(await switchAccountGuard())) { try { await sb.auth.signOut(); } catch { } clearStoredSession(); return loginScreen('Sign-in cancelled — the data of the previous account is still on this device.'); }
+    if (!(await switchAccountGuard())) { try { await sb.auth.signOut(); } catch (_e) { window.__diag && __diag.swallow(_e);  } clearStoredSession(); return loginScreen('Sign-in cancelled — the data of the previous account is still on this device.'); }
     await wipeDevice();
   }
   await local.put('kv', newUser, '__owner');
@@ -14893,17 +14965,18 @@ async function startSession(session) {
   document.body.classList.remove('auth');
   if (recovering) return newPasswordScreen();
   __boot.set('session_ms');
-  try { navigator.storage?.persist?.().then(ok => __diag.log('storage', 'persistent storage: ' + ok)); } catch { }
+  try { navigator.storage?.persist?.().then(ok => __diag.log('storage', 'persistent storage: ' + ok)); } catch (_e) { window.__diag && __diag.swallow(_e);  }
   const quick = !!prev && prev === newUser && !!localStorage.getItem('lastSyncAt') && !!(await idxLoad());   // this device already holds the account → open at once
   if (!quick) {
     view.innerHTML = '<div class="py-20 text-center text-slate-500"><div class="text-4xl mb-3" aria-hidden="true">☁️</div>Syncing your study data for the first time on this device…<div class="text-xs mt-2">Next time the site opens instantly.</div></div>';
     try { await pull(); lastPull = Date.now(); } catch (e) { setStatus('error', e.message); }
   }
+  await schemaCheck();
   if (/access_token|type=recovery/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/');
   if (location.search.includes('code=')) history.replaceState(null, '', location.pathname + location.hash);
   route(); __boot.set('first_route_ms');
-  setTimeout(() => { try { qvjAuto(); } catch { } }, 8000);
-  setTimeout(() => { if (!QVJ.run) qvPurge().catch(() => { }); }, 20000);   // v35 · delete replaced picture copies older than 30 days      // v33 · resume an interrupted picture optimisation
+  setTimeout(() => { try { qvjAuto(); } catch (_e) { window.__diag && __diag.swallow(_e);  } }, 8000);
+  setTimeout(() => { if (!QVJ.run) qvPurge().catch(e => { window.__diag && __diag.swallow(e);  }); }, 20000);   // v35 · delete replaced picture copies older than 30 days      // v33 · resume an interrupted picture optimisation
   if (quick) pull().then(n => { lastPull = Date.now(); __boot.set('synced_ms'); if (n) afterPullChanged(); }).catch(e => setStatus('error', e.message || String(e)));
 }
 
@@ -14931,7 +15004,8 @@ async function syncFresh(maxMs = 2500, minGap = 10000) {
 }
 const devLabel = () => { const u = navigator.userAgent || ''; return /iPad/.test(u) ? 'iPad' : /iPhone/.test(u) ? 'iPhone' : /Android/.test(u) ? (/Mobile/.test(u) ? 'Android phone' : 'Android tablet') : /Windows/.test(u) ? 'Windows' : /Macintosh|Mac OS/.test(u) ? 'Mac' : /Linux/.test(u) ? 'Linux' : ''; };
 function afterPullChanged() {
-  try { dispatchEvent(new Event('lp:steps')); dispatchEvent(new Event('lp:vids')); } catch (e) { }      // an open lesson page updates its outline / videos in place
+  schemaCheck();
+  try { dispatchEvent(new Event('lp:steps')); dispatchEvent(new Event('lp:vids')); } catch (e) { window.__diag && __diag.swallow(e);  }      // an open lesson page updates its outline / videos in place
   const h = location.hash || '#/', typing = /TEXTAREA|INPUT|SELECT/.test(document.activeElement?.tagName || '');
   const busy = window.__busy > 0 || typing || document.body.classList.contains('reading') || h.startsWith('#/qbank/run') || !!document.querySelector('.modal-bg');
   if (!busy && /^#\/(study|plan)?$/.test(h)) { window.__keepScroll = true; route(); } else showUpdateBar();
@@ -14946,7 +15020,7 @@ document.addEventListener('visibilitychange', async () => {
   if (!user || recovering) return;
   if (document.visibilityState === 'hidden') { flush(); return; }
   if (window.__busy > 0 || Date.now() - lastPull < 60000) return;      // never refresh while a file is uploading
-  try { const n = await pull(); if (n !== false) lastPull = Date.now(); if (n) afterPullChanged(); } catch { }
+  try { const n = await pull(); if (n !== false) lastPull = Date.now(); if (n) afterPullChanged(); } catch (_e) { window.__diag && __diag.swallow(_e);  }
 });
 
 // Offline-first start: when the server cannot be reached (offline, library missing, token refresh impossible) the app opens with the
@@ -14978,7 +15052,7 @@ window.addEventListener('online', async () => {
     const r = await sb.auth.getSession();
     if (r.data?.session) { offlineBoot = false; flush(); }
     else if (r.error && !isNetErr(r.error)) toast('Session expired — sign in again to sync. Your data is safe on this device.');
-  } catch { }
+  } catch (_e) { window.__diag && __diag.swallow(_e);  }
 });
 window.addEventListener('offline', () => { if (user) toast('Offline — your work is saved on this device'); });
 
