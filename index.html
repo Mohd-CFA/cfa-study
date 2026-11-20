@@ -9865,11 +9865,45 @@ async function vdirIndex(h) {
   }
   await walk(h, 0); return out;
 }
-function vsessSet(files) {      // folder chosen with the plain folder picker: kept in memory until the tab is closed
-  const out = new Map(); out.errs = 0;
+function vsessSet(files, merge) {      // files / folder chosen with a plain picker: kept in memory until the tab is closed (works in every browser)
+  const out = merge && VSESS ? VSESS : new Map(); if (!out.errs) out.errs = 0;
   for (const f of files) if (VID_RE.test(f.name) || SUB_RE.test(f.name)) { const k = f.name.toLowerCase(); if (!out.has(k)) out.set(k, { kind: 'file', name: f.name, getFile: async () => f }); }
-  const rel = (files[0] && files[0].webkitRelativePath) || ''; out.folder = rel.split('/')[0] || '';
+  const rel = (files[0] && files[0].webkitRelativePath) || ''; if (rel || !merge) out.folder = rel.split('/')[0] || out.folder || '';
   VSESS = out.size ? out : null; return VSESS;
+}
+const vNames = idx => idx ? [...idx.keys()].filter(n => VID_RE.test(n)) : [];
+const vNorm = n => String(n || '').toLowerCase().replace(/\.[^.]+$/, '').replace(/[^a-z0-9\u0600-\u06FF]+/g, '');
+function vSimilar(idx, fn) {     // names in the folder that look like the wanted one (only a hint for the user — playing still needs the exact name)
+  const w = vNorm(fn); if (!w || !idx) return [];
+  return vNames(idx).map(n => (idx.get(n) && idx.get(n).name) || n).filter(n => { const x = vNorm(n); return x === w || (x.length > 5 && (x.includes(w) || w.includes(x))); }).slice(0, 3);
+}
+// v43 · ONE place that links a folder and says exactly what happened (every screen shows the same words)
+let VLAST = null;
+async function vLinkFolder(onStep) {
+  const say = t => { try { onStep && onStep(t); } catch (e) { } };
+  if (!canDir()) return { bad: true, msg: 'This browser cannot keep a folder linked. Use “Choose lectures folder (this session)” or “Choose video files (this session)”.' };
+  let h;
+  try { h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); }
+  catch (e) {
+    const nm = e && e.name || '';
+    if (nm === 'AbortError') return VLAST = { bad: true, abort: true, msg: 'No folder was linked. Either the window was closed, or the browser refused that folder — it blocks Downloads, Documents, Desktop, the storage root and system folders themselves. Pick a normal sub-folder (for example Downloads/CFA) and try again.' };
+    if (nm === 'SecurityError') return VLAST = { bad: true, msg: 'The browser blocked the folder picker here (' + (e.message || nm) + '). Open the site directly in Chrome / Edge — not inside another app — or use “Choose video files (this session)”.' };
+    return VLAST = { bad: true, msg: (nm ? nm + ': ' : '') + (e && e.message || 'The folder picker failed.') };
+  }
+  say('Opening “' + h.name + '”…');
+  let persisted = true;
+  try { await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); }
+  catch (e) { persisted = false; }                 // this browser cannot store a folder handle → it works for this visit only
+  VIDX = null; VIDX_T = 0;
+  let granted = true; try { granted = await vdirPerm(h, true); } catch (e) { granted = false; }
+  if (!granted) return VLAST = { bad: true, msg: 'The folder was chosen but the browser did not give this site permission to read it. Pick it again and choose “View files / Allow”.' };
+  say('Reading the files in “' + h.name + '”…');
+  let idx; try { idx = await vdirIndex(h); } catch (e) { idx = null; }
+  if (!idx) return VLAST = { bad: true, msg: 'The browser would not let the site read that folder. Try a different folder, or use “Choose video files (this session)”.' };
+  if (persisted) { VIDX = idx; VIDX_T = Date.now(); } else { idx.folder = h.name; VSESS = idx; }
+  try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (e) { }
+  const n = vNames(idx).length;
+  return VLAST = { ok: true, n, name: h.name, idx, persisted, msg: (n ? `✓ Linked “${h.name}” — ${n} video file${n > 1 ? 's' : ''} found.` : `Linked “${h.name}”, but no video file (mp4, mov, mkv, webm…) was found in it${idx.errs ? ` (${idx.errs} sub-folder(s) could not be read)` : ''}. Pick the folder that holds the videos.`) + (persisted ? '' : ' This browser cannot remember the folder, so it works until you close the tab.'), bad: !n };
 }
 async function vdirReady(ask) {
   const r = await vdirRec();
@@ -9931,6 +9965,7 @@ async function vidLibHTML() {
       : `<div class="text-xs text-slate-500">This browser cannot keep a folder linked. Two ways to use your lectures here:</div>
          <div class="flex flex-wrap items-center gap-2 mt-2">${sessBtn}<span class="text-[11px] text-slate-500">Pick the folder each time you study — nothing is copied.${VSESS ? ` <b>Now: ${esc(VSESS.folder || 'folder')} · ${[...VSESS.keys()].filter(n => VID_RE.test(n)).length} videos</b>` : ''}</span></div>`}
     ${state}
+    <div class="flex flex-wrap items-center gap-2 mt-2"><label class="btn-ghost text-xs cursor-pointer" data-tip="Works in every browser: pick the video files themselves — nothing is copied; they stay available until you close this tab">\uD83C\uDFAC Choose video files (this session)<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vSessFiles"></label>${VSESS ? `<span class="text-[11px] text-emerald-600">${vNames(VSESS).length} video files ready for this tab</span>` : ''}</div>
     <div class="flex flex-wrap items-center gap-2 mt-3 text-sm"><label class="btn-ghost text-xs cursor-pointer">\uD83D\uDCBE Keep copies on this device<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vcopyUp"></label>
       <span class="text-xs text-slate-500">${cps.length ? `${cps.filter(b => VID_RE.test(b.name)).length} videos · ${fmtMB(tot)}` : 'No copies'}</span>
       <button class="btn-ghost text-xs ml-auto" data-vl="check" data-tip="Checks every video of every module against this device: which file is found, which is missing">\uD83D\uDD0D Check this device</button></div>
@@ -9955,14 +9990,19 @@ function bindVidLib(el, redraw) {
   el.onclick = async e => {
     const btn = e.target.closest('[data-vl],[data-vcdel]'); if (!btn) return; const a = btn.dataset.vl, d = btn.dataset.vcdel;
     try {
-      if (a === 'pick') { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (x) { } const idx = await vdirReady(true); toast(`Folder linked · ${[...(idx || new Map()).keys()].filter(n => VID_RE.test(n)).length} videos found`); redraw(); }
-      if (a === 'rescan') { const idx = await vdirRescan(true); toast(idx ? `${[...idx.keys()].filter(n => VID_RE.test(n)).length} videos found in the folder` : 'The folder needs permission'); redraw(); }
+      if (a === 'pick') {
+        const m = el.querySelector('#vlMsg'), r = await vLinkFolder(t => { m.className = 'text-xs mt-2'; m.textContent = t; });
+        if (r.abort || r.bad && !r.ok && !r.idx) { m.innerHTML = `<span class="text-rose-600">${esc(r.msg)}</span>`; return; }
+        redraw(); setTimeout(() => { const m2 = document.querySelector('#vlib #vlMsg'); if (m2) m2.innerHTML = `<span class="${r.bad ? 'text-amber-600' : 'text-emerald-600'}">${esc(r.msg)}</span>`; }, 150); return;
+      }
+      if (a === 'rescan') { const m = el.querySelector('#vlMsg'); m.textContent = 'Reading the folder…'; const idx = await vdirRescan(true); redraw(); setTimeout(() => { const m2 = document.querySelector('#vlib #vlMsg'); if (m2) m2.innerHTML = idx ? `<span class="text-emerald-600">${vNames(idx).length} video files found in the folder.</span>` : '<span class="text-rose-600">The browser did not give access to the folder. Link it again.</span>'; }, 150); }
       if (a === 'check') await vidCheck(el.querySelector('#vlMsg'));
       if (a === 'unlink' && confirm('Unlink the lectures folder on this device? Your videos and notes are not touched.')) { await local.del('blobs', 'vdir'); VIDX = null; redraw(); }
       if (d) { await local.del('blobs', d); redraw(); }
     } catch (err) { if (err.name !== 'AbortError') el.querySelector('#vlMsg').innerHTML = `<span class="text-rose-600">${esc(err.message)}${/unsafe|system|sensitive/i.test(err.message || '') ? ' — choose a normal sub-folder (Chrome refuses Desktop, Documents, Downloads and system folders themselves).' : ''}</span>`; }
   };
   el.onchange = async e => {
+    if (e.target.id === 'vSessFiles') { const fs = [...e.target.files]; e.target.value = ''; const idx = vsessSet(fs, true), m = el.querySelector('#vlMsg'); if (!idx) { m.innerHTML = '<span class="text-rose-600">No video files were selected.</span>'; return; } redraw(); setTimeout(() => { const m2 = document.querySelector('#vlib #vlMsg'); if (m2) m2.innerHTML = `<span class="text-emerald-600">✓ ${vNames(idx).length} video files ready until you close this tab.</span>`; }, 150); return; }
     if (e.target.id === 'vSessUp') { const fs = [...e.target.files]; e.target.value = ''; const idx = vsessSet(fs), m = el.querySelector('#vlMsg'); if (!idx) { m.innerHTML = '<span class="text-rose-600">No video files were found in that folder.</span>'; return; } toast(`${[...idx.keys()].filter(n => VID_RE.test(n)).length} videos available for this session`); redraw(); return; }
     if (e.target.id !== 'vcopyUp') return; const fs = [...e.target.files]; const m = el.querySelector('#vlMsg');
     for (let i = 0; i < fs.length; i++) { m.textContent = `Saving ${i + 1}/${fs.length} · ${fs[i].name}…`; try { await vcopyPut(fs[i]); } catch (err) { m.innerHTML = `<span class="text-rose-600">Not enough browser storage for ${esc(fs[i].name)}.</span>`; return; } }
@@ -10056,9 +10096,10 @@ async function videosDialog(mid) {
       const v = el.dataset.v;
       if (v === 'x') { bg.remove(); route(); return; }
       if (v === 'go') { bg.remove(); return; }
-      if (v === 'pick') {       // first await = the picker (it needs the tap that just happened)
-        const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' });
-        await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (e) { } S.rec = { handle: h, name: h.name }; S.idx = undefined; await render(); loadDevice(true); return;
+      if (v === 'pick') {
+        const r = await vLinkFolder(t => say(t));
+        if (!r.ok && !r.idx) return say(r.msg, true);
+        S.rec = r.persisted ? await vdTimeout(vdirRec(), 4000, null) : null; S.idx = r.idx; await render(); say(r.msg, !!r.bad); return;
       }
       if (v === 'allow') { S.idx = undefined; await render(); S.idx = await vdTimeout(vdirReady(true), 60000, false); await render(); return; }
       if (v === 'rescan') { S.idx = undefined; await render(); S.idx = await vdTimeout(vdirRescan(true), 120000, false); await render(); return; }
@@ -10174,15 +10215,21 @@ async function videoPlayer(mid, idx, tq) {
   const vid = document.getElementById('vid'), cue = document.getElementById('cue'), wrap = document.getElementById('vwrap'), gate = document.getElementById('vGate'), err = document.getElementById('vErr');
   const $ = id => document.getElementById(id);
   // ---- source ----
-  async function load(ask) {
+  async function load(ask, note) {
     const r = await vresolve(v, ask); gate.hidden = true;
-    if (r.how === 'ask') { gate.hidden = false; gate.innerHTML = `<div>The lectures folder needs your permission after a refresh.</div><button class="btn-primary" data-a="allow">Allow access</button><div class="text-[11px] opacity-70">Tip: choose “Allow on every visit” so it is not asked again.</div>`; return; }
+    const again = `<div class="flex gap-2 flex-wrap justify-center">${canDir() ? '<button type="button" class="btn-primary" data-a="linkdir">\uD83D\uDCC1 Link the folder again</button>' : ''}<label class="btn-ghost cursor-pointer text-slate-900">\uD83C\uDFAC Choose video files<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vSessFiles"></label></div>`;
+    if (r.how === 'ask' && ask) { gate.hidden = false; gate.innerHTML = `<div><b>The browser did not give permission to open the folder.</b></div><div class="text-[11px] opacity-70">Some browsers (Chrome on Android, for example) forget a folder after the page is refreshed. Link the folder again, or pick the video files for this visit.</div>${again}`; return; }
+    if (r.how === 'ask') { gate.hidden = false; gate.innerHTML = `<div>The lectures folder needs your permission after a refresh.</div><button type="button" class="btn-primary" data-a="allow">Allow access</button><div class="text-[11px] opacity-70">Tip: choose “Allow on every visit” so it is not asked again.</div>`; return; }
     if (r.how === 'none' || r.how === 'missing') {
       gate.hidden = false;
       const pickBtn = `<label class="btn-ghost cursor-pointer text-slate-900">\uD83D\uDCBE Choose the file<input type="file" accept="video/*" id="vPick" class="hidden"></label>`;
       const folderBtn = canDir() ? `<button type="button" class="btn-primary" data-a="linkdir">\uD83D\uDCC1 ${(await vdirRec()) ? 'Change lectures folder' : 'Link lectures folder'}</button>` : `<label class="btn-primary cursor-pointer">\uD83D\uDCC2 Choose lectures folder<input type="file" webkitdirectory multiple class="hidden" id="vSessPick"></label>`;
       const rescan = (await vdirRec()) ? '<button type="button" class="btn-ghost text-slate-900" data-a="rescan">↻ Rescan folder</button>' : '';
-      gate.innerHTML = `<div>${r.how === 'none' ? 'This video is not on this device yet.' : `<b>${esc(v.file)}</b> was not found in the folder on this device.`}</div><div class="text-[11px] opacity-70">Link your lectures folder on this device — the video opens when a file in it has exactly this name${v.file ? ': <b>' + esc(v.file) + '</b>' : ''}.</div><div class="flex gap-2 flex-wrap justify-center">${folderBtn}${rescan}${pickBtn}</div>`;
+      const filesBtn = `<label class="btn-ghost cursor-pointer text-slate-900">\uD83C\uDFAC Choose video files<input type="file" accept="video/*,.srt,.vtt" multiple class="hidden" id="vSessFiles"></label>`;
+      let seen = null; try { seen = (await vdirReady(false)) || VSESS; } catch (e) { seen = VSESS; }
+      const sim = v.file && seen ? vSimilar(seen, v.file) : [], nSeen = seen ? vNames(seen).length : 0;
+      const noteHTML = (note ? `<div class="${note.bad ? 'text-rose-300' : 'text-emerald-300'}">${esc(note.msg)}</div>` : '') + (r.how === 'missing' && seen ? `<div class="text-[11px] opacity-80">${nSeen} video file${nSeen === 1 ? '' : 's'} seen on this device${sim.length ? ' · similar names: <b>' + sim.map(esc).join(' · ') + '</b> — the name must match exactly' : ''}.</div>` : '');
+      gate.innerHTML = `<div>${r.how === 'none' ? 'This video is not on this device yet.' : `<b>${esc(v.file)}</b> was not found in the folder on this device.`}</div><div class="text-[11px] opacity-70">Link your lectures folder on this device — the video opens when a file in it has exactly this name${v.file ? ': <b>' + esc(v.file) + '</b>' : ''}.</div>${noteHTML}<div class="flex gap-2 flex-wrap justify-center">${folderBtn}${rescan}${filesBtn}${pickBtn}</div>`;
       return;
     }
     if (objUrl) URL.revokeObjectURL(objUrl); objUrl = r.local ? r.url : null; vid.src = r.url;
@@ -10251,7 +10298,8 @@ async function videoPlayer(mid, idx, tq) {
   view.onchange = async e => {
     if (e.target.id === 'vRate') setRate(+e.target.value);
     if (e.target.id === 'nAuto') { UI.autoPause = e.target.checked; kv.set('vUI', UI); }
-    if (e.target.id === 'vSessPick') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs)) return toast('No video files were found in that folder'); return load(false); }
+    if (e.target.id === 'vSessPick') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs)) return load(false, { bad: true, msg: 'No video files were found in that folder.' }); return load(false); }
+    if (e.target.id === 'vSessFiles') { const fs = [...e.target.files]; e.target.value = ''; if (!vsessSet(fs, true)) return load(false, { bad: true, msg: 'No video files were selected.' }); return load(false); }
     if (e.target.id === 'vPick' && e.target.files[0]) { const f = e.target.files[0]; if (confirm(`Keep a copy of ${f.name} on this device so it opens directly next time?`)) { await vcopyPut(f); if (!v.file) { const T2 = await kv.get('modTrack', {}); const w = T2[mid].videos.find(z => z.id === v.id); w.file = v.file = f.name; await kv.set('modTrack', T2); } return load(false); } if (objUrl) URL.revokeObjectURL(objUrl); objUrl = vid.src = URL.createObjectURL(f); gate.hidden = true; err.textContent = 'Playing ' + f.name + ' (this session only).'; }
     if (e.target.id === 'srtUp' && e.target.files[0]) { const f = e.target.files[0], txt = await f.text(), c = parseSRT(txt); if (!c.length) return toast('No subtitle lines found in this file');
       const all = await kv.get('vsubs', {}); all[key] = { name: f.name, srt: txt }; await kv.set('vsubs', all); toast(`Subtitles added · ${c.length} lines`); videoPlayer(mid, idx); }
@@ -10267,7 +10315,7 @@ async function videoPlayer(mid, idx, tq) {
     if (e.target.dataset.ndel && confirm('Delete this note from Mohd Summary?')) { await db.del('notes', e.target.dataset.ndel); notify(mid); return drawNotes(); }
     if (a === 'allow') return load(true);
     if (a === 'rescan') { await vdirRescan(true); return load(false); }
-    if (a === 'linkdir') { try { const h = await window.showDirectoryPicker({ id: 'cfaLectures', mode: 'read' }); await local.put('blobs', { id: 'vdir', handle: h, name: h.name, ts: Date.now() }); VIDX = null; try { await kv.set('vdirHint', { name: h.name, ts: Date.now() }); } catch (x) { } return load(false); } catch (x) { if (x && x.name !== 'AbortError') toast(x.message || 'Could not open the folder'); return; } }
+    if (a === 'linkdir') { gate.hidden = false; gate.innerHTML = '<div>Choose your lectures folder…</div>'; const r = await vLinkFolder(t => { gate.innerHTML = `<div>${esc(t)}</div>`; }); return load(false, r); }
     if (a === 'back') seekBy(-10); if (a === 'fwd') seekBy(10);
     if (a === 'cc') { UI.cc = !UI.cc; kv.set('vUI', UI); lastTxt = null; tick(); ccSt(); }
     if (a === 'lay-normal') setLayout('normal'); if (a === 'lay-wide') setLayout('wide');
