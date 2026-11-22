@@ -15,7 +15,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v33';
+const VERSION = 'v34';
 const VENDOR = 'cfa-l1-vendor';                     // v24 · PDF engine lives in its own cache: a new VERSION no longer drops it
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
@@ -129,7 +129,7 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (req.mode === 'navigate' && url.origin === self.location.origin) { event.respondWith(pageFirst(event)); return; }
-  if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req)); return; }
+  if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req, event)); return; }
   if (isPdfEngine(req.url)) { event.respondWith(vendorFirst(event)); return; }
   if (url.origin === self.location.origin && /\/vendor\/[^/]+\.js$/.test(url.pathname)) { event.respondWith(libFirst(req, event)); return; }
   // v17 · app icon + manifest (installed app) are served from the cache so the app also starts offline

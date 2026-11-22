@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CFA L1 · Study</title>
-<meta name="theme-color" content="#1e1b4b">
+<meta name="theme-color" content="#0c1226">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -3484,6 +3484,41 @@ body.rd-fs .lp-panel, body.ai-fs .lp-panel { display: none !important; }
   nav[class*="text-xs"] a { display: inline-block; padding: 14px 4px; margin: -14px 0; }
   .rd-i { min-width: 44px; min-height: 44px; margin: -13px; }
 }
+</style>
+<style id="vivid-theme">
+/* ===== v35 · Vivid theme — richer colour in both modes; deep navy night mode instead of flat grey ===== */
+:root{--vv-a:#6366f1;--vv-b:#8b5cf6;--vv-c:#06b6d4}
+/* ---------- light ---------- */
+:root:not(.dark) body{background:radial-gradient(1200px 600px at 100% -10%,rgba(139,92,246,.10),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(6,182,212,.08),transparent 60%),#f4f6fc;background-attachment:fixed}
+:root:not(.dark) .card{border-color:#e3e7f5;box-shadow:0 1px 2px rgba(30,27,75,.04),0 6px 20px -8px rgba(79,70,229,.12)}
+.btn-primary{background-image:linear-gradient(135deg,var(--vv-a),var(--vv-b));box-shadow:0 6px 18px -6px rgba(99,102,241,.55);transition:transform .12s,box-shadow .12s,filter .12s}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08);box-shadow:0 8px 22px -6px rgba(139,92,246,.65);transform:translateY(-1px)}
+.mk-hero .btn-primary{background-image:none;box-shadow:0 6px 18px -6px rgba(0,0,0,.35)}
+:root:not(.dark) .as-item.on{background:linear-gradient(90deg,#e0e7ff,#f3e8ff);color:#4338ca;box-shadow:inset 3px 0 0 #6366f1}
+/* ---------- dark: deep navy + soft glow ---------- */
+.dark{--color-slate-950:#070b1a;--color-slate-900:#0c1226;--color-slate-800:#131b36;--color-slate-700:#253058;--color-slate-600:#3a4677;--color-slate-500:#8a96bd;--color-slate-400:#a9b4d6;--color-slate-300:#cdd5ee}
+html.dark body{color:#eef1fb;background:radial-gradient(1100px 600px at 105% -15%,rgba(139,92,246,.22),transparent 60%),radial-gradient(900px 520px at -15% 115%,rgba(6,182,212,.14),transparent 60%),linear-gradient(180deg,#080c1d,#0a0f24);background-attachment:fixed}
+.dark .card{background:linear-gradient(180deg,rgba(25,34,68,.92),rgba(17,24,50,.92));border-color:rgba(129,140,248,.18);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 30px -12px rgba(0,0,0,.6)}
+.dark .card:hover{border-color:rgba(129,140,248,.32)}
+.dark #appSide{background:linear-gradient(180deg,#0b1129,#0a0f22);border-color:rgba(129,140,248,.14)}
+.dark #appSide .as-head,.dark #appSide .as-foot{border-color:rgba(129,140,248,.14)}
+.dark .as-item.on{background:linear-gradient(90deg,rgba(99,102,241,.35),rgba(139,92,246,.18));color:#e0e7ff;box-shadow:inset 3px 0 0 #818cf8}
+.dark .btn-primary{box-shadow:0 6px 22px -6px rgba(139,92,246,.7)}
+.dark .btn-ghost{border-color:rgba(129,140,248,.28);background:rgba(99,102,241,.08)}
+.dark .btn-ghost:hover{background:rgba(99,102,241,.18);border-color:rgba(129,140,248,.5)}
+.dark .chip{background:rgba(99,102,241,.16);color:#c7d2fe}
+.dark .text-slate-500:not([class*="dark:text-"]){color:#a3aed2}
+.dark .text-slate-400:not([class*="dark:text-"]){color:#b4bee0}
+.dark .sec,.dark h3.sec{color:#a5b4fc;letter-spacing:.06em}
+.dark a.link,.dark .link{color:#a5b4fc}
+.dark .mk-bar,.dark .dark\:bg-slate-700{background-color:#253058}
+.dark .mx-green{background:rgba(16,185,129,.28);color:#6ee7b7}.dark .mx-amber{background:rgba(245,158,11,.28);color:#fcd34d}.dark .mx-red{background:rgba(244,63,94,.28);color:#fda4af}.dark .mx-grey{background:#253058;color:#b4bee0}
+.dark .kp-f{background:#0a0f24}
+.dark input.inp,.dark select.inp,.dark textarea.inp{background:#0c1226;border-color:#2a3563}
+.dark ::selection{background:rgba(139,92,246,.45)}
+/* page reader keeps its own neutral backgrounds (no colour cast on PDFs) */
+.dark .rd-scroll{background:#0b0f1c}
+@media (prefers-reduced-motion:reduce){.btn-primary{transition:none}.btn-primary:hover:not(:disabled){transform:none}}
 </style>
 </head>
 <body class="has-side bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -8142,7 +8177,7 @@ async function cardsTab(body, x) {
 async function cardsAll() {
   const mods = moduleList().filter(m => m.x);
   const rows = await Promise.all(mods.map(async m => ({ m, due: await dueCardCount([m.id]), S: await cardStats(m.id) })));
-  const due = rows.reduce((a, r) => a + r.due, 0), flag = rows.reduce((a, r) => a + r.S.flag, 0), nm = rows.reduce((a, r) => a + r.S.tot - r.S.mast, 0), tot = rows.reduce((a, r) => a + r.S.tot, 0), mast = rows.reduce((a, r) => a + r.S.mast, 0);
+  const due = await dueCardCount(mods.map(m => m.id)), flag = rows.reduce((a, r) => a + r.S.flag, 0), nm = rows.reduce((a, r) => a + r.S.tot - r.S.mast, 0), tot = rows.reduce((a, r) => a + r.S.tot, 0), mast = rows.reduce((a, r) => a + r.S.mast, 0);
   view.innerHTML = crumbs([['Today', '#/'], ['Flashcards']]) + `<div id="cHost"><div class="flex flex-wrap items-center gap-2 mb-4"><h1 class="h1 mb-0 mr-auto">\uD83C\uDCCF Flashcards <span class="text-sm font-normal text-slate-500">· ${pct(mast, tot)}% mastered (${mast}/${tot})</span></h1>
     <button class="btn-primary" id="cAll" ${due ? '' : 'disabled'}>▶ Review all due (${due})</button><button class="btn-ghost text-rose-600" id="cNm" ${nm ? '' : 'disabled'}>✗ Not mastered (${nm})</button><button class="btn-ghost text-amber-600" id="cFlag" ${flag ? '' : 'disabled'} data-tip="All flagged cards of all modules in one session">⚑ Flagged (${flag})</button></div>
     <div class="g-auto">${rows.map(r => `<a class="card flex items-center gap-3 hover:border-indigo-400" href="${r.m.href}/cards"><span class="mod-num scale-75">${r.m.num}</span><span class="flex-1 min-w-0"><span class="block font-semibold truncate">${r.m.short} · ${esc(r.m.title)}</span><span class="text-xs text-slate-500">${r.S.tot} cards · ${pct(r.S.mast, r.S.tot)}% mastered${r.S.flag ? ` · ⚑ ${r.S.flag}` : ''}</span></span><span class="text-sm font-bold ${r.due ? 'text-indigo-600' : 'text-slate-400'}">${r.due} due</span></a>`).join('')}</div></div>`;
@@ -8174,7 +8209,7 @@ const rdI = () => `<button type="button" class="rd-i" data-kpi="rdy" aria-label=
 // v35 · evidence strength instead of "± x" (the ± was not a calibrated interval). Based on how much the 40 % starting point still weighs:
 // Limited = it is still ≥ 30 % of the result (W < 15) · Moderate = 13–30 % (W 15–40) · Strong = under 13 % (W ≥ 40)
 const rdEv = W => W >= 40 ? 'Strong' : W >= 15 ? 'Moderate' : 'Limited';
-const rdSub = (r, W, ok) => ok ? `evidence: ${rdEv(W)}` : `${rdNeed({ W })} more`;
+const rdSub = (r, W, ok, nq) => ok ? `evidence: ${rdEv(W)}` : nq === 0 ? 'no questions yet' : `${rdNeed({ W })} more`;
 function qEvidence(s, now) {
   const h = s && s.hist || []; let W = 0, V = 0, prev = null;
   for (const x of h) {
@@ -8209,6 +8244,13 @@ function modReadiness(m, p, c) { return Math.round(100 * modEstimate(m, c).p); }
 //  1) modules with enough evidence (≈5 answers) → plain average of their readiness
 //  2) none yet, but some answers → the answered modules, weighted by their evidence
 //  3) nothing answered → 40 % (shown as "—" anyway)
+// overall readiness weighted by CFA exam weights (topics without evidence are left out, not counted as 0)
+function rdExam(ms, c) {
+  const by = {}; for (const m of ms) (by[m.subject] = by[m.subject] || []).push(m);
+  let num = 0, den = 0;
+  for (const [sj, zs] of Object.entries(by)) { if (!zs.some(m => modEstimate(m, c).W > 0)) continue; const w = CFA_W[sj] || 7.5; num += w * rdAvg(zs, c).r; den += w; }
+  return den ? Math.round(num / den) : rdAvg(ms, c).r;
+}
 function rdAvg(ms, c) {
   const es = ms.map(m => ({ m, e: modEstimate(m, c) })), ok = es.filter(z => rdOk(z.e));
   if (ok.length) return { r: Math.round(100 * ok.reduce((a, z) => a + z.e.p, 0) / ok.length), used: ok.length, tot: ms.length };
@@ -8220,7 +8262,7 @@ async function moduleTrackStrip(modId) {
   const m = modInfo(modId); if (!m || !m.x) return '';
   const c = await progressCtx(), p = modProgress(m, c), lm = losMastery(m, c), rd = modReadiness(m, p, c), rdE = modEstimate(m, c), rdK = rdOk(rdE), ft = modFirstTry(m, c), ftv = ft.n ? Math.round(100 * ft.c / ft.n) : 0, crN = modQs(m, c).filter(q => q.cr?.state === 'pending').length;
   const T0 = (await kv.get('modTrack', {}))[modId] || {};
-  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex flex-wrap items-center gap-5">${statusRings({ size: 72, cmp: p.complete, cmpTip: STATUS_TIPS.cmp, rd, rdK, rdTip: rdK ? `Readiness ${rd}% ± ${rdSe(rdE.p, rdE.W)} · ${Math.round(100 * (rdE.cov || 0))}% of this lesson's questions answered${RD_FULL ? ' (unanswered ones count at 40 %)' : ''}` : `Readiness appears after about ${rdNeed(rdE)} more answers`, rdSub: rdSub(rd, rdE.W, rdK), ft: { n: ft.n, v: ftv, sub: ft.n ? `${ft.c}/${ft.n}` : 'no answers' }, ftTip: ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet' })}
+  return `<div class="card mb-3"><div class="flex flex-wrap items-center gap-2 mb-2"><span class="chip" title="Curriculum LM${m.num} of 102">LM${m.num}</span>${prioRoundsHTML(modId, T0)}<button type="button" class="btn-ghost text-xs ml-auto" data-blurt="${m.id}" title="5 minutes: write everything you remember, then compare with the LOS">🧠 Blurt test</button></div><div class="flex flex-wrap items-center gap-5">${statusRings({ size: 72, cmp: p.complete, cmpTip: STATUS_TIPS.cmp, rd, rdK, rdTip: rdK ? `Readiness ${rd}% ± ${rdSe(rdE.p, rdE.W)} · ${Math.round(100 * (rdE.cov || 0))}% of this lesson's questions answered${RD_FULL ? ' (unanswered ones count at 40 %)' : ''}` : (modQs(m, c).length ? `Readiness appears after about ${rdNeed(rdE)} more answers` : 'No questions in this module yet — load its question file in the Library'), rdSub: rdSub(rd, rdE.W, rdK, modQs(m, c).length), ft: { n: ft.n, v: ftv, sub: ft.n ? `${ft.c}/${ft.n}` : 'no answers' }, ftTip: ft.n ? `First try ${ftv}% · ${ft.c} of ${ft.n} right the first time` : 'First try — no answers yet' })}
       <div class="flex-1 min-w-[260px]">${statusTiles(partTiles(k => (p.av && p.av[k] === false) ? null : p[k], false))}<div class="lp-narrow-only mt-2" data-tip="Lesson progress — the steps you tick in the outline of this module">${lessonSummaryHTML(p, m)}</div></div></div>
     <div class="flex flex-wrap items-center gap-1 mt-3"><span class="text-[11px] text-slate-500 mr-1" data-tip="One score per LOS — the same number as the LOS rating. Green ≥ 80 (Excellent) · amber 60–79 (Good to improve) · red < 60 (Must improve) · grey = not enough answers yet.">LOS mastery</span>${lm.map(z => `<span class="mx ${mCol(z.score)}" data-tip="${esc(z.tip)}">${z.label.replace('LOS ', '')}${z.score != null ? ' · ' + z.score : ''}</span>`).join('')}</div>${prereqHTML(m, c)}${crN ? `<a class="cr-chip" href="#/qbank/m/${m.id}?pool=crp" data-tip="Claude disagrees with the source answer on these questions. Practise them, read the Curriculum paragraph and decide.">🧪 ${crN} question${crN === 1 ? '' : 's'} disputed by Claude — to decide ›</a>` : ''}</div>`;
 }
@@ -8910,7 +8952,7 @@ async function qbankStats(subj) {
   const rc = REASONS.map(([k]) => ({ k, n: Q.reduce((a, q) => a + allReasons(st[q.id]).filter(h => h.r === k).length, 0) })).filter(z => z.n).sort((a, b) => b.n - a.n);
   const rMax = Math.max(1, ...rc.map(z => z.n));
   const times = lasts.map(z => z.h.s).filter(Boolean), avgT = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null;
-  const readi0 = allMods.length ? rdAvg(allMods, c).r : 0;
+  const readi0 = !allMods.length ? 0 : sj ? rdAvg(allMods, c).r : rdExam(allMods, c);
   const readi = sj ? mixMini(sj.id, readi0) : readi0, readiW = allMods.reduce((a, m) => a + modEstimate(m, c).W, 0), readiK = readiW >= RM.MIN;
   const prog = allMods.map(m => modProgress(m, c)), part = k => prog.length ? Math.round(prog.reduce((a, p) => a + p[k], 0) / prog.length) : 0;
   view.innerHTML = crumbs([['Today', '#/'], ['Question bank', '#/qbank'], ...(sj ? [['Qbank stats', '#/qbank/stats'], [sj.name]] : [['Qbank stats']])]) + `
@@ -12221,7 +12263,7 @@ async function fillSmartCard(id = 'smartCard') {
     const sub = el.querySelector('[data-smart-sub]'), go = el.querySelector('[data-b2="smart"]'), rn = el.querySelector('[data-rq-n]');
     sub.innerHTML = r.n ? `${r.n} questions: ${smartText(r.parts)}` : 'No questions yet — new questions come from modules whose lecture or reading is finished. Mark a module’s reading done, or use Custom practice to choose any module.';
     go.disabled = !r.n; if (!go.hasAttribute('data-keep')) go.textContent = `▶ Start (${r.n})`;
-    if (!r.n) { try { const cx = await progressCtx(), nx = moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) { if (go.hasAttribute('data-keep')) { go.disabled = false; go.removeAttribute('data-b2'); go.textContent = '▶ Continue ' + nx.short; go.onclick = () => { location.hash = nx.href; }; sub.textContent = 'No questions yet — they unlock as you finish the reading or lecture of a module.'; } else sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } } catch (_e) { window.__diag && __diag.swallow(_e);  } }
+    if (!r.n) { try { const cx = await progressCtx(), lm = modInfo(await kv.get('lastModule', null)), nx = (lm && lm.x && modProgress(lm, cx).complete < 100) ? lm : moduleList().find(m => m.x && modProgress(m, cx).complete < 100); if (nx) { if (go.hasAttribute('data-keep')) { go.disabled = false; go.removeAttribute('data-b2'); go.textContent = '▶ Continue ' + nx.short; go.onclick = () => { location.hash = nx.href; }; sub.textContent = 'No questions yet — they unlock as you finish the reading or lecture of a module.'; } else sub.innerHTML = `New questions come from modules whose lecture or reading is finished.<br><a class="th-next" href="${nx.href}">▶ Continue ${esc(nx.short)} · ${esc(nx.title)}</a>`; } } catch (_e) { window.__diag && __diag.swallow(_e);  } }
     rn.textContent = r.rq.due.length ? `${r.rq.due.length} due${r.rq.backlog ? ' (' + r.rq.backlog + ' backlog)' : ''}` : '0 due ✓';
   } catch (e) { const sub = el.querySelector('[data-smart-sub]'); if (sub) sub.textContent = 'Could not prepare the session'; console.warn(e); }
 }
