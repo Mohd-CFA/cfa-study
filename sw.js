@@ -15,7 +15,7 @@
  *
  * To force every device to drop its saved copies, bump VERSION.
  */
-const VERSION = 'v32';
+const VERSION = 'v33';
 const VENDOR = 'cfa-l1-vendor';                     // v24 · PDF engine lives in its own cache: a new VERSION no longer drops it
 const CACHE = 'cfa-l1-' + VERSION;
 const LIB_MARK = '/@supabase/supabase-js';          // matches jsDelivr and unpkg URLs of the library
@@ -71,7 +71,9 @@ async function revalidate(key) {
 async function pageFirst(event) {
   const request = event.request, key = pageKey(request.url);
   const cache = await caches.open(CACHE);
-  const cached = (await cache.match(key, { ignoreSearch: true })) || (await cache.match(pageKey(self.registration.scope)));
+  // v33 · only the app page itself may fall back to the saved index.html — any other address answers from the network (a real 404 stays a 404)
+  const scope = pageKey(self.registration.scope), isApp = key === scope || key === scope + 'index.html';
+  const cached = (await cache.match(key, { ignoreSearch: true })) || (isApp ? await cache.match(scope) : undefined);
   if (cached) { event.waitUntil(revalidate(key)); return cached; }
   try {                                                         // nothing saved yet → network
     const res = await fetch(key, { cache: 'no-cache', credentials: 'same-origin' });
@@ -108,13 +110,18 @@ async function vendorFirst(event) {
   } catch (e) { return Response.error(); }
 }
 
-async function libFirst(request) {
+// v33 · stale-while-revalidate: the saved copy answers at once, a fresh copy is fetched quietly for next time,
+// so a new vendor/supabase.js, manifest or icon reaches every device without bumping VERSION. Offline + not saved → a clean error.
+async function libFirst(request, event) {
   const cache = await caches.open(CACHE);
   const hit = await cache.match(request.url, { ignoreVary: true });
-  if (hit) return hit;
-  const res = await fetch(request);
-  if (res.ok) cache.put(request.url, res.clone());
-  return res;
+  const refresh = (async () => {
+    try { const res = await fetch(request); if (res.ok) await cache.put(request.url, res.clone()); return res; }
+    catch (e) { return null; }
+  })();
+  if (hit) { if (event) event.waitUntil(refresh.catch(() => { })); return hit; }
+  const res = await refresh;
+  return res || Response.error();
 }
 
 self.addEventListener('fetch', event => {
@@ -124,9 +131,9 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate' && url.origin === self.location.origin) { event.respondWith(pageFirst(event)); return; }
   if (url.pathname.includes(LIB_MARK)) { event.respondWith(libFirst(req)); return; }
   if (isPdfEngine(req.url)) { event.respondWith(vendorFirst(event)); return; }
-  if (url.origin === self.location.origin && /\/vendor\/[^/]+\.js$/.test(url.pathname)) { event.respondWith(libFirst(req)); return; }
+  if (url.origin === self.location.origin && /\/vendor\/[^/]+\.js$/.test(url.pathname)) { event.respondWith(libFirst(req, event)); return; }
   // v17 · app icon + manifest (installed app) are served from the cache so the app also starts offline
-  if (url.origin === self.location.origin && /\/(manifest\.webmanifest|icons\/[^/]+\.png)$/.test(url.pathname)) event.respondWith(libFirst(req));
+  if (url.origin === self.location.origin && /\/(manifest\.webmanifest|icons\/[^/]+\.png)$/.test(url.pathname)) event.respondWith(libFirst(req, event));
 });
 
 // the page asks us to pre-cache the library right after registration, so the very first offline visit already works
